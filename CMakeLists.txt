@@ -30,10 +30,10 @@ find_library(TELEPATHY_QT5_LIBRARIES telepathy-qt5)
 find_library(TELEPATHY_QT5_SERVICE_LIBRARIES telepathy-qt5-service)
 find_library(OFONO_QT_LIBRARIES ofono-qt)
 
-add_executable(telepathy-ofono main.cpp protocol.cpp connection.cpp ofonotextchannel.cpp)
+add_executable(telepathy-ofono main.cpp protocol.cpp connection.cpp ofonotextchannel.cpp ofonocallchannel.cpp)
 qt5_use_modules(telepathy-ofono Core DBus)
 
-target_link_libraries(telepathy-ofono ${Qt5Core_LIBRARIES} ${Qt5DBus_LIBRARIES} ${TP_QT5_LIBRARIES} ${TELEPATHY_QT5_LIBRARIES} ${TELEPATHY_QT5_SERVICE_LIBRARIES} ${OFONO_QT_LIBRARIES})
+target_link_libraries(telepathy-ofono ${Qt5Core_LIBRARIES} ${Qt5DBus_LIBRARIES} -ltelepathy-qt5 ${TELEPATHY_QT5_SERVICE_LIBRARIES} ${OFONO_QT_LIBRARIES})
 install(TARGETS telepathy-ofono DESTINATION ${DAEMON_DIR})
 
 configure_file(ofono.service.in org.freedesktop.Telepathy.ConnectionManager.ofono.service)

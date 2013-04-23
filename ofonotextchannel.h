@@ -18,7 +18,7 @@ public:
     oFonoTextChannel(oFonoConnection *conn, QString phoneNumber, uint targetHandle, QObject *parent = 0);
     QString sendMessage(const Tp::MessagePartList& message, uint flags, Tp::DBusError* error);
     void messageReceived(const QString & message, const QVariantMap &info);
-    Tp::BaseChannelPtr getBaseChannel();
+    Tp::BaseChannelPtr baseChannel();
 
 private Q_SLOTS:
     void onOfonoMessageStateChanged(QString status);

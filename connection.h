@@ -10,12 +10,16 @@
 #include <ofonomessagemanager.h>
 #include <ofonovoicecallmanager.h>
 #include <ofonovoicecall.h>
+#include <ofonocallvolume.h>
 
 // telepathy-ofono
 #include "ofonotextchannel.h"
+#include "ofonocallchannel.h"
+
 
 class oFonoConnection;
 class oFonoTextChannel;
+class oFonoCallChannel;
 
 class oFonoConnection : public Tp::BaseConnection
 {
@@ -36,26 +40,31 @@ public:
     Tp::BaseConnectionRequestsInterfacePtr requestsIface;
     uint newHandle(const QString &identifier);
 
-    OfonoMessageManager *getMessageManager();
-    OfonoVoiceCallManager *getVoiceCallManager();
+    OfonoMessageManager *messageManager();
+    OfonoVoiceCallManager *voiceCallManager();
+    OfonoCallVolume *callVolume();
+
+    uint ensureHandle(const QString &phoneNumber);
 
     ~oFonoConnection();
 
 private Q_SLOTS:
     void oFonoIncomingMessage(const QString &message, const QVariantMap &info);
-    void oFonoCallAdded(const QString &call);
+    void oFonoCallAdded(const QString &call, const QVariantMap &properties);
     void onTextChannelClosed();
+    void onCallChannelClosed();
 
 private:
     QMap<uint, QString> mHandles;
 
     QMap<QString, oFonoTextChannel*> mTextChannels;
-    QMap<QString, Tp::BaseChannelPtr> mCallChannels;
+    QMap<QString, oFonoCallChannel*> mCallChannels;
 
     QStringList mModems;
     OfonoModemManager *mOfonoModemManager;
     OfonoMessageManager *mOfonoMessageManager;
     OfonoVoiceCallManager *mOfonoVoiceCallManager;
+    OfonoCallVolume *mOfonoCallVolume;
     uint mHandleCount;
 };
 

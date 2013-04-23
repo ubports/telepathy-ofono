@@ -11,7 +11,10 @@ oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, QString phoneNumber, u
     mTargetHandle(targetHandle),
     mMessageCounter(1)
 {
-    Tp::BaseChannelPtr baseChannel = Tp::BaseChannel::create(mConnection, TP_QT_IFACE_CHANNEL_TYPE_TEXT, targetHandle, Tp::HandleTypeContact);
+    Tp::BaseChannelPtr baseChannel = Tp::BaseChannel::create(mConnection,
+                                                             TP_QT_IFACE_CHANNEL_TYPE_TEXT,
+                                                             targetHandle,
+                                                             Tp::HandleTypeContact);
     Tp::BaseChannelTextTypePtr textType = Tp::BaseChannelTextType::create(baseChannel.data());
     baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(textType));
 
@@ -40,7 +43,7 @@ oFonoTextChannel::~oFonoTextChannel()
 {
 }
 
-Tp::BaseChannelPtr oFonoTextChannel::getBaseChannel()
+Tp::BaseChannelPtr oFonoTextChannel::baseChannel()
 {
     return mBaseChannel;
 }
@@ -50,10 +53,10 @@ QString oFonoTextChannel::sendMessage(const Tp::MessagePartList& message, uint f
     Tp::MessagePart header = message.at(0);
     Tp::MessagePart body = message.at(1);
 
-    QString objpath = mConnection->getMessageManager()->sendMessage(mPhoneNumber, body["content"].variant().toString()).path();
+    QString objpath = mConnection->messageManager()->sendMessage(mPhoneNumber, body["content"].variant().toString()).path();
     if (objpath.isEmpty()) {
-        qDebug() << mConnection->getMessageManager()->errorName() << mConnection->getMessageManager()->errorMessage();
-        error->set(TP_QT_ERROR_INVALID_ARGUMENT, mConnection->getMessageManager()->errorMessage());
+        qDebug() << mConnection->messageManager()->errorName() << mConnection->messageManager()->errorMessage();
+        error->set(TP_QT_ERROR_INVALID_ARGUMENT, mConnection->messageManager()->errorMessage());
     }
 
     OfonoMessage *msg = new OfonoMessage(objpath);
