@@ -39,12 +39,16 @@ void oFonoCallChannel::onHangup(uint reason, const QString &detailedReason, cons
 
 void oFonoCallChannel::onAccept(Tp::DBusError*)
 {
-    answer();
+    if (this->state() == "waiting") {
+        mConnection->voiceCallManager()->holdAndAnswer();
+    } else {
+        answer();
+    }
 }
 
 void oFonoCallChannel::init()
 {
-    bool incoming = this->state() == "incoming";
+    bool incoming = this->state() == "incoming" || this->state() == "waiting";
     mObjPath = mBaseChannel->objectPath();
 
     Tp::CallMemberMap memberFlags;
