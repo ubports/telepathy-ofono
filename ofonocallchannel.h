@@ -26,6 +26,8 @@ public:
     void onAccept(Tp::DBusError*);
     void onMuteStateChanged(const Tp::LocalMuteState &state, Tp::DBusError *error);
     void onHoldStateChanged(const Tp::LocalHoldState &state, const Tp::LocalHoldStateReason &reason, Tp::DBusError *error);
+    void onDTMFStartTone(uchar event, Tp::DBusError *error);
+    void onDTMFStopTone(Tp::DBusError *error);
 
 private Q_SLOTS:
     void oFonoCallStateChanged(const QString &state);
@@ -43,6 +45,7 @@ private:
     Tp::BaseChannelHoldInterfacePtr mHoldIface;
     Tp::BaseCallMuteInterfacePtr mMuteIface;
     Tp::BaseChannelCallTypePtr mCallChannel;
+    Tp::BaseCallContentDTMFInterfacePtr mDTMFIface;
     Tp::BaseCallContentPtr mCallContent;
 };
 

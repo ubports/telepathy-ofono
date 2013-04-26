@@ -4,6 +4,7 @@
 // telepathy-qt
 #include <TelepathyQt/BaseConnection>
 #include <TelepathyQt/BaseChannel>
+#include <TelepathyQt/BaseCall>
 
 // ofono-qt
 #include <ofonomodemmanager.h>

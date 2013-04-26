@@ -65,7 +65,14 @@ void oFonoCallChannel::init()
 
     mCallChannel->setCallState(Tp::CallStateInitialising, 0, reason, stateDetails);
 
-    mCallContent = mCallChannel->addContent("audio", Tp::MediaStreamTypeAudio, Tp::MediaStreamDirectionNone);
+    mCallContent = Tp::BaseCallContent::create(baseChannel()->dbusConnection(), baseChannel().data(), "audio", Tp::MediaStreamTypeAudio, Tp::MediaStreamDirectionNone);
+
+    mDTMFIface = Tp::BaseCallContentDTMFInterface::create();
+    mCallContent->plugInterface(Tp::AbstractCallContentInterfacePtr::dynamicCast(mDTMFIface));
+    mCallChannel->addContent(mCallContent);
+
+    mDTMFIface->setStartToneCallback(Tp::memFun(this,&oFonoCallChannel::onDTMFStartTone));
+    mDTMFIface->setStopToneCallback(Tp::memFun(this,&oFonoCallChannel::onDTMFStopTone));
 
     mCallChannel->setMembersFlags(memberFlags, identifiers, Tp::UIntList(), reason);
 
@@ -99,6 +106,25 @@ void oFonoCallChannel::onMuteStateChanged(const Tp::LocalMuteState &state, Tp::D
     }
 }
 
+void oFonoCallChannel::onDTMFStartTone(uchar event, Tp::DBusError *error)
+{
+    QString finalString;
+    if (event == 10) {
+        finalString = "*";
+    } else if (event == 11) {
+        finalString = "#";
+    } else {
+        finalString = QString::number(event);
+    }
+    qDebug() << "start tone" << finalString;
+
+    mConnection->voiceCallManager()->sendTones(finalString);
+}
+
+void oFonoCallChannel::onDTMFStopTone(Tp::DBusError *error)
+{
+}
+
 oFonoCallChannel::~oFonoCallChannel()
 {
     qDebug() << "call channel closed";
@@ -122,7 +148,7 @@ void oFonoCallChannel::oFonoCallStateChanged(const QString &state)
     if (state == "disconnected") {
         qDebug() << "disconnected";
         mCallChannel->setCallState(Tp::CallStateEnded, 0, reason, stateDetails);
-        Q_EMIT mBaseChannel->closed();
+        mBaseChannel->close();
     } else if (state == "active") {
         qDebug() << "active";
         mCallChannel->setCallState(Tp::CallStateActive, 0, reason, stateDetails);
