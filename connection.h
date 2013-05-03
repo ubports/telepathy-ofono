@@ -46,12 +46,16 @@ public:
     OfonoCallVolume *callVolume();
 
     uint ensureHandle(const QString &phoneNumber);
+    Tp::BaseChannelPtr createTextChannel(uint targetHandleType,
+                                         uint targetHandle, Tp::DBusError *error);
+    Tp::BaseChannelPtr createCallChannel(uint targetHandleType,
+                                         uint targetHandle, Tp::DBusError *error);
 
     ~oFonoConnection();
 
 private Q_SLOTS:
-    void oFonoIncomingMessage(const QString &message, const QVariantMap &info);
-    void oFonoCallAdded(const QString &call, const QVariantMap &properties);
+    void onOfonoIncomingMessage(const QString &message, const QVariantMap &info);
+    void onOfonoCallAdded(const QString &call, const QVariantMap &properties);
     void onTextChannelClosed();
     void onCallChannelClosed();
 

@@ -29,11 +29,13 @@ oFonoCallChannel::oFonoCallChannel(oFonoConnection *conn, QString phoneNumber, u
     mCallChannel->setHangupCallback(Tp::memFun(this,&oFonoCallChannel::onHangup));
     mCallChannel->setAcceptCallback(Tp::memFun(this,&oFonoCallChannel::onAccept));
 
+    // init must be called after initialization, otherwise we will have no object path registered.
     QTimer::singleShot(0, this, SLOT(init()));
 }
 
-void oFonoCallChannel::onHangup(uint reason, const QString &detailedReason, const QString &message, Tp::DBusError*error)
+void oFonoCallChannel::onHangup(uint reason, const QString &detailedReason, const QString &message, Tp::DBusError *error)
 {
+    // TODO: use the parameters sent by telepathy
     hangup();
 }
 
@@ -83,7 +85,7 @@ void oFonoCallChannel::init()
     mCallChannel->setCallState(Tp::CallStateInitialised, 0, reason, stateDetails);
     QObject::connect(mBaseChannel.data(), SIGNAL(closed()), this, SLOT(deleteLater()));
     QObject::connect(mConnection->callVolume(), SIGNAL(mutedChanged(bool)), SLOT(onOfonoMuteChanged(bool)));
-    QObject::connect(this, SIGNAL(stateChanged(QString)), SLOT(oFonoCallStateChanged(QString)));
+    QObject::connect(this, SIGNAL(stateChanged(QString)), SLOT(onOfonoCallStateChanged(QString)));
 }
 
 void oFonoCallChannel::onOfonoMuteChanged(bool mute)
@@ -120,8 +122,8 @@ void oFonoCallChannel::onDTMFStartTone(uchar event, Tp::DBusError *error)
     } else {
         finalString = QString::number(event);
     }
-    qDebug() << "start tone" << finalString;
 
+    qDebug() << "start tone" << finalString;
     mConnection->voiceCallManager()->sendTones(finalString);
 }
 
@@ -141,7 +143,7 @@ Tp::BaseChannelPtr oFonoCallChannel::baseChannel()
     return mBaseChannel;
 }
 
-void oFonoCallChannel::oFonoCallStateChanged(const QString &state)
+void oFonoCallChannel::onOfonoCallStateChanged(const QString &state)
 {
     Tp::CallStateReason reason;
     QVariantMap stateDetails;

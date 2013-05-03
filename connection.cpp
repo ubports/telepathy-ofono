@@ -29,13 +29,17 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     setRequestHandlesCallback(Tp::memFun(this,&oFonoConnection::requestHandles));
     setCreateChannelCallback(Tp::memFun(this,&oFonoConnection::createChannel));
 
+    // initialise requests interface (Connection.Interface.Requests)
     requestsIface = Tp::BaseConnectionRequestsInterface::create(this);
+
+    // set requestable text channel properties
     Tp::RequestableChannelClass text;
     text.fixedProperties[TP_QT_IFACE_CHANNEL+".ChannelType"] = TP_QT_IFACE_CHANNEL_TYPE_TEXT;
     text.fixedProperties[TP_QT_IFACE_CHANNEL+".TargetHandleType"]  = Tp::HandleTypeContact;
     text.allowedProperties.append(TP_QT_IFACE_CHANNEL+".TargetHandle");
     text.allowedProperties.append(TP_QT_IFACE_CHANNEL+".TargetID");
 
+    // set requestable call channel properties
     Tp::RequestableChannelClass call;
     call.fixedProperties[TP_QT_IFACE_CHANNEL+".ChannelType"] = TP_QT_IFACE_CHANNEL_TYPE_CALL;
     call.fixedProperties[TP_QT_IFACE_CHANNEL+".TargetHandleType"]  = Tp::HandleTypeContact;
@@ -53,8 +57,8 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
 
     plugInterface(Tp::AbstractConnectionInterfacePtr::dynamicCast(requestsIface));
 
-    QObject::connect(mOfonoMessageManager, SIGNAL(incomingMessage(QString,QVariantMap)), this, SLOT(oFonoIncomingMessage(QString,QVariantMap)));
-    QObject::connect(mOfonoVoiceCallManager, SIGNAL(callAdded(QString,QVariantMap)), SLOT(oFonoCallAdded(QString, QVariantMap)));
+    QObject::connect(mOfonoMessageManager, SIGNAL(incomingMessage(QString,QVariantMap)), this, SLOT(onOfonoIncomingMessage(QString,QVariantMap)));
+    QObject::connect(mOfonoVoiceCallManager, SIGNAL(callAdded(QString,QVariantMap)), SLOT(onOfonoCallAdded(QString, QVariantMap)));
 }
 
 uint oFonoConnection::newHandle(const QString &identifier)
@@ -118,6 +122,70 @@ Tp::UIntList oFonoConnection::requestHandles(uint handleType, const QStringList&
     return handles;
 }
 
+Tp::BaseChannelPtr oFonoConnection::createTextChannel(uint targetHandleType,
+                                               uint targetHandle, Tp::DBusError *error)
+{
+    Q_UNUSED(targetHandleType);
+    Q_UNUSED(error);
+
+    QString newPhoneNumber = mHandles.value(targetHandle);
+
+    Q_FOREACH(const QString &phoneNumber, mTextChannels.keys()) {
+        if (PhoneNumberUtils::compareLoosely(phoneNumber, newPhoneNumber)) {
+            return mTextChannels[phoneNumber]->baseChannel();
+        }
+    }
+
+    mTextChannels[newPhoneNumber] = new oFonoTextChannel(this, newPhoneNumber, targetHandle);
+    QObject::connect(mTextChannels[newPhoneNumber], SIGNAL(destroyed()), SLOT(onTextChannelClosed()));
+    qDebug() << mTextChannels[newPhoneNumber];
+    return mTextChannels[newPhoneNumber]->baseChannel();
+}
+
+Tp::BaseChannelPtr oFonoConnection::createCallChannel(uint targetHandleType,
+                                               uint targetHandle, Tp::DBusError *error)
+{
+    Q_UNUSED(targetHandleType);
+
+    QString newPhoneNumber = mHandles.value(targetHandle);
+
+    Q_FOREACH(const QString &phoneNumber, mCallChannels.keys()) {
+        if (PhoneNumberUtils::compareLoosely(phoneNumber, newPhoneNumber)) {
+            return mCallChannels[phoneNumber]->baseChannel();
+        }
+    }
+
+    bool isOngoingCall = false;
+    QDBusObjectPath objpath;
+    Q_FOREACH(const QString &callId, mOfonoVoiceCallManager->getCalls()) {
+        // check if this is an ongoing call
+        OfonoVoiceCall *call = new OfonoVoiceCall(callId);
+        if (PhoneNumberUtils::compareLoosely(call->lineIdentification(), newPhoneNumber)) {
+            isOngoingCall = true;
+        }
+        call->deleteLater();
+        if (isOngoingCall) {
+            objpath.setPath(callId);
+            break;
+        }
+    }
+
+    if (!isOngoingCall) {
+        objpath = mOfonoVoiceCallManager->dial(newPhoneNumber, "");
+    }
+
+    if (objpath.path().isEmpty()) {
+        error->set(TP_QT_ERROR_NOT_AVAILABLE, "Channel could not be created");
+        return Tp::BaseChannelPtr();
+    }
+
+    mCallChannels[newPhoneNumber] = new oFonoCallChannel(this, newPhoneNumber, targetHandle,objpath.path());
+    QObject::connect(mCallChannels[newPhoneNumber], SIGNAL(destroyed()), SLOT(onCallChannelClosed()));
+    qDebug() << mCallChannels[newPhoneNumber];
+    return mCallChannels[newPhoneNumber]->baseChannel();
+
+}
+
 Tp::BaseChannelPtr oFonoConnection::createChannel(const QString& channelType, uint targetHandleType,
                                                uint targetHandle, Tp::DBusError *error)
 {
@@ -127,58 +195,12 @@ Tp::BaseChannelPtr oFonoConnection::createChannel(const QString& channelType, ui
         return Tp::BaseChannelPtr();
     }
 
-    if( channelType != TP_QT_IFACE_CHANNEL_TYPE_TEXT && channelType != TP_QT_IFACE_CHANNEL_TYPE_CALL) {
+    if (channelType == TP_QT_IFACE_CHANNEL_TYPE_TEXT) {
+        return createTextChannel(targetHandleType, targetHandle, error);
+    } else if (channelType == TP_QT_IFACE_CHANNEL_TYPE_CALL) {
+        return createCallChannel(targetHandleType, targetHandle, error);
+    } else {
         error->set(TP_QT_ERROR_NOT_IMPLEMENTED, "Channel type not available");
-    }
-
-    QString newPhoneNumber = mHandles.value(targetHandle);
-    if (channelType == TP_QT_IFACE_CHANNEL_TYPE_TEXT) {
-        Q_FOREACH(const QString &phoneNumber, mTextChannels.keys()) {
-            if (PhoneNumberUtils::compareLoosely(phoneNumber, newPhoneNumber)) {
-                return mTextChannels[phoneNumber]->baseChannel();
-            }
-        }
-    } else if (channelType == TP_QT_IFACE_CHANNEL_TYPE_CALL) {
-        Q_FOREACH(const QString &phoneNumber, mCallChannels.keys()) {
-            if (PhoneNumberUtils::compareLoosely(phoneNumber, newPhoneNumber)) {
-                return mCallChannels[phoneNumber]->baseChannel();
-            }
-        }
-    }
-
-    if (channelType == TP_QT_IFACE_CHANNEL_TYPE_TEXT) {
-        mTextChannels[newPhoneNumber] = new oFonoTextChannel(this, newPhoneNumber, targetHandle);
-        QObject::connect(mTextChannels[newPhoneNumber], SIGNAL(destroyed()), SLOT(onTextChannelClosed()));
-        qDebug() << mTextChannels[newPhoneNumber];
-        return mTextChannels[newPhoneNumber]->baseChannel();
-    } else if (channelType == TP_QT_IFACE_CHANNEL_TYPE_CALL) {
-        bool isOngoingCall = false;
-        QDBusObjectPath objpath;
-        Q_FOREACH(const QString &callId, mOfonoVoiceCallManager->getCalls()) {
-            // check if this is an ongoing call
-            OfonoVoiceCall *call = new OfonoVoiceCall(callId);
-            if (PhoneNumberUtils::compareLoosely(call->lineIdentification(), newPhoneNumber)) {
-                isOngoingCall = true;
-            }
-            call->deleteLater();
-            if (isOngoingCall) {
-                objpath.setPath(callId);
-                break;
-            }
-        }
-
-        if (!isOngoingCall) {
-            objpath = mOfonoVoiceCallManager->dial(newPhoneNumber, "");
-        }
-
-        if (objpath.path().isEmpty()) {
-            return Tp::BaseChannelPtr();
-        }
-
-        mCallChannels[newPhoneNumber] = new oFonoCallChannel(this, newPhoneNumber, targetHandle,objpath.path());
-        QObject::connect(mCallChannels[newPhoneNumber], SIGNAL(destroyed()), SLOT(onCallChannelClosed()));
-        qDebug() << mCallChannels[newPhoneNumber];
-        return mCallChannels[newPhoneNumber]->baseChannel();
     }
 
     return Tp::BaseChannelPtr();
@@ -199,7 +221,7 @@ OfonoCallVolume *oFonoConnection::callVolume()
     return mOfonoCallVolume;
 }
 
-void oFonoConnection::oFonoIncomingMessage(const QString &message, const QVariantMap &info)
+void oFonoConnection::onOfonoIncomingMessage(const QString &message, const QVariantMap &info)
 {
     const QString normalizedNumber = PhoneNumberUtils::normalizePhoneNumber(info["Sender"].toString());
     if (!PhoneNumberUtils::isPhoneNumber(normalizedNumber)) {
@@ -264,9 +286,8 @@ uint oFonoConnection::ensureHandle(const QString &phoneNumber)
     return newHandle(normalizedNumber);
 }
 
-void oFonoConnection::oFonoCallAdded(const QString &call, const QVariantMap &properties)
+void oFonoConnection::onOfonoCallAdded(const QString &call, const QVariantMap &properties)
 {
-    // TODO: implement
     qDebug() << "new call" << call << properties;
 
     bool yours;

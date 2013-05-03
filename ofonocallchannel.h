@@ -30,7 +30,7 @@ public:
     void onDTMFStopTone(Tp::DBusError *error);
 
 private Q_SLOTS:
-    void oFonoCallStateChanged(const QString &state);
+    void onOfonoCallStateChanged(const QString &state);
     void init();
 
 
