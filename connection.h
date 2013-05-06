@@ -22,6 +22,9 @@
 #ifndef OFONOCONNECTION_H
 #define OFONOCONNECTION_H
 
+// qt
+#include <QTimer>
+
 // telepathy-qt
 #include <TelepathyQt/BaseConnection>
 #include <TelepathyQt/BaseChannel>
@@ -33,11 +36,11 @@
 #include <ofonovoicecallmanager.h>
 #include <ofonovoicecall.h>
 #include <ofonocallvolume.h>
+#include <ofononetworkregistration.h>
 
 // telepathy-ofono
 #include "ofonotextchannel.h"
 #include "ofonocallchannel.h"
-
 
 class oFonoConnection;
 class oFonoTextChannel;
@@ -57,9 +60,14 @@ public:
     Tp::UIntList requestHandles(uint handleType, const QStringList& identifiers, Tp::DBusError* error);
     Tp::BaseChannelPtr createChannel(const QString& channelType, uint targetHandleType,
                                      uint targetHandle, Tp::DBusError *error);
+    Tp::ContactAttributesMap getContactAttributes(const Tp::UIntList &handles, const QStringList &ifaces, Tp::DBusError *error);
+    uint setPresence(const QString& status, const QString& statusMessage, Tp::DBusError *error);
     void connect(Tp::DBusError *error);
+    void setOnline(bool online);
 
     Tp::BaseConnectionRequestsInterfacePtr requestsIface;
+    Tp::BaseConnectionSimplePresenceInterfacePtr simplePresenceIface;
+    Tp::BaseConnectionContactsInterfacePtr contactsIface;
     uint newHandle(const QString &identifier);
 
     OfonoMessageManager *messageManager();
@@ -77,10 +85,14 @@ public:
 private Q_SLOTS:
     void onOfonoIncomingMessage(const QString &message, const QVariantMap &info);
     void onOfonoCallAdded(const QString &call, const QVariantMap &properties);
+    void onOfonoNetworkRegistrationChanged(const QString &status);
     void onTextChannelClosed();
     void onCallChannelClosed();
+    void onValidityChanged(bool valid);
+    void onTryRegister();
 
 private:
+    bool isNetworkRegistered();
     QMap<uint, QString> mHandles;
 
     QMap<QString, oFonoTextChannel*> mTextChannels;
@@ -91,7 +103,11 @@ private:
     OfonoMessageManager *mOfonoMessageManager;
     OfonoVoiceCallManager *mOfonoVoiceCallManager;
     OfonoCallVolume *mOfonoCallVolume;
+    OfonoNetworkRegistration *mOfonoNetworkRegistration;
     uint mHandleCount;
+    Tp::SimplePresence mSelfPresence;
+    Tp::SimplePresence mRequestedSelfPresence;
+    QTimer *mRegisterTimer;
 };
 
 #endif

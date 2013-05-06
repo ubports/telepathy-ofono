@@ -32,6 +32,9 @@
 #include "phoneutils.h"
 #include "protocol.h"
 
+// miliseconds
+#define OFONO_REGISTER_RETRY_TIME 5000
+
 oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
                             const QString &cmName,
                             const QString &protocolName,
@@ -41,7 +44,9 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     mOfonoMessageManager(new OfonoMessageManager(OfonoModem::AutomaticSelect,"")),
     mOfonoVoiceCallManager(new OfonoVoiceCallManager(OfonoModem::AutomaticSelect,"")),
     mOfonoCallVolume(new OfonoCallVolume(OfonoModem::AutomaticSelect,"")),
-    mHandleCount(0)
+    mOfonoNetworkRegistration(new OfonoNetworkRegistration(OfonoModem::AutomaticSelect, "")),
+    mHandleCount(0),
+    mRegisterTimer(new QTimer(this))
 {
     setSelfHandle(newHandle("<SelfHandle>"));
 
@@ -78,8 +83,156 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
 
     plugInterface(Tp::AbstractConnectionInterfacePtr::dynamicCast(requestsIface));
 
+    simplePresenceIface = Tp::BaseConnectionSimplePresenceInterface::create();
+    simplePresenceIface->setSetPresenceCallback(Tp::memFun(this,&oFonoConnection::setPresence));
+    plugInterface(Tp::AbstractConnectionInterfacePtr::dynamicCast(simplePresenceIface));
+
+    // Set Presence
+    Tp::SimpleStatusSpec presenceOnline;
+    presenceOnline.type = Tp::ConnectionPresenceTypeAvailable;
+    presenceOnline.maySetOnSelf = true;
+    presenceOnline.canHaveMessage = false;
+
+    Tp::SimpleStatusSpec presenceOffline;
+    presenceOffline.type = Tp::ConnectionPresenceTypeOffline;
+    presenceOffline.maySetOnSelf = false;
+    presenceOffline.canHaveMessage = false;
+
+    Tp::SimpleStatusSpecMap statuses;
+    statuses.insert(QLatin1String("available"), presenceOnline);
+    statuses.insert(QLatin1String("offline"), presenceOffline);
+
+    simplePresenceIface->setStatuses(statuses);
+    mSelfPresence.type = Tp::ConnectionPresenceTypeOffline;
+    mRequestedSelfPresence.type = Tp::ConnectionPresenceTypeOffline;
+
+    bool validModem = false;
+    if (mOfonoVoiceCallManager->modem()) {
+        validModem = mOfonoVoiceCallManager->modem()->isValid();
+        if (validModem) {
+            QObject::connect(mOfonoVoiceCallManager->modem(), SIGNAL(onlineChanged(bool)), SLOT(onValidityChanged(bool)));
+        }
+    }
+    // force update current presence
+    onOfonoNetworkRegistrationChanged(mOfonoNetworkRegistration->status());
+
+    contactsIface = Tp::BaseConnectionContactsInterface::create();
+    contactsIface->setGetContactAttributesCallback(Tp::memFun(this,&oFonoConnection::getContactAttributes));
+    contactsIface->setContactAttributeInterfaces(QStringList()
+                                                 << TP_QT_IFACE_CONNECTION
+                                                 << TP_QT_IFACE_CONNECTION_INTERFACE_SIMPLE_PRESENCE);
+    plugInterface(Tp::AbstractConnectionInterfacePtr::dynamicCast(contactsIface));
+
     QObject::connect(mOfonoMessageManager, SIGNAL(incomingMessage(QString,QVariantMap)), this, SLOT(onOfonoIncomingMessage(QString,QVariantMap)));
     QObject::connect(mOfonoVoiceCallManager, SIGNAL(callAdded(QString,QVariantMap)), SLOT(onOfonoCallAdded(QString, QVariantMap)));
+    QObject::connect(mOfonoVoiceCallManager, SIGNAL(validityChanged(bool)), SLOT(onValidityChanged(bool)));
+    QObject::connect(mOfonoNetworkRegistration, SIGNAL(statusChanged(QString)), SLOT(onOfonoNetworkRegistrationChanged(QString)));
+
+    QObject::connect(mRegisterTimer, SIGNAL(timeout()), SLOT(onTryRegister()));
+}
+
+void oFonoConnection::onTryRegister()
+{
+    qDebug() << "onTryRegister";
+    bool networkRegistered = isNetworkRegistered();
+    if (networkRegistered) {
+        setOnline(networkRegistered);
+        mRegisterTimer->stop();
+        return;
+    }
+
+    // if we have modem, check if it is online
+    OfonoModem *modem = mOfonoNetworkRegistration->modem();
+    if (modem) {
+        if (!modem->online()) {
+            modem->setOnline(true);
+        }
+        mOfonoNetworkRegistration->registerOp();
+    }
+}
+
+bool oFonoConnection::isNetworkRegistered()
+{
+    QString status = mOfonoNetworkRegistration->status();
+    return  !(!mOfonoNetworkRegistration->modem() ||
+              !mOfonoNetworkRegistration->modem()->online() ||
+              status == "unregistered" ||
+              status == "denied" ||
+              status == "unknown" ||
+              status == "searching" ||
+              status.isEmpty());
+}
+
+void oFonoConnection::onOfonoNetworkRegistrationChanged(const QString &status)
+{
+    qDebug() << "onOfonoNetworkRegistrationChanged" << status << "is network registered: " << isNetworkRegistered();
+    if (!isNetworkRegistered() && mRequestedSelfPresence.type == Tp::ConnectionPresenceTypeAvailable) {
+        setOnline(false);
+        onTryRegister();
+        mRegisterTimer->setInterval(OFONO_REGISTER_RETRY_TIME);
+        mRegisterTimer->start();
+        return;
+    }
+    setOnline(isNetworkRegistered());
+}
+
+uint oFonoConnection::setPresence(const QString& status, const QString& statusMessage, Tp::DBusError *error)
+{
+    qDebug() << "setPresence" << status;
+    if (status == "available") {
+        mRequestedSelfPresence.type = Tp::ConnectionPresenceTypeAvailable;
+        if (!isNetworkRegistered()) {
+            onTryRegister();
+            mRegisterTimer->setInterval(OFONO_REGISTER_RETRY_TIME);
+            mRegisterTimer->start();
+        }
+    }
+    return selfHandle();
+}
+
+Tp::ContactAttributesMap oFonoConnection::getContactAttributes(const Tp::UIntList &handles, const QStringList &ifaces, Tp::DBusError *error)
+{
+    qDebug() << "getContactAttributes" << handles << ifaces;
+    Tp::ContactAttributesMap attributesMap;
+    QVariantMap attributes;
+    Q_FOREACH(uint handle, handles) {
+        attributes[TP_QT_IFACE_CONNECTION+"/contact-id"] = inspectHandles(Tp::HandleTypeContact, Tp::UIntList() << handle, error).at(0);
+        if (ifaces.contains(TP_QT_IFACE_CONNECTION_INTERFACE_SIMPLE_PRESENCE)) {
+            attributes[TP_QT_IFACE_CONNECTION_INTERFACE_SIMPLE_PRESENCE+"/presence"] = QVariant::fromValue(mSelfPresence);
+        }
+        attributesMap[handle] = attributes;
+    }
+    return attributesMap;
+}
+
+void oFonoConnection::onValidityChanged(bool valid)
+{
+    qDebug() << "validityChanged" << valid << "is network registered: " << isNetworkRegistered() << mRequestedSelfPresence.type;
+    QObject::disconnect(mOfonoVoiceCallManager->modem(), 0,0,0);
+    QObject::connect(mOfonoVoiceCallManager->modem(), SIGNAL(onlineChanged(bool)), SLOT(onValidityChanged(bool)));
+    if (!isNetworkRegistered() && mRequestedSelfPresence.type == Tp::ConnectionPresenceTypeAvailable) {
+        setOnline(false);
+        onTryRegister();
+        mRegisterTimer->setInterval(OFONO_REGISTER_RETRY_TIME);
+        mRegisterTimer->start();
+    }
+}
+
+void oFonoConnection::setOnline(bool online)
+{
+    qDebug() << "setOnline" << online;
+    Tp::SimpleContactPresences presences;
+    if (online) {
+        mSelfPresence.status = "available";
+        mSelfPresence.statusMessage = "";
+        mSelfPresence.type = Tp::ConnectionPresenceTypeAvailable;
+    } else {
+        mSelfPresence.status = "offline";
+        mSelfPresence.statusMessage = "";
+        mSelfPresence.type = Tp::ConnectionPresenceTypeOffline;
+    }
+    presences[selfHandle()] = mSelfPresence;
+    simplePresenceIface->setPresences(presences);
 }
 
 uint oFonoConnection::newHandle(const QString &identifier)
@@ -213,6 +366,11 @@ Tp::BaseChannelPtr oFonoConnection::createChannel(const QString& channelType, ui
     qDebug() << "oFonoConnection::createChannel" << targetHandle;
     if( (targetHandleType != Tp::HandleTypeContact) || targetHandle == 0 || !mHandles.keys().contains(targetHandle)) {
         error->set(TP_QT_ERROR_INVALID_HANDLE, "Handle not found");
+        return Tp::BaseChannelPtr();
+    }
+
+    if (mSelfPresence.type != Tp::ConnectionPresenceTypeAvailable) {
+        error->set(TP_QT_ERROR_NETWORK_ERROR, "No network available");
         return Tp::BaseChannelPtr();
     }
 
