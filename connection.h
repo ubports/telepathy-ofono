@@ -29,6 +29,8 @@
 #include <TelepathyQt/BaseConnection>
 #include <TelepathyQt/BaseChannel>
 #include <TelepathyQt/BaseCall>
+#include <TelepathyQt/AbstractAdaptor>
+#include <TelepathyQt/DBusError>
 
 // ofono-qt
 #include <ofonomodemmanager.h>
@@ -37,10 +39,12 @@
 #include <ofonovoicecall.h>
 #include <ofonocallvolume.h>
 #include <ofononetworkregistration.h>
+#include <ofonomessagewaiting.h>
 
 // telepathy-ofono
 #include "ofonotextchannel.h"
 #include "ofonocallchannel.h"
+#include "voicemailiface.h"
 
 class oFonoConnection;
 class oFonoTextChannel;
@@ -64,10 +68,14 @@ public:
     uint setPresence(const QString& status, const QString& statusMessage, Tp::DBusError *error);
     void connect(Tp::DBusError *error);
     void setOnline(bool online);
+    bool voicemailIndicator(Tp::DBusError *error);
+    QString voicemailNumber(Tp::DBusError *error);
+    uint voicemailCount(Tp::DBusError *error);
 
     Tp::BaseConnectionRequestsInterfacePtr requestsIface;
     Tp::BaseConnectionSimplePresenceInterfacePtr simplePresenceIface;
     Tp::BaseConnectionContactsInterfacePtr contactsIface;
+    BaseConnectionVoicemailInterfacePtr voicemailIface;
     uint newHandle(const QString &identifier);
 
     OfonoMessageManager *messageManager();
@@ -81,6 +89,8 @@ public:
                                          uint targetHandle, Tp::DBusError *error);
 
     ~oFonoConnection();
+public Q_SLOTS:
+    void Q_DBUS_EXPORT onTryRegister();
 
 private Q_SLOTS:
     void onOfonoIncomingMessage(const QString &message, const QVariantMap &info);
@@ -89,7 +99,7 @@ private Q_SLOTS:
     void onTextChannelClosed();
     void onCallChannelClosed();
     void onValidityChanged(bool valid);
-    void onTryRegister();
+
 
 private:
     bool isNetworkRegistered();
@@ -104,6 +114,7 @@ private:
     OfonoVoiceCallManager *mOfonoVoiceCallManager;
     OfonoCallVolume *mOfonoCallVolume;
     OfonoNetworkRegistration *mOfonoNetworkRegistration;
+    OfonoMessageWaiting *mOfonoMessageWaiting;
     uint mHandleCount;
     Tp::SimplePresence mSelfPresence;
     Tp::SimplePresence mRequestedSelfPresence;

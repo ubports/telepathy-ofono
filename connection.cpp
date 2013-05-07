@@ -23,6 +23,7 @@
 
 #include <TelepathyQt/Constants>
 #include <TelepathyQt/BaseChannel>
+#include <TelepathyQt/DBusObject>
 
 // ofono-qt
 #include <ofonomodem.h>
@@ -45,6 +46,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     mOfonoVoiceCallManager(new OfonoVoiceCallManager(OfonoModem::AutomaticSelect,"")),
     mOfonoCallVolume(new OfonoCallVolume(OfonoModem::AutomaticSelect,"")),
     mOfonoNetworkRegistration(new OfonoNetworkRegistration(OfonoModem::AutomaticSelect, "")),
+    mOfonoMessageWaiting(new OfonoMessageWaiting(OfonoModem::AutomaticSelect, "")),
     mHandleCount(0),
     mRegisterTimer(new QTimer(this))
 {
@@ -83,9 +85,17 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
 
     plugInterface(Tp::AbstractConnectionInterfacePtr::dynamicCast(requestsIface));
 
+    // init presence interface
     simplePresenceIface = Tp::BaseConnectionSimplePresenceInterface::create();
     simplePresenceIface->setSetPresenceCallback(Tp::memFun(this,&oFonoConnection::setPresence));
     plugInterface(Tp::AbstractConnectionInterfacePtr::dynamicCast(simplePresenceIface));
+
+    // init custom voicemail interface (not provided by telepathy)
+    voicemailIface = BaseConnectionVoicemailInterface::create();
+    voicemailIface->setVoicemailCountCallback(Tp::memFun(this,&oFonoConnection::voicemailCount));
+    voicemailIface->setVoicemailIndicatorCallback(Tp::memFun(this,&oFonoConnection::voicemailIndicator));
+    voicemailIface->setVoicemailNumberCallback(Tp::memFun(this,&oFonoConnection::voicemailNumber));
+    plugInterface(Tp::AbstractConnectionInterfacePtr::dynamicCast(voicemailIface));
 
     // Set Presence
     Tp::SimpleStatusSpec presenceOnline;
@@ -127,8 +137,19 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     QObject::connect(mOfonoVoiceCallManager, SIGNAL(callAdded(QString,QVariantMap)), SLOT(onOfonoCallAdded(QString, QVariantMap)));
     QObject::connect(mOfonoVoiceCallManager, SIGNAL(validityChanged(bool)), SLOT(onValidityChanged(bool)));
     QObject::connect(mOfonoNetworkRegistration, SIGNAL(statusChanged(QString)), SLOT(onOfonoNetworkRegistrationChanged(QString)));
+    QObject::connect(mOfonoMessageWaiting, SIGNAL(voicemailMessageCountChanged(int)), voicemailIface.data(), SLOT(setVoicemailCount(int)));
+    QObject::connect(mOfonoMessageWaiting, SIGNAL(voicemailWaitingChanged(bool)), voicemailIface.data(), SLOT(setVoicemailIndicator(bool)));
 
     QObject::connect(mRegisterTimer, SIGNAL(timeout()), SLOT(onTryRegister()));
+}
+
+oFonoConnection::~oFonoConnection() {
+    mOfonoModemManager->deleteLater();
+    mOfonoMessageManager->deleteLater();
+    mOfonoVoiceCallManager->deleteLater();
+    mOfonoCallVolume->deleteLater();
+    mOfonoNetworkRegistration->deleteLater();
+    mRegisterTimer->deleteLater();
 }
 
 void oFonoConnection::onTryRegister()
@@ -239,9 +260,6 @@ uint oFonoConnection::newHandle(const QString &identifier)
 {
     mHandles[++mHandleCount] = identifier;
     return mHandleCount;
-}
-
-oFonoConnection::~oFonoConnection() {
 }
 
 QStringList oFonoConnection::inspectHandles(uint handleType, const Tp::UIntList& handles, Tp::DBusError *error)
@@ -501,4 +519,19 @@ void oFonoConnection::onOfonoCallAdded(const QString &call, const QVariantMap &p
         qDebug() << "error creating the channel";
         return;
     }
+}
+
+uint oFonoConnection::voicemailCount(Tp::DBusError *error)
+{
+    return mOfonoMessageWaiting->voicemailMessageCount();
+}
+
+QString oFonoConnection::voicemailNumber(Tp::DBusError *error)
+{
+    return mOfonoMessageWaiting->voicemailMailboxNumber();
+}
+
+bool oFonoConnection::voicemailIndicator(Tp::DBusError *error)
+{
+    return mOfonoMessageWaiting->voicemailWaiting();
 }
