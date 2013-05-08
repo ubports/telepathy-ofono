@@ -33,6 +33,8 @@ class BaseConnectionVoicemailInterface;
 
 typedef Tp::SharedPtr<BaseConnectionVoicemailInterface> BaseConnectionVoicemailInterfacePtr;
 
+#define TP_QT_IFACE_CONNECTION_VOICEMAIL "com.canonical.Telephony.Voicemail"
+
 class TP_QT_EXPORT BaseConnectionVoicemailInterface : public Tp::AbstractConnectionInterface
 {
     Q_OBJECT
@@ -80,9 +82,9 @@ private:
 class TP_QT_EXPORT ConnectionInterfaceVoicemailAdaptor : public Tp::AbstractAdaptor
 {
     Q_OBJECT
-    Q_CLASSINFO("D-Bus Interface", "com.canonical.Telephony")
+    Q_CLASSINFO("D-Bus Interface", TP_QT_IFACE_CONNECTION_VOICEMAIL)
     Q_CLASSINFO("D-Bus Introspection", ""
-"  <interface name=\"com.canonical.Telephony\">\n"
+"  <interface name=\"com.canonical.Telephony.Voicemail\">\n"
 "    <method name=\"VoicemailIndicator\">\n"
 "      <arg direction=\"out\" type=\"b\" name=\"voicemailIndicator\"/>\n"
 "    </method>\n"

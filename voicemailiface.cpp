@@ -95,7 +95,7 @@ void BaseConnectionVoicemailInterface::Adaptee::voicemailCount(const ConnectionI
 
 
 BaseConnectionVoicemailInterface::BaseConnectionVoicemailInterface()
-    : AbstractConnectionInterface("com.canonical.Telephony"),
+    : AbstractConnectionInterface(TP_QT_IFACE_CONNECTION_VOICEMAIL),
       mPriv(new Private(this))
 {
 }
