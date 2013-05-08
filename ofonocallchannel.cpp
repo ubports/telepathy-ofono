@@ -60,7 +60,8 @@ oFonoCallChannel::oFonoCallChannel(oFonoConnection *conn, QString phoneNumber, u
 
 void oFonoCallChannel::onTurnOnSpeaker(bool active, Tp::DBusError *error)
 {
-    mSpeakerIface->setSpeakerMode(active);
+    // TODO - set modem speaker on.
+    //mSpeakerIface->setSpeakerMode(active);
 }
 
 void oFonoCallChannel::onHangup(uint reason, const QString &detailedReason, const QString &message, Tp::DBusError *error)
