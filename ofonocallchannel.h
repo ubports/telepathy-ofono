@@ -32,6 +32,7 @@
 #include <ofono-qt/ofonovoicecall.h>
 
 #include "connection.h"
+#include "speakeriface.h"
 
 class oFonoConnection;
 
@@ -49,6 +50,7 @@ public:
     void onHoldStateChanged(const Tp::LocalHoldState &state, const Tp::LocalHoldStateReason &reason, Tp::DBusError *error);
     void onDTMFStartTone(uchar event, Tp::DBusError *error);
     void onDTMFStopTone(Tp::DBusError *error);
+    void onTurnOnSpeaker(bool active, Tp::DBusError *error);
 
 private Q_SLOTS:
     void onOfonoCallStateChanged(const QString &state);
@@ -65,9 +67,11 @@ private:
     uint mTargetHandle;
     Tp::BaseChannelHoldInterfacePtr mHoldIface;
     Tp::BaseCallMuteInterfacePtr mMuteIface;
+    BaseChannelSpeakerInterfacePtr mSpeakerIface;
     Tp::BaseChannelCallTypePtr mCallChannel;
     Tp::BaseCallContentDTMFInterfacePtr mDTMFIface;
     Tp::BaseCallContentPtr mCallContent;
+
 };
 
 #endif // OFONOCALLCHANNEL_H
