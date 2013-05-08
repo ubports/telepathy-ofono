@@ -1,4 +1,4 @@
-Source: telepathy-ofono
+Source: telepathy-ofono2
 Section: net
 Priority: optional
 Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
@@ -9,8 +9,9 @@ Build-Depends: debhelper (>= 9.0.0), cmake,
 Standards-Version: 3.9.2
 Vcs-Bzr: lp:telepathy-ofono
 
-Package: telepathy-ofono
-Architecture: all
+Package: telepathy-ofono2
+Conflicts: telepathy-ofono
+Architecture: any
 Depends: ${shlibs:Depends},
          ${misc:Depends},
          ofono
