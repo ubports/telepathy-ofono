@@ -61,6 +61,9 @@ private Q_SLOTS:
 
 private:
     QString mObjPath;
+    QString mPreviousState;
+    bool mIncoming;
+    bool mRequestedHangup;
     Tp::BaseChannelPtr mBaseChannel;
     QString mPhoneNumber;
     oFonoConnection *mConnection;

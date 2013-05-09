@@ -23,6 +23,8 @@
 
 oFonoCallChannel::oFonoCallChannel(oFonoConnection *conn, QString phoneNumber, uint targetHandle, QString voiceObj, QObject *parent):
     OfonoVoiceCall(voiceObj),
+    mIncoming(false),
+    mRequestedHangup(false),
     mConnection(conn),
     mPhoneNumber(phoneNumber),
     mTargetHandle(targetHandle)
@@ -67,6 +69,7 @@ void oFonoCallChannel::onTurnOnSpeaker(bool active, Tp::DBusError *error)
 void oFonoCallChannel::onHangup(uint reason, const QString &detailedReason, const QString &message, Tp::DBusError *error)
 {
     // TODO: use the parameters sent by telepathy
+    mRequestedHangup = true;
     hangup();
 }
 
@@ -81,7 +84,8 @@ void oFonoCallChannel::onAccept(Tp::DBusError*)
 
 void oFonoCallChannel::init()
 {
-    bool incoming = this->state() == "incoming" || this->state() == "waiting";
+    mIncoming = this->state() == "incoming" || this->state() == "waiting";
+    mPreviousState = this->state();
     mObjPath = mBaseChannel->objectPath();
 
     Tp::CallMemberMap memberFlags;
@@ -94,7 +98,7 @@ void oFonoCallChannel::init()
     reason.reason = Tp::CallStateChangeReasonProgressMade;
     reason.message = "";
     reason.DBusReason = "";
-    if (incoming) {
+    if (mIncoming) {
         memberFlags[mTargetHandle] = 0;
     } else {
         memberFlags[mTargetHandle] = Tp::CallMemberFlagRinging;
@@ -179,11 +183,14 @@ void oFonoCallChannel::onOfonoCallStateChanged(const QString &state)
     Tp::CallStateReason reason;
     QVariantMap stateDetails;
     reason.actor =  0;
-    reason.reason = Tp::CallStateChangeReasonProgressMade;
+    reason.reason = Tp::CallStateChangeReasonUserRequested;
     reason.message = "";
     reason.DBusReason = "";
     if (state == "disconnected") {
         qDebug() << "disconnected";
+        if (mIncoming && mPreviousState == "incoming" && !mRequestedHangup) {
+            reason.reason = Tp::CallStateChangeReasonNoAnswer;
+        }
         mCallChannel->setCallState(Tp::CallStateEnded, 0, reason, stateDetails);
         mBaseChannel->close();
     } else if (state == "active") {
@@ -202,4 +209,5 @@ void oFonoCallChannel::onOfonoCallStateChanged(const QString &state)
     } else if (state == "waiting") {
         qDebug() << "waiting";
     }
+    mPreviousState = state;
 }
