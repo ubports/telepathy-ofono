@@ -12,6 +12,8 @@ Vcs-Bzr: lp:telepathy-ofono
 Package: telepathy-ofono2
 Conflicts: telepathy-ofono
 Architecture: any
+Provides: telepathy-ofono
+Replaces: telepathy-ofono
 Depends: ${shlibs:Depends},
          ${misc:Depends},
          ofono
