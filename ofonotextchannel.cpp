@@ -123,7 +123,7 @@ void oFonoTextChannel::messageReceived(const QString &message, const QVariantMap
     body["content"] = QDBusVariant(message);
 
     Tp::MessagePart header;
-    header["message-token"] = QDBusVariant(mMessageCounter++);
+    header["message-token"] = QDBusVariant(info["SentTime"].toString() +"-" + QString::number(mMessageCounter++));
     header["message-received"] = QDBusVariant(QDateTime::fromString(info["SentTime"].toString(), Qt::ISODate).toTime_t());
     header["message-sender"] = QDBusVariant(mTargetHandle);
     header["message-sender-id"] = QDBusVariant(mPhoneNumber);
