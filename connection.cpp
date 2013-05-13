@@ -339,6 +339,7 @@ Tp::BaseChannelPtr oFonoConnection::createCallChannel(uint targetHandleType,
 {
     Q_UNUSED(targetHandleType);
 
+    bool success = true;
     QString newPhoneNumber = mHandles.value(targetHandle);
 
     Q_FOREACH(const QString &phoneNumber, mCallChannels.keys()) {
@@ -363,11 +364,15 @@ Tp::BaseChannelPtr oFonoConnection::createCallChannel(uint targetHandleType,
     }
 
     if (!isOngoingCall) {
-        objpath = mOfonoVoiceCallManager->dial(newPhoneNumber, "");
+        objpath = mOfonoVoiceCallManager->dial(newPhoneNumber, "", success);
     }
-
-    if (objpath.path().isEmpty()) {
-        error->set(TP_QT_ERROR_NOT_AVAILABLE, "Channel could not be created");
+    qDebug() << "success " << success;
+    if (objpath.path().isEmpty() || !success) {
+        if (!success) {
+            error->set(TP_QT_ERROR_NOT_AVAILABLE, mOfonoVoiceCallManager->errorMessage());
+        } else {
+            error->set(TP_QT_ERROR_NOT_AVAILABLE, "Channel could not be created");
+        }
         return Tp::BaseChannelPtr();
     }
 

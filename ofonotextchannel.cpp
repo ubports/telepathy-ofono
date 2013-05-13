@@ -71,13 +71,17 @@ Tp::BaseChannelPtr oFonoTextChannel::baseChannel()
 
 QString oFonoTextChannel::sendMessage(const Tp::MessagePartList& message, uint flags, Tp::DBusError* error)
 {
+    bool success = true;
     Tp::MessagePart header = message.at(0);
     Tp::MessagePart body = message.at(1);
 
-    QString objpath = mConnection->messageManager()->sendMessage(mPhoneNumber, body["content"].variant().toString()).path();
-    if (objpath.isEmpty()) {
-        qDebug() << mConnection->messageManager()->errorName() << mConnection->messageManager()->errorMessage();
-        error->set(TP_QT_ERROR_INVALID_ARGUMENT, mConnection->messageManager()->errorMessage());
+    QString objpath = mConnection->messageManager()->sendMessage(mPhoneNumber, body["content"].variant().toString(), success).path();
+    if (objpath.isEmpty() || !success) {
+        if (!success) {
+            qDebug() << mConnection->messageManager()->errorName() << mConnection->messageManager()->errorMessage();
+        } else {
+            error->set(TP_QT_ERROR_INVALID_ARGUMENT, mConnection->messageManager()->errorMessage());
+        }
     }
 
     OfonoMessage *msg = new OfonoMessage(objpath);
