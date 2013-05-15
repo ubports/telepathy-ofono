@@ -1,5 +1,5 @@
-telepathy-ofono2 (0.1) raring; urgency=low
+telepathy-ofono2 (0.1-0ubuntu1) UNRELEASED; urgency=low
 
   * Initial release
 
- -- Tiago Salem Herrmann <tiago.herrmann@canonical.com>  Fri, 08 Mar 2013 00:58:40 -0600
+ -- Tiago Salem Herrmann <tiago.herrmann@canonical.com>  Wed, 15 May 2013 15:03:17 -0300
