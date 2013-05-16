@@ -2,7 +2,8 @@ Source: telepathy-ofono2
 Section: net
 Priority: optional
 Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
-Build-Depends: debhelper (>= 9.0.0), cmake,
+Build-Depends: debhelper (>= 9.0.0),
+               cmake,
                libtelepathy-qt5-dev (>= 0.9.3.3),
                qt5-default (>= 5.0),
                qtbase5-dev (>= 5.0)
