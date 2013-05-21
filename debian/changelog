@@ -1,3 +1,10 @@
+telepathy-ofono2 (0.1-0ubuntu2) raring; urgency=low
+
+  * Packaging cleanup
+  * Added dependency for ofono-qt-dev 
+
+ -- Sergio Schvezov <sergio.schvezov@canonical.com>  Tue, 21 May 2013 01:18:59 -0300
+
 telepathy-ofono2 (0.1-0ubuntu1) raring; urgency=low
 
   [ Tiago Salem Herrmann ]
