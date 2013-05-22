@@ -1,3 +1,9 @@
+telepathy-ofono2 (0.1-0ubuntu3) raring; urgency=low
+
+  * Unmute ofono modem when calls become active
+
+ -- Tiago Salem Herrmann <tiago.herrmann@canonical.com>  Wed, 22 May 2013 16:13:24 -0300
+
 telepathy-ofono2 (0.1-0ubuntu2) raring; urgency=low
 
   * Packaging cleanup
