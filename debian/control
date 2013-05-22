@@ -6,8 +6,9 @@ Build-Depends: debhelper (>= 9.0.0),
                cmake,
                libtelepathy-qt5-dev (>= 0.9.3.3),
                qt5-default (>= 5.0),
-               qtbase5-dev (>= 5.0)
-Standards-Version: 3.9.2
+               qtbase5-dev (>= 5.0),
+               libofono-qt-dev (>= 1.5),
+Standards-Version: 3.9.4
 Vcs-Bzr: lp:telepathy-ofono
 
 Package: telepathy-ofono2
