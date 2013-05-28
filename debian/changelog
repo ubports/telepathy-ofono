@@ -1,3 +1,9 @@
+telepathy-ofono2 (0.1-0ubuntu4) raring; urgency=low
+
+  * Set calls to "accepted" so logger can set the right duration (LP: #1185078).
+
+ -- Tiago Salem Herrmann <tiago.herrmann@canonical.com>  Tue, 28 May 2013 12:59:15 -0300
+
 telepathy-ofono2 (0.1-0ubuntu3) raring; urgency=low
 
   * Unmute ofono modem when calls become active
