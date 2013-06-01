@@ -1,3 +1,11 @@
+telepathy-ofono2 (0.2-0ubuntu1) UNRELEASED; urgency=low
+
+  * Packaging cleanup
+  * Changing upstream license to LGPLv3, so it can be similar with other
+    telepathy related components
+
+ -- Ricardo Salveti de Araujo <ricardo.salveti@canonical.com>  Fri, 31 May 2013 22:48:26 -0300
+
 telepathy-ofono2 (0.1-0ubuntu4) raring; urgency=low
 
   * Set calls to "accepted" so logger can set the right duration (LP: #1185078).
