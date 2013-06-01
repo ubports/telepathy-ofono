@@ -1,4 +1,7 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: telepathy-ofono2
+Upstream-Contact: Tiago Salem Herrmann <tiago.herrmann@canonical.com>
+Source: https://code.launchpad.net/~phablet-team/telepathy-ofono/telepathy-ofono2
 
 Files: *
 Copyright: 2013 Canonical, Ltd.
