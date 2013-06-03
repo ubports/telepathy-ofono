@@ -1,3 +1,11 @@
+telepathy-ofono2 (0.2-0ubuntu1) raring; urgency=low
+
+  * Packaging cleanup
+  * Changing upstream license to LGPLv3, so it can be similar with other
+    telepathy related components
+
+ -- Ricardo Salveti de Araujo <ricardo.salveti@canonical.com>  Fri, 31 May 2013 22:48:26 -0300
+
 telepathy-ofono2 (0.1-0ubuntu4) raring; urgency=low
 
   * Set calls to "accepted" so logger can set the right duration (LP: #1185078).
@@ -13,7 +21,7 @@ telepathy-ofono2 (0.1-0ubuntu3) raring; urgency=low
 telepathy-ofono2 (0.1-0ubuntu2) raring; urgency=low
 
   * Packaging cleanup
-  * Added dependency for ofono-qt-dev 
+  * Added dependency for ofono-qt-dev
 
  -- Sergio Schvezov <sergio.schvezov@canonical.com>  Tue, 21 May 2013 01:18:59 -0300
 
