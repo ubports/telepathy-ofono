@@ -4,6 +4,8 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
+export DPKG_GENSYMBOLS_CHECK_LEVEL=4
+
 override_dh_auto_configure:
 	dh_auto_configure -- -DLIBEXEC_DIR=lib/telepathy
 

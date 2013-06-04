@@ -1,23 +1,26 @@
-Source: telepathy-ofono2
+Source: telepathy-ofono
 Section: net
 Priority: optional
 Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 Build-Depends: cmake,
-               debhelper (>= 9.0.0),
+               debhelper (>= 9),
                libofono-qt-dev (>= 1.5),
                libtelepathy-qt5-dev (>= 0.9.3.3),
                qt5-default (>= 5.0),
-               qtbase5-dev (>= 5.0)
+               qtbase5-dev (>= 5.0),
 Standards-Version: 3.9.4
-Vcs-Bzr: lp:telepathy-ofono/telepathy-ofono2
+Homepage: https://launchpad.net/telepathy-ofono
+# If you aren't a member of ~phablet-team but need to upload packaging changes,
+# just go ahead.  ~phablet-team will notice and sync up the code again.
+Vcs-Bzr: https://code.launchpad.net/~phablet-team/telepathy-ofono/trunk
+Vcs-Browser: http://bazaar.launchpad.net/~phablet-team/telepathy-ofono/trunk/files
 
-Package: telepathy-ofono2
-Conflicts: telepathy-ofono
+Package: telepathy-ofono
 Architecture: any
-Provides: telepathy-ofono
-Replaces: telepathy-ofono
-Depends: ofono, ${misc:Depends}, ${shlibs:Depends}
-Description: Telepathy oFono connection manager
+Depends: ofono,
+         ${misc:Depends},
+         ${shlibs:Depends},
+Description: telepathy oFono connection manager
  telepathy-ofono is a Telepathy connection manager that makes it possible for
  Telepathy clients to communicate using oFono modems, enabling features like
  real phone calls and send and receive SMSs.
