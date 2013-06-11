@@ -1,7 +1,7 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: telepathy-ofono
 Upstream-Contact: Tiago Salem Herrmann <tiago.herrmann@canonical.com>
-Source: https://code.launchpad.net/~phablet-team/telepathy-ofono/telepathy-ofono
+Source: https://launchpad.net/telepathy-ofono
 
 Files: phoneutils.h
 Copyright: 2006 The Android Open Source Project
