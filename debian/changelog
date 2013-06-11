@@ -1,4 +1,4 @@
-telepathy-ofono (0.2-0ubuntu2) UNRELEASED; urgency=low
+telepathy-ofono (0.2-0ubuntu1) UNRELEASED; urgency=low
 
   * Initial release after the name switch to telepathy-ofono
   * debian/rules, debian/control:
