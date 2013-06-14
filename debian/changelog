@@ -1,4 +1,4 @@
-telepathy-ofono (0.2-0ubuntu1) UNRELEASED; urgency=low
+telepathy-ofono (0.2daily13.06.14-0ubuntu1) saucy; urgency=low
 
   [ Łukasz 'sil2100' Zemczak ]
   * Initial release after the name switch to telepathy-ofono
@@ -11,4 +11,15 @@ telepathy-ofono (0.2-0ubuntu1) UNRELEASED; urgency=low
   * Fix name of the project in the copyright file
   * Fix archs on which it's going to be built
 
- -- Łukasz 'sil2100' Zemczak <lukasz.zemczak@canonical.com>  Tue, 04 Jun 2013 16:43:36 +0200
+  [ Ricardo Salveti de Araujo ]
+  * debian/control: there's no 0.9.3.3 in the archive, that was internal
+    only .
+
+  [ Didier Roche ]
+  * reference actually the launchpad project page in debian/copyright
+  * push back arch: any
+
+  [ Ubuntu daily release ]
+  * Automatic snapshot from revision 31
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Fri, 14 Jun 2013 01:01:48 +0000
