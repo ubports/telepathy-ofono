@@ -1,8 +1,12 @@
-telepathy-ofono (0.2daily13.06.14-0ubuntu2) UNRELEASED; urgency=low
+telepathy-ofono (0.2daily13.06.14.1-0ubuntu1) saucy; urgency=low
 
+  [ Łukasz 'sil2100' Zemczak ]
   * Version bump to force the package rebuild
 
- -- Łukasz 'sil2100' Zemczak <lukasz.zemczak@canonical.com>  Fri, 14 Jun 2013 11:47:14 +0200
+  [ Ubuntu daily release ]
+  * Automatic snapshot from revision 33
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Fri, 14 Jun 2013 09:52:00 +0000
 
 telepathy-ofono (0.2daily13.06.14-0ubuntu1) saucy; urgency=low
 
