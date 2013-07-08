@@ -42,10 +42,14 @@
 #include "ofonotextchannel.h"
 #include "ofonocallchannel.h"
 #include "voicemailiface.h"
+#include "mmsdmanager.h"
+#include "mmsdmessage.h"
+#include "dbustypes.h"
 
 class oFonoConnection;
 class oFonoTextChannel;
 class oFonoCallChannel;
+class MMSDService;
 
 class oFonoConnection : public Tp::BaseConnection
 {
@@ -96,10 +100,16 @@ private Q_SLOTS:
     void onTextChannelClosed();
     void onCallChannelClosed();
     void onValidityChanged(bool valid);
-
-
+    void onMMSDServiceAdded(const QString&);
+    void onMMSDServiceRemoved(const QString&);
+    void onMMSAdded(const QString &, const QVariantMap&);
+    void onMMSRemoved(const QString &);
+    void onMMSPropertyChanged(QString property, QVariant value);
+    void onCheckMMSServices();
+    void onMessageRead(const QString &id);
 private:
     bool isNetworkRegistered();
+    void addMMStoService(const QString &path, const QVariantMap &properties, const QString &servicePath);
     QMap<uint, QString> mHandles;
 
     QMap<QString, oFonoTextChannel*> mTextChannels;
@@ -116,6 +126,9 @@ private:
     Tp::SimplePresence mSelfPresence;
     Tp::SimplePresence mRequestedSelfPresence;
     QTimer *mRegisterTimer;
+    MMSDManager *mMmsdManager;
+    QMap<QString, MMSDService*> mMmsdServices;
+    QMap<QString, QList<MMSDMessage*> > mServiceMMSList;
 };
 
 #endif

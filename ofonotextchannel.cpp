@@ -22,6 +22,22 @@
 // telepathy-ofono
 #include "ofonotextchannel.h"
 
+QDBusArgument &operator<<(QDBusArgument &argument, const AttachmentStruct &attachment)
+{
+    argument.beginStructure();
+    argument << attachment.id << attachment.contentType << attachment.filePath << attachment.offset << attachment.length;
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, AttachmentStruct &attachment)
+{
+    argument.beginStructure();
+    argument >> attachment.id >> attachment.contentType >> attachment.filePath >> attachment.offset >> attachment.length;
+    argument.endStructure();
+    return argument;
+}
+
 oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, QString phoneNumber, uint targetHandle, QObject *parent):
     QObject(parent),
     mConnection(conn),
@@ -29,6 +45,9 @@ oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, QString phoneNumber, u
     mTargetHandle(targetHandle),
     mMessageCounter(1)
 {
+    qDBusRegisterMetaType<AttachmentStruct>();
+    qDBusRegisterMetaType<AttachmentList>();
+
     Tp::BaseChannelPtr baseChannel = Tp::BaseChannel::create(mConnection,
                                                              TP_QT_IFACE_CHANNEL_TYPE_TEXT,
                                                              targetHandle,
@@ -54,6 +73,7 @@ oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, QString phoneNumber, u
     baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mMessagesIface));
     mBaseChannel = baseChannel;
     mTextChannel = Tp::BaseChannelTextTypePtr::dynamicCast(mBaseChannel->interface(TP_QT_IFACE_CHANNEL_TYPE_TEXT));
+    mTextChannel->setMessageAcknowledgedCallback(Tp::memFun(this,&oFonoTextChannel::messageAcknowledged));
     QObject::connect(mBaseChannel.data(), SIGNAL(closed()), this, SLOT(deleteLater()));
 }
 
@@ -64,6 +84,11 @@ oFonoTextChannel::~oFonoTextChannel()
 Tp::BaseChannelPtr oFonoTextChannel::baseChannel()
 {
     return mBaseChannel;
+}
+
+void oFonoTextChannel::messageAcknowledged(const QString &id)
+{
+    Q_EMIT messageRead(id);
 }
 
 QString oFonoTextChannel::sendMessage(const Tp::MessagePartList& message, uint flags, Tp::DBusError* error)
@@ -132,4 +157,41 @@ void oFonoTextChannel::messageReceived(const QString &message, const QVariantMap
     partList << header << body;
 
     mTextChannel->addReceivedMessage(partList);
+}
+
+void oFonoTextChannel::mmsReceived(const QString &id, const QVariantMap &properties)
+{
+    Tp::MessagePartList message;
+
+    Tp::MessagePart header;
+    header["message-token"] = QDBusVariant(id);
+    header["message-sender"] = QDBusVariant(mTargetHandle);
+    header["message-received"] = QDBusVariant(QDateTime::fromString(properties["Date"].toString(), Qt::ISODate).toTime_t());
+    header["message-type"] = QDBusVariant(Tp::DeliveryStatusDelivered);
+    message << header;
+    if (!properties["Subject"].toString().isEmpty())
+    {
+        Tp::MessagePart part;
+        part["content-type"] =  QDBusVariant("text/plain");
+        part["content"] = QDBusVariant(properties["Subject"].toString());
+        message << part;
+    }
+    AttachmentList a = qdbus_cast<AttachmentList>(properties["Attachments"]);
+    Q_FOREACH(AttachmentStruct b, a) {
+        QFile a(b.filePath);
+        if (!a.open(QIODevice::ReadOnly)) {
+            qDebug() << "fail to load attachment";
+        }
+        a.seek(b.offset);
+        QByteArray fileData = a.read(b.length);
+        Tp::MessagePart part;
+        part["content-type"] =  QDBusVariant(b.contentType);
+        part["identifier"] = QDBusVariant(b.id);
+        part["content"] = QDBusVariant(fileData);
+        part["size"] = QDBusVariant(b.length);
+
+        message << part;
+    }
+
+    mTextChannel->addReceivedMessage(message);
 }

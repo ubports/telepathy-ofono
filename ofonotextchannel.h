@@ -24,6 +24,7 @@
 #include <TelepathyQt/Constants>
 #include <TelepathyQt/BaseChannel>
 #include <TelepathyQt/Types>
+#include <TelepathyQt/DBusError>
 
 #include "connection.h"
 
@@ -37,9 +38,14 @@ public:
     QString sendMessage(const Tp::MessagePartList& message, uint flags, Tp::DBusError* error);
     void messageReceived(const QString & message, const QVariantMap &info);
     Tp::BaseChannelPtr baseChannel();
+    void messageAcknowledged(const QString &id);
+    void mmsReceived(const QString &id, const QVariantMap &properties);
 
 private Q_SLOTS:
     void onOfonoMessageStateChanged(QString status);
+
+Q_SIGNALS:
+    void messageRead(const QString &id);
 
 private:
     ~oFonoTextChannel();
