@@ -30,6 +30,64 @@
 #include "phoneutils.h"
 #include "protocol.h"
 
+// audioflinger
+#ifdef USE_AUDIOFLINGER
+#include <waudio.h>
+#endif
+
+static void enable_earpiece()
+{
+#ifdef USE_AUDIOFLINGER
+    char parameter[20];
+    int i;
+    /* Set the call mode in AudioFlinger */
+    AudioSystem_setMode(AUDIO_MODE_IN_CALL);
+    sprintf(parameter, "routing=%d", AUDIO_DEVICE_OUT_EARPIECE);
+    /* Try the first 3 threads, as this is not fixed and there's no easy
+     * way to retrieve the default thread/output from Android */
+    for (i = 1; i <= 3; i++) {
+        if (AudioSystem_setParameters(i, parameter) >= 0)
+            break;
+    }
+#endif
+}
+
+static void enable_normal()
+{
+#ifdef USE_AUDIOFLINGER
+    char parameter[20];
+    int i;
+    /* Set normal mode in AudioFlinger */
+    AudioSystem_setMode(AUDIO_MODE_NORMAL);
+    /* Get device back to speaker mode, as by default in_call
+     * mode sets up device out to earpiece */
+    sprintf(parameter, "routing=%d", AUDIO_DEVICE_OUT_SPEAKER);
+    /* Try the first 3 threads, as this is not fixed and there's no easy
+     * way to retrieve the default thread/output from Android */
+    for (i = 1; i <= 3; i++) {
+        if (AudioSystem_setParameters(i, parameter) >= 0)
+            break;
+    }
+#endif
+}
+
+static void enable_speaker()
+{
+#ifdef USE_AUDIOFLINGER
+    char parameter[20];
+    int i;
+    /* Set the call mode in AudioFlinger */
+    AudioSystem_setMode(AUDIO_MODE_IN_CALL);
+    sprintf(parameter, "routing=%d", AUDIO_DEVICE_OUT_SPEAKER);
+    /* Try the first 3 threads, as this is not fixed and there's no easy
+     * way to retrieve the default thread/output from Android */
+    for (i = 1; i <= 3; i++) {
+        if (AudioSystem_setParameters(i, parameter) >= 0)
+            break;
+    }
+#endif
+}
+
 // miliseconds
 #define OFONO_REGISTER_RETRY_TIME 5000
 
@@ -45,7 +103,8 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     mOfonoNetworkRegistration(new OfonoNetworkRegistration(OfonoModem::AutomaticSelect, "")),
     mOfonoMessageWaiting(new OfonoMessageWaiting(OfonoModem::AutomaticSelect, "")),
     mHandleCount(0),
-    mRegisterTimer(new QTimer(this))
+    mRegisterTimer(new QTimer(this)),
+    mSpeakerMode(false)
 {
     setSelfHandle(newHandle("<SelfHandle>"));
 
@@ -138,6 +197,10 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     QObject::connect(mOfonoMessageWaiting, SIGNAL(voicemailWaitingChanged(bool)), voicemailIface.data(), SLOT(setVoicemailIndicator(bool)));
 
     QObject::connect(mRegisterTimer, SIGNAL(timeout()), SLOT(onTryRegister()));
+
+    // update audio route
+    QObject::connect(mOfonoVoiceCallManager, SIGNAL(callAdded(QString,QVariantMap)), SLOT(updateAudioRoute()));
+    QObject::connect(mOfonoVoiceCallManager, SIGNAL(callRemoved(QString)), SLOT(updateAudioRoute()));
 }
 
 oFonoConnection::~oFonoConnection() {
@@ -537,3 +600,34 @@ bool oFonoConnection::voicemailIndicator(Tp::DBusError *error)
 {
     return mOfonoMessageWaiting->voicemailWaiting();
 }
+
+bool oFonoConnection::speakerMode()
+{
+    return mSpeakerMode;
+}
+
+void oFonoConnection::setSpeakerMode(bool active)
+{
+    if (mSpeakerMode != active) {
+        mSpeakerMode = active;
+        updateAudioRoute();
+        Q_EMIT speakerModeChanged(active);
+    }
+}
+
+void oFonoConnection::updateAudioRoute()
+{
+    if (mOfonoVoiceCallManager->getCalls().size() != 0) {
+        if(mSpeakerMode) {
+            enable_speaker();
+        } else {
+            enable_earpiece();
+        }
+    } else {
+        enable_normal();
+        setSpeakerMode(false);
+    }
+
+}
+
+
