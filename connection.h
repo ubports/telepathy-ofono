@@ -94,6 +94,7 @@ Q_SIGNALS:
 
 public Q_SLOTS:
     void Q_DBUS_EXPORT onTryRegister();
+    void updateAudioRoute();
 
 private Q_SLOTS:
     void onOfonoIncomingMessage(const QString &message, const QVariantMap &info);
@@ -102,7 +103,6 @@ private Q_SLOTS:
     void onTextChannelClosed();
     void onCallChannelClosed();
     void onValidityChanged(bool valid);
-    void updateAudioRoute();
 
 private:
     bool isNetworkRegistered();

@@ -213,5 +213,7 @@ void oFonoCallChannel::onOfonoCallStateChanged(const QString &state)
     } else if (state == "waiting") {
         qDebug() << "waiting";
     }
+    // always update the audio route when call state changes
+    mConnection->updateAudioRoute();
     mPreviousState = state;
 }

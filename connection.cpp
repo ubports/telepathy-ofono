@@ -617,7 +617,21 @@ void oFonoConnection::setSpeakerMode(bool active)
 
 void oFonoConnection::updateAudioRoute()
 {
-    if (mOfonoVoiceCallManager->getCalls().size() != 0) {
+    int currentCalls = mOfonoVoiceCallManager->getCalls().size();
+    if (currentCalls != 0) {
+        if (currentCalls == 1) {
+            // if we have only one call, check if it's incoming and
+            // enable speaker mode so the ringtone is audible
+            OfonoVoiceCall *call = new OfonoVoiceCall(mOfonoVoiceCallManager->getCalls().first());
+            if (call) {
+                if (call->state() == "incoming") {
+                    enable_speaker();
+                    call->deleteLater();
+                    return;
+                }
+                call->deleteLater();
+            }
+        }
         if(mSpeakerMode) {
             enable_speaker();
         } else {
