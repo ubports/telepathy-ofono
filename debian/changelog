@@ -1,3 +1,9 @@
+telepathy-ofono (0.2+13.10.20130809-0ubuntu1) saucy; urgency=low
+
+  * Automatic snapshot from revision 35
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Fri, 09 Aug 2013 01:01:54 +0000
+
 telepathy-ofono (0.2daily13.06.14.1-0ubuntu1) saucy; urgency=low
 
   [ Łukasz 'sil2100' Zemczak ]
