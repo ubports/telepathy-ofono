@@ -270,7 +270,7 @@ void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &pr
     if (properties["Status"] ==  "received") {
         const QString normalizedNumber = PhoneNumberUtils::normalizePhoneNumber(properties["Sender"].toString());
         if (!PhoneNumberUtils::isPhoneNumber(normalizedNumber)) {
-            qDebug() << "Error creating channel for incoming message";
+            qCritical() << "Error creating channel for incoming message: phone number not valid: " << properties["Sender"].toString();
             return;
         }
 
@@ -289,7 +289,7 @@ void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &pr
         uint handle = newHandle(normalizedNumber);
         ensureChannel(TP_QT_IFACE_CHANNEL_TYPE_TEXT,Tp::HandleTypeContact, handle, yours, handle, false, &error);
         if(error.isValid()) {
-            qDebug() << "Error creating channel for incoming message";
+            qCritical() << "Error creating channel for incoming message " << error.name() << error.message();
             return;
         }
         mTextChannels[normalizedNumber]->mmsReceived(path, properties);
