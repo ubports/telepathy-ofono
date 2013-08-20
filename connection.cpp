@@ -208,7 +208,8 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     QObject::connect(mOfonoVoiceCallManager, SIGNAL(callAdded(QString,QVariantMap)), SLOT(updateAudioRoute()));
     QObject::connect(mOfonoVoiceCallManager, SIGNAL(callRemoved(QString)), SLOT(updateAudioRoute()));
 
-    // workaround: we can't add services here as tp-ofono isn't connected yet
+    // workaround: we can't add services here as tp-ofono interfaces are not exposed on dbus
+    // todo: use QDBusServiceWatcher
     QTimer::singleShot(1000, this, SLOT(onCheckMMSServices()));
 }
 
