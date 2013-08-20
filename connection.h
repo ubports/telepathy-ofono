@@ -117,7 +117,7 @@ private Q_SLOTS:
 
 private:
     bool isNetworkRegistered();
-    void addMMStoService(const QString &path, const QVariantMap &properties, const QString &servicePath);
+    void addMMSToService(const QString &path, const QVariantMap &properties, const QString &servicePath);
     QMap<uint, QString> mHandles;
 
     QMap<QString, oFonoTextChannel*> mTextChannels;

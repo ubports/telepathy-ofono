@@ -228,7 +228,7 @@ void oFonoConnection::onMMSDServiceAdded(const QString &path)
     QObject::connect(service, SIGNAL(messageAdded(const QString&, const QVariantMap&)), SLOT(onMMSAdded(const QString&, const QVariantMap&)));
     QObject::connect(service, SIGNAL(messageRemoved(const QString&)), SLOT(onMMSRemoved(const QString&)));
     Q_FOREACH(MessageStruct message, service->messages()) {
-        addMMStoService(message.path.path(), message.properties, service->path());
+        addMMSToService(message.path.path(), message.properties, service->path());
     }
 }
 
@@ -237,7 +237,7 @@ void oFonoConnection::onMMSPropertyChanged(QString property, QVariant value)
     qDebug() << "oFonoConnection::onMMSPropertyChanged" << property << value;
     if (property == "Status") {
         if (value == "sent") {
-            // send delivery report
+            // FIXME send delivery report
         }
     }
 }
@@ -261,9 +261,9 @@ void oFonoConnection::onMMSDServiceRemoved(const QString &path)
     qDebug() << "oFonoConnection::onMMSServiceRemoved" << path;
 }
 
-void oFonoConnection::addMMStoService(const QString &path, const QVariantMap &properties, const QString &servicePath)
+void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &properties, const QString &servicePath)
 {
-    qDebug() << "addMMStoService " << path << properties << servicePath;
+    qDebug() << "addMMSToService " << path << properties << servicePath;
     MMSDMessage *msg = new MMSDMessage(path, properties);
     QObject::connect(msg, SIGNAL(propertyChanged(QString,QVariant)), SLOT(onMMSPropertyChanged(QString,QVariant)));
     mServiceMMSList[servicePath].append(msg);
@@ -305,7 +305,7 @@ void oFonoConnection::onMMSAdded(const QString &path, const QVariantMap &propert
         return;
     }
 
-    addMMStoService(path, properties, service->path());
+    addMMSToService(path, properties, service->path());
 }
 
 void oFonoConnection::onMMSRemoved(const QString &path)
