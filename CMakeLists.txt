@@ -36,7 +36,7 @@ find_library(TELEPATHY_QT5_LIBRARIES telepathy-qt5)
 find_library(TELEPATHY_QT5_SERVICE_LIBRARIES telepathy-qt5-service)
 find_library(OFONO_QT_LIBRARIES ofono-qt)
 
-add_executable(telepathy-ofono main.cpp protocol.cpp connection.cpp ofonotextchannel.cpp ofonocallchannel.cpp voicemailiface.cpp speakeriface.cpp)
+add_executable(telepathy-ofono main.cpp protocol.cpp connection.cpp ofonotextchannel.cpp ofonocallchannel.cpp voicemailiface.cpp speakeriface.cpp mmsdmanager.cpp mmsdservice.cpp mmsdmessage.cpp)
 qt5_use_modules(telepathy-ofono Core DBus)
 
 target_link_libraries(telepathy-ofono ${Qt5Core_LIBRARIES} ${Qt5DBus_LIBRARIES} ${WAUDIO_LIBRARIES} -ltelepathy-qt5 ${TELEPATHY_QT5_SERVICE_LIBRARIES} ${OFONO_QT_LIBRARIES})

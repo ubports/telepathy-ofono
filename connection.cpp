@@ -30,6 +30,8 @@
 #include "phoneutils.h"
 #include "protocol.h"
 
+#include "mmsdmessage.h"
+#include "mmsdservice.h"
 // audioflinger
 #ifdef USE_AUDIOFLINGER
 #include <waudio.h>
@@ -104,6 +106,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     mOfonoMessageWaiting(new OfonoMessageWaiting(OfonoModem::AutomaticSelect, "")),
     mHandleCount(0),
     mRegisterTimer(new QTimer(this)),
+    mMmsdManager(new MMSDManager(this)),
     mSpeakerMode(false)
 {
     setSelfHandle(newHandle("<SelfHandle>"));
@@ -198,9 +201,130 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
 
     QObject::connect(mRegisterTimer, SIGNAL(timeout()), SLOT(onTryRegister()));
 
+    QObject::connect(mMmsdManager, SIGNAL(serviceAdded(const QString&)), SLOT(onMMSDServiceAdded(const QString&)));
+    QObject::connect(mMmsdManager, SIGNAL(serviceRemoved(const QString&)), SLOT(onMMSDServiceRemoved(const QString&)));
+
     // update audio route
     QObject::connect(mOfonoVoiceCallManager, SIGNAL(callAdded(QString,QVariantMap)), SLOT(updateAudioRoute()));
     QObject::connect(mOfonoVoiceCallManager, SIGNAL(callRemoved(QString)), SLOT(updateAudioRoute()));
+
+    // workaround: we can't add services here as tp-ofono interfaces are not exposed on dbus
+    // todo: use QDBusServiceWatcher
+    QTimer::singleShot(1000, this, SLOT(onCheckMMSServices()));
+}
+
+void oFonoConnection::onCheckMMSServices()
+{
+    Q_FOREACH(QString servicePath, mMmsdManager->services()) {
+        onMMSDServiceAdded(servicePath);
+    }
+}
+
+void oFonoConnection::onMMSDServiceAdded(const QString &path)
+{
+    qDebug() << "oFonoConnection::onMMSServiceAdded" << path;
+    MMSDService *service = new MMSDService(path, this);
+    mMmsdServices[path] = service;
+    QObject::connect(service, SIGNAL(messageAdded(const QString&, const QVariantMap&)), SLOT(onMMSAdded(const QString&, const QVariantMap&)));
+    QObject::connect(service, SIGNAL(messageRemoved(const QString&)), SLOT(onMMSRemoved(const QString&)));
+    Q_FOREACH(MessageStruct message, service->messages()) {
+        addMMSToService(message.path.path(), message.properties, service->path());
+    }
+}
+
+void oFonoConnection::onMMSPropertyChanged(QString property, QVariant value)
+{
+    qDebug() << "oFonoConnection::onMMSPropertyChanged" << property << value;
+    if (property == "Status") {
+        if (value == "sent") {
+            // FIXME send delivery report
+        }
+    }
+}
+
+void oFonoConnection::onMMSDServiceRemoved(const QString &path)
+{
+    MMSDService *service = mMmsdServices.take(path);
+    if (!service) {
+        qWarning() << "oFonoConnection::onMMSServiceRemoved failed" << path;
+        return;
+    }
+
+    // remove all messages from this service
+    Q_FOREACH(MMSDMessage *message, mServiceMMSList[service->path()]) {
+        qDebug() << "removing message " <<  message->path() << " from service " << service->path();
+        message->deleteLater();
+        mServiceMMSList[service->path()].removeAll(message);
+    }
+    mServiceMMSList.remove(service->path());
+    service->deleteLater();
+    qDebug() << "oFonoConnection::onMMSServiceRemoved" << path;
+}
+
+void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &properties, const QString &servicePath)
+{
+    qDebug() << "addMMSToService " << path << properties << servicePath;
+    MMSDMessage *msg = new MMSDMessage(path, properties);
+    QObject::connect(msg, SIGNAL(propertyChanged(QString,QVariant)), SLOT(onMMSPropertyChanged(QString,QVariant)));
+    mServiceMMSList[servicePath].append(msg);
+    if (properties["Status"] ==  "received") {
+        const QString normalizedNumber = PhoneNumberUtils::normalizePhoneNumber(properties["Sender"].toString());
+        if (!PhoneNumberUtils::isPhoneNumber(normalizedNumber)) {
+            qCritical() << "Error creating channel for incoming message: phone number not valid: " << properties["Sender"].toString();
+            return;
+        }
+
+        // check if there is an open channel for this number and use it
+        Q_FOREACH(const QString &phoneNumber, mTextChannels.keys()) {
+            if (PhoneNumberUtils::compareLoosely(normalizedNumber, phoneNumber)) {
+                qDebug() << "existing channel" << mTextChannels[phoneNumber];
+                mTextChannels[phoneNumber]->mmsReceived(path, properties);
+                return;
+            }
+        }
+
+        Tp::DBusError error;
+        bool yours;
+        qDebug() << "new handle" << normalizedNumber;
+        uint handle = newHandle(normalizedNumber);
+        ensureChannel(TP_QT_IFACE_CHANNEL_TYPE_TEXT,Tp::HandleTypeContact, handle, yours, handle, false, &error);
+        if(error.isValid()) {
+            qCritical() << "Error creating channel for incoming message " << error.name() << error.message();
+            return;
+        }
+        mTextChannels[normalizedNumber]->mmsReceived(path, properties);
+    }
+}
+
+void oFonoConnection::onMMSAdded(const QString &path, const QVariantMap &properties)
+{
+    qDebug() << "oFonoConnection::onMMSAdded" << path << properties;
+    MMSDService *service = qobject_cast<MMSDService*>(sender());
+    if (!service) {
+        qWarning() << "oFonoConnection::onMMSAdded failed";
+        return;
+    }
+
+    addMMSToService(path, properties, service->path());
+}
+
+void oFonoConnection::onMMSRemoved(const QString &path)
+{
+    qDebug() << "oFonoConnection::onMMSRemoved" << path;
+    MMSDService *service = qobject_cast<MMSDService*>(sender());
+    if (!service) {
+        qWarning() << "oFonoConnection::onMMSRemoved failed";
+        return;
+    }
+
+    // remove this message from the service
+    Q_FOREACH(MMSDMessage *message, mServiceMMSList[service->path()]) {
+        if (message->path() == path) {
+            message->deleteLater();
+            mServiceMMSList[service->path()].removeAll(message);
+            break;
+        }
+    }
 }
 
 oFonoConnection::~oFonoConnection() {
@@ -210,6 +334,10 @@ oFonoConnection::~oFonoConnection() {
     mOfonoCallVolume->deleteLater();
     mOfonoNetworkRegistration->deleteLater();
     mRegisterTimer->deleteLater();
+    Q_FOREACH(MMSDService *service, mMmsdServices) {
+        onMMSDServiceRemoved(service->path());
+    }
+   
 }
 
 void oFonoConnection::onTryRegister()
@@ -389,9 +517,23 @@ Tp::BaseChannelPtr oFonoConnection::createTextChannel(uint targetHandleType,
     }
 
     mTextChannels[newPhoneNumber] = new oFonoTextChannel(this, newPhoneNumber, targetHandle);
+    QObject::connect(mTextChannels[newPhoneNumber], SIGNAL(messageRead(QString)), SLOT(onMessageRead(QString)));
     QObject::connect(mTextChannels[newPhoneNumber], SIGNAL(destroyed()), SLOT(onTextChannelClosed()));
     qDebug() << mTextChannels[newPhoneNumber];
     return mTextChannels[newPhoneNumber]->baseChannel();
+}
+
+void oFonoConnection::onMessageRead(const QString &id)
+{
+    Q_FOREACH(QList<MMSDMessage*> messages, mServiceMMSList.values()) {
+        Q_FOREACH(MMSDMessage* message, messages) {
+            if (message->path() == id) {
+                message->markRead();
+                message->remove();
+                return;
+            }
+        }
+    }
 }
 
 Tp::BaseChannelPtr oFonoConnection::createCallChannel(uint targetHandleType,
@@ -487,7 +629,7 @@ void oFonoConnection::onOfonoIncomingMessage(const QString &message, const QVari
 {
     const QString normalizedNumber = PhoneNumberUtils::normalizePhoneNumber(info["Sender"].toString());
     if (!PhoneNumberUtils::isPhoneNumber(normalizedNumber)) {
-        qDebug() << "Error creating channel for incoming message";
+        qWarning() << "Error creating channel for incoming message";
         return;
     }
 
@@ -504,7 +646,7 @@ void oFonoConnection::onOfonoIncomingMessage(const QString &message, const QVari
     uint handle = newHandle(normalizedNumber);
     ensureChannel(TP_QT_IFACE_CHANNEL_TYPE_TEXT,Tp::HandleTypeContact, handle, yours, handle, false, &error);
     if(error.isValid()) {
-        qDebug() << "Error creating channel for incoming message";
+        qWarning() << "Error creating channel for incoming message" << error.name() << error.message();
         return;
     }
     mTextChannels[normalizedNumber]->messageReceived(message, info);
@@ -535,7 +677,7 @@ uint oFonoConnection::ensureHandle(const QString &phoneNumber)
 {
     QString normalizedNumber = PhoneNumberUtils::normalizePhoneNumber(phoneNumber);
     if (!PhoneNumberUtils::isPhoneNumber(normalizedNumber)) {
-        qDebug() << "Error creating handle for " << phoneNumber;
+        qWarning() << "Error creating handle for " << phoneNumber;
         return 0;
     }
 
@@ -556,14 +698,14 @@ void oFonoConnection::onOfonoCallAdded(const QString &call, const QVariantMap &p
     Tp::DBusError error;
     const QString normalizedNumber = PhoneNumberUtils::normalizePhoneNumber(properties["LineIdentification"].toString());
     if (!PhoneNumberUtils::isPhoneNumber(normalizedNumber)) {
-        qDebug() << "Error creating channel for incoming call";
+        qWarning() << "Error creating channel for incoming call - not a valid number: " << properties["LineIdentification"].toString();
         return;
     }
 
     // check if there is an open channel for this number, if so, ignore it
     Q_FOREACH(const QString &phoneNumber, mCallChannels.keys()) {
         if (PhoneNumberUtils::compareLoosely(normalizedNumber, phoneNumber)) {
-            qDebug() << "call channel for this number already exists";
+            qWarning() << "call channel for this number already exists: " << phoneNumber;
             return;
         }
     }
@@ -581,7 +723,7 @@ void oFonoConnection::onOfonoCallAdded(const QString &call, const QVariantMap &p
 
     Tp::BaseChannelPtr channel  = ensureChannel(TP_QT_IFACE_CHANNEL_TYPE_CALL, Tp::HandleTypeContact, handle, yours, initiatorHandle, false, &error);
     if (error.isValid() || channel.isNull()) {
-        qDebug() << "error creating the channel";
+        qWarning() << "error creating the channel " << error.name() << error.message();
         return;
     }
 }
