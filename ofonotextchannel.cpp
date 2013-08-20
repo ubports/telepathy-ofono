@@ -162,25 +162,25 @@ void oFonoTextChannel::messageReceived(const QString &message, const QVariantMap
 void oFonoTextChannel::mmsReceived(const QString &id, const QVariantMap &properties)
 {
     Tp::MessagePartList message;
+    QString subject = properties["Subject"].toString();
+    QString smil = properties["Smil"].toString();
 
     Tp::MessagePart header;
     header["message-token"] = QDBusVariant(id);
     header["message-sender"] = QDBusVariant(mTargetHandle);
     header["message-received"] = QDBusVariant(QDateTime::fromString(properties["Date"].toString(), Qt::ISODate).toTime_t());
     header["message-type"] = QDBusVariant(Tp::DeliveryStatusDelivered);
-    message << header;
-    if (!properties["Subject"].toString().isEmpty())
+    if (!subject.isEmpty())
     {
-        Tp::MessagePart part;
-        part["content-type"] =  QDBusVariant("text/plain");
-        part["content"] = QDBusVariant(properties["Subject"].toString());
-        message << part;
+        header["subject"] = QDBusVariant(subject);
     }
+    message << header;
     AttachmentList a = qdbus_cast<AttachmentList>(properties["Attachments"]);
     Q_FOREACH(AttachmentStruct b, a) {
         QFile a(b.filePath);
         if (!a.open(QIODevice::ReadOnly)) {
-            qDebug() << "fail to load attachment";
+            qDebug() << "fail to load attachment" << a.errorString() << b.filePath;
+            continue;
         }
         a.seek(b.offset);
         QByteArray fileData = a.read(b.length);
@@ -190,6 +190,15 @@ void oFonoTextChannel::mmsReceived(const QString &id, const QVariantMap &propert
         part["content"] = QDBusVariant(fileData);
         part["size"] = QDBusVariant(b.length);
 
+        message << part;
+    }
+
+    if (!smil.isEmpty()) {
+        Tp::MessagePart part;
+        part["content-type"] =  QDBusVariant(QString("application/smil"));
+        part["identifier"] = QDBusVariant(QString("smil"));
+        part["content"] = QDBusVariant(smil);
+        part["size"] = QDBusVariant(smil.size());
         message << part;
     }
 
