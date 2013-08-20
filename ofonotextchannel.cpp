@@ -100,7 +100,7 @@ QString oFonoTextChannel::sendMessage(const Tp::MessagePartList& message, uint f
     QString objpath = mConnection->messageManager()->sendMessage(mPhoneNumber, body["content"].variant().toString(), success).path();
     if (objpath.isEmpty() || !success) {
         if (!success) {
-            qDebug() << mConnection->messageManager()->errorName() << mConnection->messageManager()->errorMessage();
+            qWarning() << mConnection->messageManager()->errorName() << mConnection->messageManager()->errorMessage();
         } else {
             error->set(TP_QT_ERROR_INVALID_ARGUMENT, mConnection->messageManager()->errorMessage());
         }
@@ -179,7 +179,7 @@ void oFonoTextChannel::mmsReceived(const QString &id, const QVariantMap &propert
     Q_FOREACH(AttachmentStruct b, a) {
         QFile a(b.filePath);
         if (!a.open(QIODevice::ReadOnly)) {
-            qDebug() << "fail to load attachment" << a.errorString() << b.filePath;
+            qWarning() << "fail to load attachment" << a.errorString() << b.filePath;
             continue;
         }
         a.seek(b.offset);

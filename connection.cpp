@@ -246,7 +246,7 @@ void oFonoConnection::onMMSDServiceRemoved(const QString &path)
 {
     MMSDService *service = mMmsdServices.take(path);
     if (!service) {
-        qDebug() << "oFonoConnection::onMMSServiceRemoved failed" << path;
+        qWarning() << "oFonoConnection::onMMSServiceRemoved failed" << path;
         return;
     }
 
@@ -301,7 +301,7 @@ void oFonoConnection::onMMSAdded(const QString &path, const QVariantMap &propert
     qDebug() << "oFonoConnection::onMMSAdded" << path << properties;
     MMSDService *service = qobject_cast<MMSDService*>(sender());
     if (!service) {
-        qDebug() << "oFonoConnection::onMMSAdded failed";
+        qWarning() << "oFonoConnection::onMMSAdded failed";
         return;
     }
 
@@ -313,7 +313,7 @@ void oFonoConnection::onMMSRemoved(const QString &path)
     qDebug() << "oFonoConnection::onMMSRemoved" << path;
     MMSDService *service = qobject_cast<MMSDService*>(sender());
     if (!service) {
-        qDebug() << "oFonoConnection::onMMSRemoved failed";
+        qWarning() << "oFonoConnection::onMMSRemoved failed";
         return;
     }
 
@@ -629,7 +629,7 @@ void oFonoConnection::onOfonoIncomingMessage(const QString &message, const QVari
 {
     const QString normalizedNumber = PhoneNumberUtils::normalizePhoneNumber(info["Sender"].toString());
     if (!PhoneNumberUtils::isPhoneNumber(normalizedNumber)) {
-        qDebug() << "Error creating channel for incoming message";
+        qWarning() << "Error creating channel for incoming message";
         return;
     }
 
@@ -646,7 +646,7 @@ void oFonoConnection::onOfonoIncomingMessage(const QString &message, const QVari
     uint handle = newHandle(normalizedNumber);
     ensureChannel(TP_QT_IFACE_CHANNEL_TYPE_TEXT,Tp::HandleTypeContact, handle, yours, handle, false, &error);
     if(error.isValid()) {
-        qDebug() << "Error creating channel for incoming message";
+        qWarning() << "Error creating channel for incoming message" << error.name() << error.message();
         return;
     }
     mTextChannels[normalizedNumber]->messageReceived(message, info);
@@ -677,7 +677,7 @@ uint oFonoConnection::ensureHandle(const QString &phoneNumber)
 {
     QString normalizedNumber = PhoneNumberUtils::normalizePhoneNumber(phoneNumber);
     if (!PhoneNumberUtils::isPhoneNumber(normalizedNumber)) {
-        qDebug() << "Error creating handle for " << phoneNumber;
+        qWarning() << "Error creating handle for " << phoneNumber;
         return 0;
     }
 
@@ -698,14 +698,14 @@ void oFonoConnection::onOfonoCallAdded(const QString &call, const QVariantMap &p
     Tp::DBusError error;
     const QString normalizedNumber = PhoneNumberUtils::normalizePhoneNumber(properties["LineIdentification"].toString());
     if (!PhoneNumberUtils::isPhoneNumber(normalizedNumber)) {
-        qDebug() << "Error creating channel for incoming call";
+        qWarning() << "Error creating channel for incoming call - not a valid number: " << properties["LineIdentification"].toString();
         return;
     }
 
     // check if there is an open channel for this number, if so, ignore it
     Q_FOREACH(const QString &phoneNumber, mCallChannels.keys()) {
         if (PhoneNumberUtils::compareLoosely(normalizedNumber, phoneNumber)) {
-            qDebug() << "call channel for this number already exists";
+            qWarning() << "call channel for this number already exists: " << phoneNumber;
             return;
         }
     }
@@ -723,7 +723,7 @@ void oFonoConnection::onOfonoCallAdded(const QString &call, const QVariantMap &p
 
     Tp::BaseChannelPtr channel  = ensureChannel(TP_QT_IFACE_CHANNEL_TYPE_CALL, Tp::HandleTypeContact, handle, yours, initiatorHandle, false, &error);
     if (error.isValid() || channel.isNull()) {
-        qDebug() << "error creating the channel";
+        qWarning() << "error creating the channel " << error.name() << error.message();
         return;
     }
 }
