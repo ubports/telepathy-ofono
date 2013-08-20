@@ -11,6 +11,12 @@ find_package(Qt5Core)
 find_package(Qt5DBus)
 add_definitions(-DQT_NO_KEYWORDS)
 
+check_include_file_cxx("waudio.h" USE_AUDIOFLINGER)
+if (USE_AUDIOFLINGER)
+    add_definitions(-DUSE_AUDIOFLINGER)
+    set(WAUDIO_LIBRARIES -lwaudio)
+endif (USE_AUDIOFLINGER)
+
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(TP_QT5 REQUIRED TelepathyQt5)
 
@@ -33,7 +39,7 @@ find_library(OFONO_QT_LIBRARIES ofono-qt)
 add_executable(telepathy-ofono main.cpp protocol.cpp connection.cpp ofonotextchannel.cpp ofonocallchannel.cpp voicemailiface.cpp speakeriface.cpp mmsdmanager.cpp mmsdservice.cpp mmsdmessage.cpp)
 qt5_use_modules(telepathy-ofono Core DBus)
 
-target_link_libraries(telepathy-ofono ${Qt5Core_LIBRARIES} ${Qt5DBus_LIBRARIES} -ltelepathy-qt5 ${TELEPATHY_QT5_SERVICE_LIBRARIES} ${OFONO_QT_LIBRARIES})
+target_link_libraries(telepathy-ofono ${Qt5Core_LIBRARIES} ${Qt5DBus_LIBRARIES} ${WAUDIO_LIBRARIES} -ltelepathy-qt5 ${TELEPATHY_QT5_SERVICE_LIBRARIES} ${OFONO_QT_LIBRARIES})
 install(TARGETS telepathy-ofono DESTINATION ${DAEMON_DIR})
 
 configure_file(ofono.service.in org.freedesktop.Telepathy.ConnectionManager.ofono.service)

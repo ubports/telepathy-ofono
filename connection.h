@@ -45,6 +45,7 @@
 #include "mmsdmanager.h"
 #include "mmsdmessage.h"
 #include "dbustypes.h"
+#include "speakeriface.h"
 
 class oFonoConnection;
 class oFonoTextChannel;
@@ -69,6 +70,8 @@ public:
     uint setPresence(const QString& status, const QString& statusMessage, Tp::DBusError *error);
     void connect(Tp::DBusError *error);
     void setOnline(bool online);
+    void setSpeakerMode(bool active);
+    bool speakerMode();
     bool voicemailIndicator(Tp::DBusError *error);
     QString voicemailNumber(Tp::DBusError *error);
     uint voicemailCount(Tp::DBusError *error);
@@ -90,8 +93,12 @@ public:
                                          uint targetHandle, Tp::DBusError *error);
 
     ~oFonoConnection();
+Q_SIGNALS:
+    void speakerModeChanged(bool active);
+
 public Q_SLOTS:
     void Q_DBUS_EXPORT onTryRegister();
+    void updateAudioRoute();
 
 private Q_SLOTS:
     void onOfonoIncomingMessage(const QString &message, const QVariantMap &info);
@@ -107,6 +114,7 @@ private Q_SLOTS:
     void onMMSPropertyChanged(QString property, QVariant value);
     void onCheckMMSServices();
     void onMessageRead(const QString &id);
+
 private:
     bool isNetworkRegistered();
     void addMMStoService(const QString &path, const QVariantMap &properties, const QString &servicePath);
@@ -129,6 +137,7 @@ private:
     MMSDManager *mMmsdManager;
     QMap<QString, MMSDService*> mMmsdServices;
     QMap<QString, QList<MMSDMessage*> > mServiceMMSList;
+    bool mSpeakerMode;
 };
 
 #endif

@@ -32,6 +32,63 @@
 
 #include "mmsdmessage.h"
 #include "mmsdservice.h"
+// audioflinger
+#ifdef USE_AUDIOFLINGER
+#include <waudio.h>
+#endif
+
+static void enable_earpiece()
+{
+#ifdef USE_AUDIOFLINGER
+    char parameter[20];
+    int i;
+    /* Set the call mode in AudioFlinger */
+    AudioSystem_setMode(AUDIO_MODE_IN_CALL);
+    sprintf(parameter, "routing=%d", AUDIO_DEVICE_OUT_EARPIECE);
+    /* Try the first 3 threads, as this is not fixed and there's no easy
+     * way to retrieve the default thread/output from Android */
+    for (i = 1; i <= 3; i++) {
+        if (AudioSystem_setParameters(i, parameter) >= 0)
+            break;
+    }
+#endif
+}
+
+static void enable_normal()
+{
+#ifdef USE_AUDIOFLINGER
+    char parameter[20];
+    int i;
+    /* Set normal mode in AudioFlinger */
+    AudioSystem_setMode(AUDIO_MODE_NORMAL);
+    /* Get device back to speaker mode, as by default in_call
+     * mode sets up device out to earpiece */
+    sprintf(parameter, "routing=%d", AUDIO_DEVICE_OUT_SPEAKER);
+    /* Try the first 3 threads, as this is not fixed and there's no easy
+     * way to retrieve the default thread/output from Android */
+    for (i = 1; i <= 3; i++) {
+        if (AudioSystem_setParameters(i, parameter) >= 0)
+            break;
+    }
+#endif
+}
+
+static void enable_speaker()
+{
+#ifdef USE_AUDIOFLINGER
+    char parameter[20];
+    int i;
+    /* Set the call mode in AudioFlinger */
+    AudioSystem_setMode(AUDIO_MODE_IN_CALL);
+    sprintf(parameter, "routing=%d", AUDIO_DEVICE_OUT_SPEAKER);
+    /* Try the first 3 threads, as this is not fixed and there's no easy
+     * way to retrieve the default thread/output from Android */
+    for (i = 1; i <= 3; i++) {
+        if (AudioSystem_setParameters(i, parameter) >= 0)
+            break;
+    }
+#endif
+}
 
 // miliseconds
 #define OFONO_REGISTER_RETRY_TIME 5000
@@ -49,7 +106,8 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     mOfonoMessageWaiting(new OfonoMessageWaiting(OfonoModem::AutomaticSelect, "")),
     mHandleCount(0),
     mRegisterTimer(new QTimer(this)),
-    mMmsdManager(new MMSDManager(this))
+    mMmsdManager(new MMSDManager(this)),
+    mSpeakerMode(false)
 {
     setSelfHandle(newHandle("<SelfHandle>"));
 
@@ -145,6 +203,10 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
 
     QObject::connect(mMmsdManager, SIGNAL(serviceAdded(const QString&)), SLOT(onMMSDServiceAdded(const QString&)));
     QObject::connect(mMmsdManager, SIGNAL(serviceRemoved(const QString&)), SLOT(onMMSDServiceRemoved(const QString&)));
+
+    // update audio route
+    QObject::connect(mOfonoVoiceCallManager, SIGNAL(callAdded(QString,QVariantMap)), SLOT(updateAudioRoute()));
+    QObject::connect(mOfonoVoiceCallManager, SIGNAL(callRemoved(QString)), SLOT(updateAudioRoute()));
 
     // workaround: we can't add services here as tp-ofono isn't connected yet
     QTimer::singleShot(1000, this, SLOT(onCheckMMSServices()));
@@ -679,3 +741,48 @@ bool oFonoConnection::voicemailIndicator(Tp::DBusError *error)
 {
     return mOfonoMessageWaiting->voicemailWaiting();
 }
+
+bool oFonoConnection::speakerMode()
+{
+    return mSpeakerMode;
+}
+
+void oFonoConnection::setSpeakerMode(bool active)
+{
+    if (mSpeakerMode != active) {
+        mSpeakerMode = active;
+        updateAudioRoute();
+        Q_EMIT speakerModeChanged(active);
+    }
+}
+
+void oFonoConnection::updateAudioRoute()
+{
+    int currentCalls = mOfonoVoiceCallManager->getCalls().size();
+    if (currentCalls != 0) {
+        if (currentCalls == 1) {
+            // if we have only one call, check if it's incoming and
+            // enable speaker mode so the ringtone is audible
+            OfonoVoiceCall *call = new OfonoVoiceCall(mOfonoVoiceCallManager->getCalls().first());
+            if (call) {
+                if (call->state() == "incoming") {
+                    enable_speaker();
+                    call->deleteLater();
+                    return;
+                }
+                call->deleteLater();
+            }
+        }
+        if(mSpeakerMode) {
+            enable_speaker();
+        } else {
+            enable_earpiece();
+        }
+    } else {
+        enable_normal();
+        setSpeakerMode(false);
+    }
+
+}
+
+

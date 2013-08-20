@@ -59,8 +59,7 @@ oFonoCallChannel::oFonoCallChannel(oFonoConnection *conn, QString phoneNumber, u
 
 void oFonoCallChannel::onTurnOnSpeaker(bool active, Tp::DBusError *error)
 {
-    // TODO - set modem speaker on.
-    //mSpeakerIface->setSpeakerMode(active);
+    mConnection->setSpeakerMode(active);
 }
 
 void oFonoCallChannel::onHangup(uint reason, const QString &detailedReason, const QString &message, Tp::DBusError *error)
@@ -118,6 +117,9 @@ void oFonoCallChannel::init()
     QObject::connect(mBaseChannel.data(), SIGNAL(closed()), this, SLOT(deleteLater()));
     QObject::connect(mConnection->callVolume(), SIGNAL(mutedChanged(bool)), SLOT(onOfonoMuteChanged(bool)));
     QObject::connect(this, SIGNAL(stateChanged(QString)), SLOT(onOfonoCallStateChanged(QString)));
+    QObject::connect(mConnection, SIGNAL(speakerModeChanged(bool)), mSpeakerIface.data(), SLOT(setSpeakerMode(bool)));
+
+    mSpeakerIface->setSpeakerMode(mConnection->speakerMode());
 }
 
 void oFonoCallChannel::onOfonoMuteChanged(bool mute)
@@ -211,5 +213,7 @@ void oFonoCallChannel::onOfonoCallStateChanged(const QString &state)
     } else if (state == "waiting") {
         qDebug() << "waiting";
     }
+    // always update the audio route when call state changes
+    mConnection->updateAudioRoute();
     mPreviousState = state;
 }
