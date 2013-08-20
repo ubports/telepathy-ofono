@@ -176,12 +176,13 @@ void oFonoTextChannel::mmsReceived(const QString &id, const QVariantMap &propert
     }
     message << header;
     AttachmentList mmsdAttachments = qdbus_cast<AttachmentList>(properties["Attachments"]);
-    Q_FOREACH(AttachmentStruct attachment, mmsdAttachments) {
+    Q_FOREACH(const AttachmentStruct &attachment, mmsdAttachments) {
         QFile attachmentFile(attachment.filePath);
         if (!attachmentFile.open(QIODevice::ReadOnly)) {
             qWarning() << "fail to load attachment" << attachmentFile.errorString() << attachment.filePath;
             continue;
         }
+        // FIXME check if we managed to read the total attachment file
         attachmentFile.seek(attachment.offset);
         QByteArray fileData = attachmentFile.read(attachment.length);
         Tp::MessagePart part;
