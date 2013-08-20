@@ -175,20 +175,20 @@ void oFonoTextChannel::mmsReceived(const QString &id, const QVariantMap &propert
         header["subject"] = QDBusVariant(subject);
     }
     message << header;
-    AttachmentList a = qdbus_cast<AttachmentList>(properties["Attachments"]);
-    Q_FOREACH(AttachmentStruct b, a) {
-        QFile a(b.filePath);
-        if (!a.open(QIODevice::ReadOnly)) {
-            qWarning() << "fail to load attachment" << a.errorString() << b.filePath;
+    AttachmentList mmsdAttachments = qdbus_cast<AttachmentList>(properties["Attachments"]);
+    Q_FOREACH(AttachmentStruct attachment, mmsdAttachments) {
+        QFile attachmentFile(attachment.filePath);
+        if (!attachmentFile.open(QIODevice::ReadOnly)) {
+            qWarning() << "fail to load attachment" << attachmentFile.errorString() << attachment.filePath;
             continue;
         }
-        a.seek(b.offset);
-        QByteArray fileData = a.read(b.length);
+        attachmentFile.seek(attachment.offset);
+        QByteArray fileData = attachmentFile.read(attachment.length);
         Tp::MessagePart part;
-        part["content-type"] =  QDBusVariant(b.contentType);
-        part["identifier"] = QDBusVariant(b.id);
+        part["content-type"] =  QDBusVariant(attachment.contentType);
+        part["identifier"] = QDBusVariant(attachment.id);
         part["content"] = QDBusVariant(fileData);
-        part["size"] = QDBusVariant(b.length);
+        part["size"] = QDBusVariant(attachment.length);
 
         message << part;
     }
