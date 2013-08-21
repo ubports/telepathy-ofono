@@ -1,3 +1,13 @@
+telepathy-ofono (0.2+13.10.20130821-0ubuntu1) saucy; urgency=low
+
+  [ Tiago Salem Herrmann ]
+  * Add initial mmsd support.
+
+  [ Ubuntu daily release ]
+  * Automatic snapshot from revision 37
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Wed, 21 Aug 2013 01:01:51 +0000
+
 telepathy-ofono (0.2+13.10.20130809-0ubuntu1) saucy; urgency=low
 
   * Automatic snapshot from revision 35
