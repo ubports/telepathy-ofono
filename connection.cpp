@@ -37,6 +37,10 @@
 #include <waudio.h>
 #endif
 
+#ifdef USE_PULSEAUDIO
+#include "qpulseaudioengine.h"
+#endif
+
 static void enable_earpiece()
 {
 #ifdef USE_AUDIOFLINGER
@@ -51,6 +55,9 @@ static void enable_earpiece()
         if (AudioSystem_setParameters(i, parameter) >= 0)
             break;
     }
+#endif
+#ifdef USE_PULSEAUDIO
+    QPulseAudioEngine::instance()->setCallMode(true, false);
 #endif
 }
 
@@ -71,6 +78,9 @@ static void enable_normal()
             break;
     }
 #endif
+#ifdef USE_PULSEAUDIO
+    QPulseAudioEngine::instance()->setCallMode(false, false);
+#endif
 }
 
 static void enable_speaker()
@@ -87,6 +97,29 @@ static void enable_speaker()
         if (AudioSystem_setParameters(i, parameter) >= 0)
             break;
     }
+#endif
+#ifdef USE_PULSEAUDIO
+    QPulseAudioEngine::instance()->setCallMode(true, true);
+#endif
+}
+
+static void enable_ringtone()
+{
+#ifdef USE_AUDIOFLINGER
+    char parameter[20];
+    int i;
+    /* Set the call mode in AudioFlinger */
+    AudioSystem_setMode(AUDIO_MODE_IN_CALL);
+    sprintf(parameter, "routing=%d", AUDIO_DEVICE_OUT_SPEAKER);
+    /* Try the first 3 threads, as this is not fixed and there's no easy
+     * way to retrieve the default thread/output from Android */
+    for (i = 1; i <= 3; i++) {
+        if (AudioSystem_setParameters(i, parameter) >= 0)
+            break;
+    }
+#endif
+#ifdef USE_PULSEAUDIO
+    QPulseAudioEngine::instance()->setCallMode(false, true);
 #endif
 }
 
@@ -767,7 +800,7 @@ void oFonoConnection::updateAudioRoute()
             OfonoVoiceCall *call = new OfonoVoiceCall(mOfonoVoiceCallManager->getCalls().first());
             if (call) {
                 if (call->state() == "incoming") {
-                    enable_speaker();
+                    enable_ringtone();
                     call->deleteLater();
                     return;
                 }
