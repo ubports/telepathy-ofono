@@ -1,3 +1,13 @@
+telepathy-ofono (0.2+13.10.20130826-0ubuntu1) saucy; urgency=low
+
+  [ David Henningsson ]
+  * Add PulseAudio interface.
+
+  [ Ubuntu daily release ]
+  * Automatic snapshot from revision 39
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Mon, 26 Aug 2013 22:04:01 +0000
+
 telepathy-ofono (0.2+13.10.20130821-0ubuntu1) saucy; urgency=low
 
   [ Tiago Salem Herrmann ]
