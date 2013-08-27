@@ -6,7 +6,7 @@ Build-Depends: cmake,
                debhelper (>= 9),
                libofono-qt-dev (>= 1.5),
                libtelepathy-qt5-dev (>= 0.9.3),
-               libwaudio1-dev [armhf],
+               libpulse-dev [armhf],
                qt5-default (>= 5.0),
                qtbase5-dev (>= 5.0),
 Standards-Version: 3.9.4
