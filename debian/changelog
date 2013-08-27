@@ -1,3 +1,13 @@
+telepathy-ofono (0.2+13.10.20130827-0ubuntu1) saucy; urgency=low
+
+  [ David Henningsson ]
+  * Use the PulseAudio backend instead of the AudioFlinger backend.
+
+  [ Ubuntu daily release ]
+  * Automatic snapshot from revision 41
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 27 Aug 2013 10:03:56 +0000
+
 telepathy-ofono (0.2+13.10.20130826-0ubuntu1) saucy; urgency=low
 
   [ David Henningsson ]
