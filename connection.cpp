@@ -804,6 +804,15 @@ void oFonoConnection::updateAudioRoute()
                     call->deleteLater();
                     return;
                 }
+                if (call->state() == "disconnected") {
+                    enable_normal();
+                    call->deleteLater();
+                    return;
+                }
+                if (call->state().isEmpty()) {
+                    call->deleteLater();
+                    return;
+                }
                 call->deleteLater();
             }
         }
