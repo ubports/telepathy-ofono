@@ -47,6 +47,19 @@ static void contextStateCallback(pa_context *context, void *userdata)
 #endif
 }
 
+static void subscribeCallback(pa_context *context, pa_subscription_event_type_t t, uint32_t idx, void *userdata)
+{
+    /* We're interested in plug/unplug stuff only, i e, card changes */
+    if ((t & PA_SUBSCRIPTION_EVENT_FACILITY_MASK) != PA_SUBSCRIPTION_EVENT_CARD)
+        return;
+    if ((t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) != PA_SUBSCRIPTION_EVENT_CHANGE)
+        return;
+
+    /* Handle it later, and in the right thread */
+    QMetaObject::invokeMethod((QPulseAudioEngine *) userdata, "plugUnplugSlot", Qt::QueuedConnection);
+}
+
+
 Q_GLOBAL_STATIC(QPulseAudioEngine, pulseEngine);
 
 QPulseAudioEngine::QPulseAudioEngine(QObject *parent)
@@ -126,6 +139,8 @@ QPulseAudioEngine::QPulseAudioEngine(QObject *parent)
 
     if (ok) {
         pa_context_set_state_callback(m_context, contextStateCallback, this);
+        pa_context_set_subscribe_callback(m_context, subscribeCallback, this);
+        pa_context_subscribe(m_context, PA_SUBSCRIPTION_MASK_CARD, NULL, this);
     } else {
         if (m_context) {
             pa_context_unref(m_context);
@@ -159,8 +174,8 @@ QPulseAudioEngine *QPulseAudioEngine::instance()
 
 void QPulseAudioEngine::sinkInfoCallback(const pa_sink_info *info)
 {
-    pa_sink_port_info *earpiece = NULL, *speaker = NULL, *highest = NULL;
-    pa_sink_port_info *preferred = NULL;
+    pa_sink_port_info *earpiece = NULL, *speaker = NULL, *headphones = NULL;
+    pa_sink_port_info *highest = NULL, *preferred = NULL;
 
     for (int i = 0; i < info->n_ports; i++) {
         if (!highest || info->ports[i]->priority > highest->priority) {
@@ -171,6 +186,8 @@ void QPulseAudioEngine::sinkInfoCallback(const pa_sink_info *info)
             earpiece = info->ports[i];
         if (!strcmp(info->ports[i]->name, "[Out] Speaker"))
             speaker = info->ports[i];
+        if (!strcmp(info->ports[i]->name, "[Out] Headphones") && info->ports[i]->available != PA_PORT_AVAILABLE_NO)
+            headphones = info->ports[i];
     }
 
     if (!earpiece)
@@ -182,7 +199,7 @@ void QPulseAudioEngine::sinkInfoCallback(const pa_sink_info *info)
     if (m_speakermode)
         preferred = speaker;
     else if (m_incall)
-        preferred = earpiece;
+        preferred = headphones ? headphones : earpiece;
     if (!preferred)
         preferred = highest;
 
@@ -296,6 +313,13 @@ void QPulseAudioEngine::setCallMode(bool inCall, bool speakerMode)
     }
 
     pa_threaded_mainloop_unlock(m_mainLoop);    
+}
+
+void QPulseAudioEngine::plugUnplugSlot()
+{
+    qDebug("Notified about card event from PulseAudio");
+    if (m_incall)
+        setCallMode(m_incall, m_speakermode);
 }
 
 QT_END_NAMESPACE
