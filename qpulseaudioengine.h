@@ -41,9 +41,11 @@ public:
 
     void setCallMode(bool inCall, bool speakerMode);
 
-    /* These two are only used internally */
+    /* These three are only used internally */
     void cardInfoCallback(const pa_card_info *card);
     void sinkInfoCallback(const pa_sink_info *sink);
+public Q_SLOTS:
+    void plugUnplugSlot();
 private:
     pa_mainloop_api *m_mainLoopApi;
     pa_threaded_mainloop *m_mainLoop;
