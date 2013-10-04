@@ -54,6 +54,8 @@ private:
     bool m_incall, m_speakermode;
     std::string m_cardtoset, m_profiletoset;
     std::string m_sinktoset, m_porttoset;
+
+    bool handleOperation(pa_operation *operation, const char *func_name);
  };
 
 QT_END_NAMESPACE

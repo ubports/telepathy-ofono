@@ -261,6 +261,20 @@ static void sinkinfo_cb(pa_context *context, const pa_sink_info *info, int isLas
     pulseEngine->sinkInfoCallback(info);
 }
 
+bool QPulseAudioEngine::handleOperation(pa_operation *operation, const char *func_name)
+{
+    if (!operation) {
+        qDebug("'%s' failed (lost PulseAudio connection?)", func_name);
+        pa_threaded_mainloop_unlock(m_mainLoop);
+        return false;
+    }
+
+    while (pa_operation_get_state(operation) == PA_OPERATION_RUNNING)
+        pa_threaded_mainloop_wait(m_mainLoop);
+    pa_operation_unref(operation);
+    return true;
+}
+
 void QPulseAudioEngine::setCallMode(bool inCall, bool speakerMode)
 {
     pa_operation *operation;
@@ -272,51 +286,28 @@ void QPulseAudioEngine::setCallMode(bool inCall, bool speakerMode)
 
     pa_threaded_mainloop_lock(m_mainLoop);
 
-    operation = pa_context_get_card_info_list(m_context, cardinfo_cb, this);
-    if (!operation) {
-        qDebug("pa_context_get_card_info_list failed (lost PulseAudio connection?)");
-        /* TODO: It would be nice if we could restart the connection here. Or use RAII to unlock the mainloop. */
-        pa_threaded_mainloop_unlock(m_mainLoop);
+    pa_operation *o = pa_context_get_card_info_list(m_context, cardinfo_cb, this);
+    if (!handleOperation(o, "pa_context_get_card_info_list"))
         return;
-    }
-    while (pa_operation_get_state(operation) == PA_OPERATION_RUNNING)
-        pa_threaded_mainloop_wait(m_mainLoop);
-    pa_operation_unref(operation);
 
     if (m_cardtoset != "") {
         qDebug("Setting PulseAudio card '%s' profile '%s'", m_cardtoset.c_str(), m_profiletoset.c_str());
-        operation = pa_context_set_card_profile_by_name(m_context, 
+        o = pa_context_set_card_profile_by_name(m_context, 
             m_cardtoset.c_str(), m_profiletoset.c_str(), success_cb, this);
-        /* This one will be finished before PA processes the next command. */
-        if (!operation) {
-            qDebug("pa_context_set_card_profile_by_name failed (lost PulseAudio connection?)");
-            pa_threaded_mainloop_unlock(m_mainLoop);
+        if (!handleOperation(o, "pa_context_set_card_profile_by_name"))
             return;
-        }
-        pa_operation_unref(operation);
     }
 
-    operation = pa_context_get_sink_info_list(m_context, sinkinfo_cb, this);
-    if (!operation) {
-        qDebug("pa_context_get_sink_info_list failed (lost PulseAudio connection?)");
-        pa_threaded_mainloop_unlock(m_mainLoop);
+    o = pa_context_get_sink_info_list(m_context, sinkinfo_cb, this);
+    if (!handleOperation(o, "pa_context_get_sink_info_list"))
         return;
-    }
-    while (pa_operation_get_state(operation) == PA_OPERATION_RUNNING)
-        pa_threaded_mainloop_wait(m_mainLoop);
-    pa_operation_unref(operation);
 
     if (m_sinktoset != "") {
         qDebug("Setting PulseAudio sink '%s' port '%s'", m_sinktoset.c_str(), m_porttoset.c_str());
-        operation = pa_context_set_sink_port_by_name(m_context, 
+        o = pa_context_set_sink_port_by_name(m_context, 
             m_sinktoset.c_str(), m_porttoset.c_str(), success_cb, this);
-        if (!operation) {
-            qDebug("pa_context_set_sink_port_by_name failed (lost PulseAudio connection?)");
-            pa_threaded_mainloop_unlock(m_mainLoop);
+        if (!handleOperation(o, "pa_context_set_sink_port_by_name"))
             return;
-        }
-        /* We can have this operation running in parallel. */
-        pa_operation_unref(operation);
     }
 
     pa_threaded_mainloop_unlock(m_mainLoop);    
