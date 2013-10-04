@@ -52,8 +52,7 @@ private:
     pa_context *m_context;
 
     bool m_incall, m_speakermode;
-    std::string m_cardtoset, m_profiletoset;
-    std::string m_sinktoset, m_porttoset;
+    std::string m_nametoset, m_valuetoset;
 
     bool handleOperation(pa_operation *operation, const char *func_name);
  };

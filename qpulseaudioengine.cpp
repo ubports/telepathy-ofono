@@ -211,8 +211,8 @@ void QPulseAudioEngine::sinkInfoCallback(const pa_sink_info *info)
         preferred = highest;
 
     if (preferred && preferred != info->active_port) {
-        m_sinktoset = info->name;
-        m_porttoset = preferred->name; 
+        m_nametoset = info->name;
+        m_valuetoset = preferred->name; 
     }
 }
 
@@ -231,12 +231,12 @@ void QPulseAudioEngine::cardInfoCallback(const pa_card_info *info)
         return; /* Not the right card */
 
     if (m_incall && (voice_call != info->active_profile)) {
-        m_cardtoset = info->name;
-        m_profiletoset = voice_call->name;
+        m_nametoset = info->name;
+        m_valuetoset = voice_call->name;
     }
     else if (!m_incall && (voice_call == info->active_profile)) {
-        m_cardtoset = info->name;
-        m_profiletoset = highest->name;
+        m_nametoset = info->name;
+        m_valuetoset = highest->name;
     }
 }
 
@@ -281,31 +281,31 @@ void QPulseAudioEngine::setCallMode(bool inCall, bool speakerMode)
 
     m_incall = inCall;
     m_speakermode = speakerMode;
-    m_cardtoset = "";
-    m_sinktoset = "";
 
     pa_threaded_mainloop_lock(m_mainLoop);
 
+    m_nametoset = "";
     pa_operation *o = pa_context_get_card_info_list(m_context, cardinfo_cb, this);
     if (!handleOperation(o, "pa_context_get_card_info_list"))
         return;
 
-    if (m_cardtoset != "") {
-        qDebug("Setting PulseAudio card '%s' profile '%s'", m_cardtoset.c_str(), m_profiletoset.c_str());
+    if (m_nametoset != "") {
+        qDebug("Setting PulseAudio card '%s' profile '%s'", m_nametoset.c_str(), m_valuetoset.c_str());
         o = pa_context_set_card_profile_by_name(m_context, 
-            m_cardtoset.c_str(), m_profiletoset.c_str(), success_cb, this);
+            m_nametoset.c_str(), m_valuetoset.c_str(), success_cb, this);
         if (!handleOperation(o, "pa_context_set_card_profile_by_name"))
             return;
     }
 
+    m_nametoset = "";
     o = pa_context_get_sink_info_list(m_context, sinkinfo_cb, this);
     if (!handleOperation(o, "pa_context_get_sink_info_list"))
         return;
 
-    if (m_sinktoset != "") {
-        qDebug("Setting PulseAudio sink '%s' port '%s'", m_sinktoset.c_str(), m_porttoset.c_str());
+    if (m_nametoset != "") {
+        qDebug("Setting PulseAudio sink '%s' port '%s'", m_nametoset.c_str(), m_valuetoset.c_str());
         o = pa_context_set_sink_port_by_name(m_context, 
-            m_sinktoset.c_str(), m_porttoset.c_str(), success_cb, this);
+            m_nametoset.c_str(), m_valuetoset.c_str(), success_cb, this);
         if (!handleOperation(o, "pa_context_set_sink_port_by_name"))
             return;
     }
