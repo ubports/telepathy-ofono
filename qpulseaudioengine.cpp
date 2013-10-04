@@ -47,6 +47,12 @@ static void contextStateCallback(pa_context *context, void *userdata)
 #endif
 }
 
+static void success_cb(pa_context *context, int success, void *userdata)
+{
+    QPulseAudioEngine *pulseEngine = reinterpret_cast<QPulseAudioEngine*>(userdata);
+    pa_threaded_mainloop_signal(pulseEngine->mainloop(), 0);
+}
+
 static void subscribeCallback(pa_context *context, pa_subscription_event_type_t t, uint32_t idx, void *userdata)
 {
     /* We're interested in plug/unplug stuff only, i e, card changes */
@@ -280,7 +286,7 @@ void QPulseAudioEngine::setCallMode(bool inCall, bool speakerMode)
     if (m_cardtoset != "") {
         qDebug("Setting PulseAudio card '%s' profile '%s'", m_cardtoset.c_str(), m_profiletoset.c_str());
         operation = pa_context_set_card_profile_by_name(m_context, 
-            m_cardtoset.c_str(), m_profiletoset.c_str(), NULL, NULL);
+            m_cardtoset.c_str(), m_profiletoset.c_str(), success_cb, this);
         /* This one will be finished before PA processes the next command. */
         if (!operation) {
             qDebug("pa_context_set_card_profile_by_name failed (lost PulseAudio connection?)");
@@ -303,7 +309,7 @@ void QPulseAudioEngine::setCallMode(bool inCall, bool speakerMode)
     if (m_sinktoset != "") {
         qDebug("Setting PulseAudio sink '%s' port '%s'", m_sinktoset.c_str(), m_porttoset.c_str());
         operation = pa_context_set_sink_port_by_name(m_context, 
-            m_sinktoset.c_str(), m_porttoset.c_str(), NULL, NULL);
+            m_sinktoset.c_str(), m_porttoset.c_str(), success_cb, this);
         if (!operation) {
             qDebug("pa_context_set_sink_port_by_name failed (lost PulseAudio connection?)");
             pa_threaded_mainloop_unlock(m_mainLoop);
