@@ -73,6 +73,7 @@ QPulseAudioEngine::QPulseAudioEngine(QObject *parent)
     , m_context(0)
     , m_incall(false)
     , m_speakermode(false)
+    , m_micmute(false)
 
 {
     bool keepGoing = true;
@@ -240,6 +241,26 @@ void QPulseAudioEngine::cardInfoCallback(const pa_card_info *info)
     }
 }
 
+void QPulseAudioEngine::sourceInfoCallback(const pa_source_info *info)
+{
+    pa_source_port_info *handset = NULL;
+
+    if (info->monitor_of_sink != PA_INVALID_INDEX)
+        return;  /* Not the right source */
+
+    for (int i = 0; i < info->n_ports; i++) {
+        if (!strcmp(info->ports[i]->name, "[In] Handset"))
+            handset = info->ports[i];
+    }
+
+    if (!handset)
+        return; /* Not the right source */
+
+    if (!!info->mute != !!m_micmute) {
+        m_nametoset = info->name;
+    }
+}
+
 static void cardinfo_cb(pa_context *context, const pa_card_info *info, int isLast, void *userdata)
 {
     QPulseAudioEngine *pulseEngine = static_cast<QPulseAudioEngine*>(userdata);
@@ -259,6 +280,16 @@ static void sinkinfo_cb(pa_context *context, const pa_sink_info *info, int isLas
         return;
     }
     pulseEngine->sinkInfoCallback(info);
+}
+
+static void sourceinfo_cb(pa_context *context, const pa_source_info *info, int isLast, void *userdata)
+{
+    QPulseAudioEngine *pulseEngine = static_cast<QPulseAudioEngine*>(userdata);
+    if (isLast != 0 || !pulseEngine || !info) {
+        pa_threaded_mainloop_signal(pulseEngine->mainloop(), 0);
+        return;
+    }
+    pulseEngine->sourceInfoCallback(info);
 }
 
 bool QPulseAudioEngine::handleOperation(pa_operation *operation, const char *func_name)
@@ -310,7 +341,36 @@ void QPulseAudioEngine::setCallMode(bool inCall, bool speakerMode)
             return;
     }
 
-    pa_threaded_mainloop_unlock(m_mainLoop);    
+    pa_threaded_mainloop_unlock(m_mainLoop);
+
+    if (inCall)
+        setMicMute(m_micmute);
+}
+
+void QPulseAudioEngine::setMicMute(bool muted)
+{
+    m_nametoset = "";
+    m_micmute = muted;
+
+    if (!m_incall)
+        return;
+
+    pa_threaded_mainloop_lock(m_mainLoop);
+
+    pa_operation *o = pa_context_get_source_info_list(m_context, sourceinfo_cb, this);
+    if (!handleOperation(o, "pa_context_get_source_info_list"))
+        return;
+
+    if (m_nametoset != "") {
+        int m = m_micmute ? 1 : 0;
+        qDebug("Setting PulseAudio source '%s' muted '%d'", m_nametoset.c_str(), m);
+        o = pa_context_set_source_mute_by_name(m_context, 
+            m_nametoset.c_str(), m, success_cb, this);
+        if (!handleOperation(o, "pa_context_set_source_mute_by_name"))
+            return;
+    }
+
+    pa_threaded_mainloop_unlock(m_mainLoop);
 }
 
 void QPulseAudioEngine::plugUnplugSlot()
