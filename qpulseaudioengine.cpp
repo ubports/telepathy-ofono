@@ -59,13 +59,14 @@ static void subscribeCallback(pa_context *context, pa_subscription_event_type_t 
     QMetaObject::invokeMethod((QPulseAudioEngine *) userdata, "plugUnplugSlot", Qt::QueuedConnection);
 }
 
-
 Q_GLOBAL_STATIC(QPulseAudioEngine, pulseEngine);
 
 QPulseAudioEngine::QPulseAudioEngine(QObject *parent)
     : QObject(parent)
     , m_mainLoopApi(0)
     , m_context(0)
+    , m_incall(false)
+    , m_speakermode(false)
 
 {
     bool keepGoing = true;
