@@ -17,6 +17,10 @@
  */
 
 #include "ofonocallchannel.h"
+#ifdef USE_PULSEAUDIO
+#include "qpulseaudioengine.h"
+#endif
+
 
 oFonoCallChannel::oFonoCallChannel(oFonoConnection *conn, QString phoneNumber, uint targetHandle, QString voiceObj, QObject *parent):
     OfonoVoiceCall(voiceObj),
@@ -141,8 +145,14 @@ void oFonoCallChannel::onMuteStateChanged(const Tp::LocalMuteState &state, Tp::D
 {
     if (state == Tp::LocalMuteStateMuted) {
         mConnection->callVolume()->setMuted(true);
+#ifdef USE_PULSEAUDIO
+        QPulseAudioEngine::instance()->setMicMute(true);
+#endif
     } else if (state == Tp::LocalMuteStateUnmuted) {
         mConnection->callVolume()->setMuted(false);
+#ifdef USE_PULSEAUDIO
+        QPulseAudioEngine::instance()->setMicMute(false);
+#endif
     }
 }
 

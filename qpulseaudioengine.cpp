@@ -47,6 +47,12 @@ static void contextStateCallback(pa_context *context, void *userdata)
 #endif
 }
 
+static void success_cb(pa_context *context, int success, void *userdata)
+{
+    QPulseAudioEngine *pulseEngine = reinterpret_cast<QPulseAudioEngine*>(userdata);
+    pa_threaded_mainloop_signal(pulseEngine->mainloop(), 0);
+}
+
 static void subscribeCallback(pa_context *context, pa_subscription_event_type_t t, uint32_t idx, void *userdata)
 {
     /* We're interested in plug/unplug stuff only, i e, card changes */
@@ -67,6 +73,7 @@ QPulseAudioEngine::QPulseAudioEngine(QObject *parent)
     , m_context(0)
     , m_incall(false)
     , m_speakermode(false)
+    , m_micmute(false)
 
 {
     bool keepGoing = true;
@@ -205,8 +212,8 @@ void QPulseAudioEngine::sinkInfoCallback(const pa_sink_info *info)
         preferred = highest;
 
     if (preferred && preferred != info->active_port) {
-        m_sinktoset = info->name;
-        m_porttoset = preferred->name; 
+        m_nametoset = info->name;
+        m_valuetoset = preferred->name; 
     }
 }
 
@@ -225,12 +232,32 @@ void QPulseAudioEngine::cardInfoCallback(const pa_card_info *info)
         return; /* Not the right card */
 
     if (m_incall && (voice_call != info->active_profile)) {
-        m_cardtoset = info->name;
-        m_profiletoset = voice_call->name;
+        m_nametoset = info->name;
+        m_valuetoset = voice_call->name;
     }
     else if (!m_incall && (voice_call == info->active_profile)) {
-        m_cardtoset = info->name;
-        m_profiletoset = highest->name;
+        m_nametoset = info->name;
+        m_valuetoset = highest->name;
+    }
+}
+
+void QPulseAudioEngine::sourceInfoCallback(const pa_source_info *info)
+{
+    pa_source_port_info *handset = NULL;
+
+    if (info->monitor_of_sink != PA_INVALID_INDEX)
+        return;  /* Not the right source */
+
+    for (int i = 0; i < info->n_ports; i++) {
+        if (!strcmp(info->ports[i]->name, "[In] Handset"))
+            handset = info->ports[i];
+    }
+
+    if (!handset)
+        return; /* Not the right source */
+
+    if (!!info->mute != !!m_micmute) {
+        m_nametoset = info->name;
     }
 }
 
@@ -255,65 +282,95 @@ static void sinkinfo_cb(pa_context *context, const pa_sink_info *info, int isLas
     pulseEngine->sinkInfoCallback(info);
 }
 
+static void sourceinfo_cb(pa_context *context, const pa_source_info *info, int isLast, void *userdata)
+{
+    QPulseAudioEngine *pulseEngine = static_cast<QPulseAudioEngine*>(userdata);
+    if (isLast != 0 || !pulseEngine || !info) {
+        pa_threaded_mainloop_signal(pulseEngine->mainloop(), 0);
+        return;
+    }
+    pulseEngine->sourceInfoCallback(info);
+}
+
+bool QPulseAudioEngine::handleOperation(pa_operation *operation, const char *func_name)
+{
+    if (!operation) {
+        qDebug("'%s' failed (lost PulseAudio connection?)", func_name);
+        pa_threaded_mainloop_unlock(m_mainLoop);
+        return false;
+    }
+
+    while (pa_operation_get_state(operation) == PA_OPERATION_RUNNING)
+        pa_threaded_mainloop_wait(m_mainLoop);
+    pa_operation_unref(operation);
+    return true;
+}
+
 void QPulseAudioEngine::setCallMode(bool inCall, bool speakerMode)
 {
     pa_operation *operation;
 
     m_incall = inCall;
     m_speakermode = speakerMode;
-    m_cardtoset = "";
-    m_sinktoset = "";
 
     pa_threaded_mainloop_lock(m_mainLoop);
 
-    operation = pa_context_get_card_info_list(m_context, cardinfo_cb, this);
-    if (!operation) {
-        qDebug("pa_context_get_card_info_list failed (lost PulseAudio connection?)");
-        /* TODO: It would be nice if we could restart the connection here. Or use RAII to unlock the mainloop. */
-        pa_threaded_mainloop_unlock(m_mainLoop);
+    m_nametoset = "";
+    pa_operation *o = pa_context_get_card_info_list(m_context, cardinfo_cb, this);
+    if (!handleOperation(o, "pa_context_get_card_info_list"))
         return;
-    }
-    while (pa_operation_get_state(operation) == PA_OPERATION_RUNNING)
-        pa_threaded_mainloop_wait(m_mainLoop);
-    pa_operation_unref(operation);
 
-    if (m_cardtoset != "") {
-        qDebug("Setting PulseAudio card '%s' profile '%s'", m_cardtoset.c_str(), m_profiletoset.c_str());
-        operation = pa_context_set_card_profile_by_name(m_context, 
-            m_cardtoset.c_str(), m_profiletoset.c_str(), NULL, NULL);
-        /* This one will be finished before PA processes the next command. */
-        if (!operation) {
-            qDebug("pa_context_set_card_profile_by_name failed (lost PulseAudio connection?)");
-            pa_threaded_mainloop_unlock(m_mainLoop);
+    if (m_nametoset != "") {
+        qDebug("Setting PulseAudio card '%s' profile '%s'", m_nametoset.c_str(), m_valuetoset.c_str());
+        o = pa_context_set_card_profile_by_name(m_context, 
+            m_nametoset.c_str(), m_valuetoset.c_str(), success_cb, this);
+        if (!handleOperation(o, "pa_context_set_card_profile_by_name"))
             return;
-        }
-        pa_operation_unref(operation);
     }
 
-    operation = pa_context_get_sink_info_list(m_context, sinkinfo_cb, this);
-    if (!operation) {
-        qDebug("pa_context_get_sink_info_list failed (lost PulseAudio connection?)");
-        pa_threaded_mainloop_unlock(m_mainLoop);
+    m_nametoset = "";
+    o = pa_context_get_sink_info_list(m_context, sinkinfo_cb, this);
+    if (!handleOperation(o, "pa_context_get_sink_info_list"))
         return;
-    }
-    while (pa_operation_get_state(operation) == PA_OPERATION_RUNNING)
-        pa_threaded_mainloop_wait(m_mainLoop);
-    pa_operation_unref(operation);
 
-    if (m_sinktoset != "") {
-        qDebug("Setting PulseAudio sink '%s' port '%s'", m_sinktoset.c_str(), m_porttoset.c_str());
-        operation = pa_context_set_sink_port_by_name(m_context, 
-            m_sinktoset.c_str(), m_porttoset.c_str(), NULL, NULL);
-        if (!operation) {
-            qDebug("pa_context_set_sink_port_by_name failed (lost PulseAudio connection?)");
-            pa_threaded_mainloop_unlock(m_mainLoop);
+    if (m_nametoset != "") {
+        qDebug("Setting PulseAudio sink '%s' port '%s'", m_nametoset.c_str(), m_valuetoset.c_str());
+        o = pa_context_set_sink_port_by_name(m_context, 
+            m_nametoset.c_str(), m_valuetoset.c_str(), success_cb, this);
+        if (!handleOperation(o, "pa_context_set_sink_port_by_name"))
             return;
-        }
-        /* We can have this operation running in parallel. */
-        pa_operation_unref(operation);
     }
 
-    pa_threaded_mainloop_unlock(m_mainLoop);    
+    pa_threaded_mainloop_unlock(m_mainLoop);
+
+    if (inCall)
+        setMicMute(m_micmute);
+}
+
+void QPulseAudioEngine::setMicMute(bool muted)
+{
+    m_nametoset = "";
+    m_micmute = muted;
+
+    if (!m_incall)
+        return;
+
+    pa_threaded_mainloop_lock(m_mainLoop);
+
+    pa_operation *o = pa_context_get_source_info_list(m_context, sourceinfo_cb, this);
+    if (!handleOperation(o, "pa_context_get_source_info_list"))
+        return;
+
+    if (m_nametoset != "") {
+        int m = m_micmute ? 1 : 0;
+        qDebug("Setting PulseAudio source '%s' muted '%d'", m_nametoset.c_str(), m);
+        o = pa_context_set_source_mute_by_name(m_context, 
+            m_nametoset.c_str(), m, success_cb, this);
+        if (!handleOperation(o, "pa_context_set_source_mute_by_name"))
+            return;
+    }
+
+    pa_threaded_mainloop_unlock(m_mainLoop);
 }
 
 void QPulseAudioEngine::plugUnplugSlot()

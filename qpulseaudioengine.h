@@ -40,10 +40,12 @@ public:
     pa_context *context() { return m_context; }
 
     void setCallMode(bool inCall, bool speakerMode);
+    void setMicMute(bool muted); /* True if muted, false if unmuted */
 
-    /* These three are only used internally */
+    /* These four are only used internally */
     void cardInfoCallback(const pa_card_info *card);
     void sinkInfoCallback(const pa_sink_info *sink);
+    void sourceInfoCallback(const pa_source_info *source);
 public Q_SLOTS:
     void plugUnplugSlot();
 private:
@@ -51,9 +53,10 @@ private:
     pa_threaded_mainloop *m_mainLoop;
     pa_context *m_context;
 
-    bool m_incall, m_speakermode;
-    std::string m_cardtoset, m_profiletoset;
-    std::string m_sinktoset, m_porttoset;
+    bool m_incall, m_speakermode, m_micmute;
+    std::string m_nametoset, m_valuetoset;
+
+    bool handleOperation(pa_operation *operation, const char *func_name);
  };
 
 QT_END_NAMESPACE
