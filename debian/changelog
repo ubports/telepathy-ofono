@@ -1,3 +1,16 @@
+telepathy-ofono (0.2+13.10.20131008.2-0ubuntu1) saucy; urgency=low
+
+  [ David Henningsson ]
+  * Ensure speakermode status is correct even after plug/unplug of
+    headphones.
+  * Fix bug causing occasional hangs - Minor refactoring - Add mic mute
+    functionality
+
+  [ Ubuntu daily release ]
+  * Automatic snapshot from revision 46
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 08 Oct 2013 10:03:24 +0000
+
 telepathy-ofono (0.2+13.10.20130925.1-0ubuntu1) saucy; urgency=low
 
   [ Tiago Salem Herrmann ]
