@@ -375,7 +375,6 @@ oFonoConnection::~oFonoConnection() {
 
 void oFonoConnection::onTryRegister()
 {
-    qDebug() << "onTryRegister";
     bool networkRegistered = isNetworkRegistered();
     if (networkRegistered) {
         setOnline(networkRegistered);
@@ -389,7 +388,6 @@ void oFonoConnection::onTryRegister()
         if (!modem->online()) {
             modem->setOnline(true);
         }
-        mOfonoNetworkRegistration->registerOp();
     }
 }
 
