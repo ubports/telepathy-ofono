@@ -1,3 +1,14 @@
+telepathy-ofono (0.2+13.10.20131013-0ubuntu1) saucy; urgency=low
+
+  [ Tiago Salem Herrmann ]
+  * telepathy-ofono does not need to ask ofono to register into the
+    network. (LP: #1226145)
+
+  [ Ubuntu daily release ]
+  * Automatic snapshot from revision 48
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Sun, 13 Oct 2013 01:01:14 +0000
+
 telepathy-ofono (0.2+13.10.20131008.2-0ubuntu1) saucy; urgency=low
 
   [ David Henningsson ]
