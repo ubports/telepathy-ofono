@@ -80,6 +80,7 @@ static void enable_normal()
 #endif
 #ifdef USE_PULSEAUDIO
     QPulseAudioEngine::instance()->setCallMode(false, false);
+    QPulseAudioEngine::instance()->setMicMute(false);
 #endif
 }
 
