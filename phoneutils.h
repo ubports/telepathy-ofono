@@ -299,7 +299,7 @@ bool compareLoosely(const QString &a, const QString &b)
 
 bool isPhoneNumber(const QString &identifier) {
     // remove all non diable digits
-    QString finalNumber = QString(identifier).replace(QRegExp("[p+*#()-]"),"");
+    QString finalNumber = QString(identifier).replace(QRegExp("[p+*#(),;-]"),"");
     finalNumber = finalNumber.replace(QRegExp("(\\s+)"), "");
     // if empty, the number is invalid
     if (finalNumber.isEmpty())
@@ -310,6 +310,10 @@ bool isPhoneNumber(const QString &identifier) {
 }
 
 QString normalizePhoneNumber(const QString &identifier) {
+    if (!isPhoneNumber(identifier)) {
+        // do not normalize non phone numbers
+        return identifier;
+    }
     QRegExp regexp = QRegExp("(\\s+)");
     QString finalNumber = QString(identifier).replace(regexp,"");
     finalNumber = finalNumber.replace(QRegExp("[()-]"),"");
