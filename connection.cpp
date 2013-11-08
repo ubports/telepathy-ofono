@@ -27,7 +27,7 @@
 
 // telepathy-ofono
 #include "connection.h"
-#include "phoneutils.h"
+#include "phoneutils_p.h"
 #include "protocol.h"
 
 #include "mmsdmessage.h"
@@ -302,10 +302,10 @@ void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &pr
     QObject::connect(msg, SIGNAL(propertyChanged(QString,QVariant)), SLOT(onMMSPropertyChanged(QString,QVariant)));
     mServiceMMSList[servicePath].append(msg);
     if (properties["Status"] ==  "received") {
-        const QString normalizedNumber = PhoneNumberUtils::normalizePhoneNumber(properties["Sender"].toString());
+        const QString normalizedNumber = PhoneUtils::normalizePhoneNumber(properties["Sender"].toString());
         // check if there is an open channel for this number and use it
         Q_FOREACH(const QString &phoneNumber, mTextChannels.keys()) {
-            if (isSameContact(normalizedNumber, phoneNumber)) {
+            if (PhoneUtils::isSameContact(normalizedNumber, phoneNumber)) {
                 qDebug() << "existing channel" << mTextChannels[phoneNumber];
                 mTextChannels[phoneNumber]->mmsReceived(path, properties);
                 return;
@@ -515,10 +515,10 @@ Tp::UIntList oFonoConnection::requestHandles(uint handleType, const QStringList&
     }
 
     Q_FOREACH( const QString& identifier, identifiers) {
-        const QString normalizedNumber = PhoneNumberUtils::normalizePhoneNumber(identifier);
+        const QString normalizedNumber = PhoneUtils::normalizePhoneNumber(identifier);
         if (mHandles.values().contains(normalizedNumber)) {
             handles.append(mHandles.key(normalizedNumber));
-        } else if (PhoneNumberUtils::isPhoneNumber(normalizedNumber)) {
+        } else if (PhoneUtils::isPhoneNumber(normalizedNumber)) {
             handles.append(newHandle(normalizedNumber));
         } else {
             handles.append(newHandle(identifier));
@@ -537,7 +537,7 @@ Tp::BaseChannelPtr oFonoConnection::createTextChannel(uint targetHandleType,
     QString newPhoneNumber = mHandles.value(targetHandle);
 
     Q_FOREACH(const QString &phoneNumber, mTextChannels.keys()) {
-        if (isSameContact(phoneNumber, newPhoneNumber)) {
+        if (PhoneUtils::isSameContact(phoneNumber, newPhoneNumber)) {
             return mTextChannels[phoneNumber]->baseChannel();
         }
     }
@@ -571,7 +571,7 @@ Tp::BaseChannelPtr oFonoConnection::createCallChannel(uint targetHandleType,
     QString newPhoneNumber = mHandles.value(targetHandle);
 
     Q_FOREACH(const QString &phoneNumber, mCallChannels.keys()) {
-        if (isSameContact(phoneNumber, newPhoneNumber)) {
+        if (PhoneUtils::isSameContact(phoneNumber, newPhoneNumber)) {
             return mCallChannels[phoneNumber]->baseChannel();
         }
     }
@@ -581,7 +581,7 @@ Tp::BaseChannelPtr oFonoConnection::createCallChannel(uint targetHandleType,
     Q_FOREACH(const QString &callId, mOfonoVoiceCallManager->getCalls()) {
         // check if this is an ongoing call
         OfonoVoiceCall *call = new OfonoVoiceCall(callId);
-        if (isSameContact(call->lineIdentification(), newPhoneNumber)) {
+        if (PhoneUtils::isSameContact(call->lineIdentification(), newPhoneNumber)) {
             isOngoingCall = true;
         }
         call->deleteLater();
@@ -653,10 +653,10 @@ OfonoCallVolume *oFonoConnection::callVolume()
 
 void oFonoConnection::onOfonoIncomingMessage(const QString &message, const QVariantMap &info)
 {
-    const QString normalizedNumber = PhoneNumberUtils::normalizePhoneNumber(info["Sender"].toString());
+    const QString normalizedNumber = PhoneUtils::normalizePhoneNumber(info["Sender"].toString());
     // check if there is an open channel for this sender and use it
     Q_FOREACH(const QString &phoneNumber, mTextChannels.keys()) {
-        if (isSameContact(normalizedNumber, phoneNumber)) {
+        if (PhoneUtils::isSameContact(normalizedNumber, phoneNumber)) {
             mTextChannels[phoneNumber]->messageReceived(message, info);
             return;
         }
@@ -696,10 +696,10 @@ void oFonoConnection::onCallChannelClosed()
 
 uint oFonoConnection::ensureHandle(const QString &phoneNumber)
 {
-    const QString normalizedNumber = PhoneNumberUtils::normalizePhoneNumber(phoneNumber);
+    const QString normalizedNumber = PhoneUtils::normalizePhoneNumber(phoneNumber);
 
     Q_FOREACH(const QString &phone, mHandles.values()) {
-        if (isSameContact(normalizedNumber, phone)) {
+        if (PhoneUtils::isSameContact(normalizedNumber, phone)) {
             // this user already exists
             return mHandles.key(phone);
         }
@@ -714,10 +714,10 @@ void oFonoConnection::onOfonoCallAdded(const QString &call, const QVariantMap &p
     bool yours;
     Tp::DBusError error;
     const QString lineIdentification = properties["LineIdentification"].toString();
-    const QString normalizedNumber = PhoneNumberUtils::normalizePhoneNumber(lineIdentification);
+    const QString normalizedNumber = PhoneUtils::normalizePhoneNumber(lineIdentification);
     // check if there is an open channel for this number, if so, ignore it
     Q_FOREACH(const QString &phoneNumber, mCallChannels.keys()) {
-        if (isSameContact(normalizedNumber, phoneNumber)) {
+        if (PhoneUtils::isSameContact(normalizedNumber, phoneNumber)) {
             qWarning() << "call channel for this number already exists: " << phoneNumber;
             return;
         }
@@ -806,14 +806,5 @@ void oFonoConnection::updateAudioRoute()
         setSpeakerMode(false);
     }
 
-}
-
-bool oFonoConnection::isSameContact(const QString &a, const QString &b)
-{
-    if (PhoneNumberUtils::isPhoneNumber(a) && PhoneNumberUtils::isPhoneNumber(b)) {
-        return PhoneNumberUtils::compareLoosely(a, b);
-    }
-    // if at least one of the id's is not a phone number, then perform a simple string comparison
-    return a == b;
 }
 

@@ -73,7 +73,6 @@ public:
     void setSpeakerMode(bool active);
     bool speakerMode();
     bool voicemailIndicator(Tp::DBusError *error);
-    bool isSameContact(const QString &a, const QString &b);
     QString voicemailNumber(Tp::DBusError *error);
     uint voicemailCount(Tp::DBusError *error);
 
