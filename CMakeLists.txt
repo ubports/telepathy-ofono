@@ -50,9 +50,13 @@ else(USE_PULSEAUDIO)
 endif(USE_PULSEAUDIO)
 qt5_use_modules(telepathy-ofono Core DBus)
 
+enable_testing()
+
 target_link_libraries(telepathy-ofono ${Qt5Core_LIBRARIES} ${Qt5DBus_LIBRARIES} ${WAUDIO_LIBRARIES} -ltelepathy-qt5 ${TELEPATHY_QT5_SERVICE_LIBRARIES} ${OFONO_QT_LIBRARIES} ${PULSEAUDIO_LIBRARIES})
 install(TARGETS telepathy-ofono DESTINATION ${DAEMON_DIR})
 
 configure_file(ofono.service.in org.freedesktop.Telepathy.ConnectionManager.ofono.service)
 install (FILES ofono.manager DESTINATION share/telepathy/managers)
 install (FILES ${CMAKE_CURRENT_BINARY_DIR}/org.freedesktop.Telepathy.ConnectionManager.ofono.service DESTINATION share/dbus-1/services)
+
+add_subdirectory(tests)
