@@ -37,15 +37,6 @@ bool PhoneUtils::comparePhoneNumbers(const QString &number1, const QString &numb
     return number1 == number2;
 }
 
-bool PhoneUtils::isSameContact(const QString &a, const QString &b)
-{
-    if (isPhoneNumber(a) && isPhoneNumber(b)) {
-        return PhoneNumberUtils::compareLoosely(a, b);
-    }
-    // if at least one of the id's is not a phone number, then perform a simple string comparison
-    return a == b;
-}
-
 bool PhoneUtils::isPhoneNumber(const QString &identifier) {
     // remove all non diable digits
     QString finalNumber = QString(identifier).replace(QRegExp("[p+*#(),;-]"),"");
