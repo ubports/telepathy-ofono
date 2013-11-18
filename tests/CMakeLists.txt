@@ -8,7 +8,7 @@ macro(generate_tests)
         add_executable(${test} ${test}.cpp ${CMAKE_SOURCE_DIR}/phoneutils.cpp)
         qt5_use_modules(${test} Contacts Core DBus Qml Test)
         add_test(${test} ${CMAKE_CURRENT_BINARY_DIR}/${test} -xunitxml -o ${CMAKE_BINARY_DIR}/test_${test}.xml)
-        set(TEST_ENVIRONMENT "LD_PRELOAD=${CMAKE_CURRENT_BINARY_DIR}/libofono-qt.so")
+        set(TEST_ENVIRONMENT "LD_PRELOAD=${CMAKE_CURRENT_BINARY_DIR}/mock/libofono-qt.so")
         set_tests_properties(${test} PROPERTIES
                              ENVIRONMENT ${TEST_ENVIRONMENT})
     endforeach(test)
