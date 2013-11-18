@@ -16,7 +16,6 @@
 ** will be met: http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
 **
 ****************************************************************************/
-#ifdef USE_PULSEAUDIO
 
 #include <QtCore/qdebug.h>
 
@@ -382,4 +381,3 @@ void QPulseAudioEngine::plugUnplugSlot()
 
 QT_END_NAMESPACE
 
-#endif
