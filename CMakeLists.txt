@@ -51,3 +51,5 @@ install(TARGETS telepathy-ofono DESTINATION ${DAEMON_DIR})
 configure_file(ofono.service.in org.freedesktop.Telepathy.ConnectionManager.ofono.service)
 install (FILES ofono.manager DESTINATION share/telepathy/managers)
 install (FILES ${CMAKE_CURRENT_BINARY_DIR}/org.freedesktop.Telepathy.ConnectionManager.ofono.service DESTINATION share/dbus-1/services)
+
+add_subdirectory(tests)
