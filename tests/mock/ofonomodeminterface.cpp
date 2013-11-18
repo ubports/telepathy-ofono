@@ -32,7 +32,10 @@ OfonoModemInterface::OfonoModemInterface(OfonoModem::SelectionSetting modemSetti
     : QObject(parent)
 {
 
-    m_m = new OfonoModem(modemSetting, modemPath, this);
+    if (!modemData[modemPath]) {
+        modemData[modemPath] = new ModemPrivate(new OfonoModem(modemSetting, modemPath, this));
+    }
+    m_m = modemData[modemPath]->ofonoModem();
     connect(m_m, SIGNAL(validityChanged(bool)), this, SLOT(modemValidityChanged(bool)));
     connect(m_m, SIGNAL(interfacesChanged(QStringList)), this, SLOT(interfacesChanged(QStringList)));
 

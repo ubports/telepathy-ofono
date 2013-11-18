@@ -254,3 +254,8 @@ ModemPrivate::ModemPrivate(OfonoModem *ofonoModem) :
 ModemPrivate::~ModemPrivate()
 {
 }
+
+void ModemPrivate::setOnline(bool online)
+{
+    mOfonoModem->setOnline(online);
+}

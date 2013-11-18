@@ -169,14 +169,19 @@ private:
 class OfonoVoiceCall;
 class OfonoMessage;
 
-class ModemPrivate : public QObject, private QDBusContext {
+class ModemPrivate : public QObject, protected QDBusContext {
     Q_OBJECT
     Q_CLASSINFO("Ofono-qt Mock Interface", "com.canonical.ofonoQtMock")
 public:
     ModemPrivate(OfonoModem* modemIface);
     ~ModemPrivate();
-    OfonoModem *mOfonoModem;
+    OfonoModem *ofonoModem() {
+        return mOfonoModem;
+    }
+public Q_SLOTS:
+    void setOnline(bool online);
 private:
+    OfonoModem *mOfonoModem;
     QMap <QString, OfonoVoiceCall*> mCalls;
     QMap <QString, OfonoMessage*> mMessages;
 
