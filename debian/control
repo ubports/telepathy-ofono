@@ -4,6 +4,7 @@ Priority: optional
 Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 Build-Depends: cmake,
                debhelper (>= 9),
+               dbus-test-runner,
                libofono-qt-dev (>= 1.5),
                libtelepathy-qt5-dev (>= 0.9.3),
                libpulse-dev [armhf],

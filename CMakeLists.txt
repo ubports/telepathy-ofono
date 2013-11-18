@@ -27,6 +27,8 @@ if (PULSEAUDIO_FOUND)
     include_directories(${PULSEAUDIO_INCLUDE_DIRS})
 endif (PULSEAUDIO_FOUND)
 
+find_program(DBUS_RUNNER dbus-test-runner)
+
 if(NOT DAEMON_DIR)
   set(DAEMON_DIR lib/telepathy)
 endif(NOT DAEMON_DIR)
