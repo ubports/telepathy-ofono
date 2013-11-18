@@ -1,9 +1,15 @@
 set(library_SRCS
+    ofonocallvolume.cpp
     ofonointerface.cpp
+    ofonomessage.cpp
     ofonomessagemanager.cpp
+    ofonomessagewaiting.cpp
     ofonomodem.cpp
     ofonomodeminterface.cpp
     ofonomodemmanager.cpp
+    ofononetworkregistration.cpp
+    ofonovoicecall.cpp
+    ofonovoicecallmanager.cpp
     )
 
 
