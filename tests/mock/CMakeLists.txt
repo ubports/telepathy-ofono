@@ -1,4 +1,6 @@
 set(library_SRCS
+    ofonointerface.cpp
+    ofonomodem.cpp
     ofonomodemmanager.cpp
     )
 
