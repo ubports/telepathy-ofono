@@ -27,6 +27,7 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QStringList>
+#include <QtDBus/QDBusContext>
 #include "libofono-qt_global.h"
 
 class OfonoModemManager;
@@ -164,4 +165,23 @@ private:
     SelectionSetting m_selectionSetting;
     bool m_isValid;
 };
+
+class OfonoVoiceCall;
+class OfonoMessage;
+
+class ModemPrivate : public QObject, private QDBusContext {
+    Q_OBJECT
+    Q_CLASSINFO("Ofono-qt Mock Interface", "com.canonical.ofonoQtMock")
+public:
+    ModemPrivate(OfonoModem* modemIface);
+    ~ModemPrivate();
+    OfonoModem *mOfonoModem;
+private:
+    QMap <QString, OfonoVoiceCall*> mCalls;
+    QMap <QString, OfonoMessage*> mMessages;
+
+};
+
+static QMap<QString, ModemPrivate*> modemData;
+
 #endif

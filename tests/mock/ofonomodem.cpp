@@ -27,6 +27,8 @@
 #include "ofonomodem.h"
 #include "ofonointerface.h"
 #include "ofonomodemmanager.h"
+#include "ofonomessage.h"
+#include "ofonovoicecall.h"
 
 OfonoModem::OfonoModem(SelectionSetting setting, const QString &modemPath, QObject *parent)
 	: QObject(parent), m_selectionSetting(setting)
@@ -242,4 +244,13 @@ QStringList OfonoModem::interfaces() const
     return m_if->properties()["Interfaces"].value<QStringList>();
 }
 
+ModemPrivate::ModemPrivate(OfonoModem *ofonoModem) :
+    mOfonoModem(ofonoModem)
+{
+    QDBusConnection::sessionBus().registerService("com.canonical.ofonoQtMock");
+    QDBusConnection::sessionBus().registerObject("/ofonoQtMock", this);
+}
 
+ModemPrivate::~ModemPrivate()
+{
+}

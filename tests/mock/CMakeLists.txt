@@ -1,11 +1,14 @@
 set(library_SRCS
     ofonointerface.cpp
+    ofonomessagemanager.cpp
     ofonomodem.cpp
+    ofonomodeminterface.cpp
     ofonomodemmanager.cpp
     )
 
 
 add_library(ofono-qt SHARED ${library_SRCS})
+#set_target_properties(ofono-qt PROPERTIES VERSION  SOVERSION 1.5.0)
 
 # Set the library version and the SOVERSION
 #set_target_properties(historyservice PROPERTIES
