@@ -1,4 +1,5 @@
 set(library_SRCS
+    modemprivate.cpp
     ofonocallvolume.cpp
     ofonointerface.cpp
     ofonomessage.cpp
@@ -12,9 +13,13 @@ set(library_SRCS
     ofonovoicecallmanager.cpp
     )
 
+include_directories(
+    ${CMAKE_BINARY_DIR}
+)
+
+qt5_add_dbus_adaptor(library_SRCS ModemPrivate.xml modemprivate.h ModemPrivate)
 
 add_library(ofono-qt SHARED ${library_SRCS})
-#set_target_properties(ofono-qt PROPERTIES VERSION  SOVERSION 1.5.0)
 
 # Set the library version and the SOVERSION
 #set_target_properties(historyservice PROPERTIES

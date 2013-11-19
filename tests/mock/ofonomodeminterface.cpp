@@ -27,12 +27,12 @@
 #include "ofonomodeminterface.h"
 #include "ofonomodem.h"
 #include "ofonointerface.h"
+#include "modemprivate.h"
 
 OfonoModemInterface::OfonoModemInterface(OfonoModem::SelectionSetting modemSetting, const QString& modemPath, const QString& ifname, OfonoGetPropertySetting propertySetting, QObject *parent)
     : QObject(parent)
 {
-
-    if (!modemData[modemPath]) {
+    if (!modemData.keys().contains(modemPath)) {
         modemData[modemPath] = new ModemPrivate(new OfonoModem(modemSetting, modemPath, this));
     }
     m_m = modemData[modemPath]->ofonoModem();

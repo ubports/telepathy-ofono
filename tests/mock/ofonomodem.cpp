@@ -244,18 +244,4 @@ QStringList OfonoModem::interfaces() const
     return m_if->properties()["Interfaces"].value<QStringList>();
 }
 
-ModemPrivate::ModemPrivate(OfonoModem *ofonoModem) :
-    mOfonoModem(ofonoModem)
-{
-    QDBusConnection::sessionBus().registerService("com.canonical.ofonoQtMock");
-    QDBusConnection::sessionBus().registerObject("/ofonoQtMock", this);
-}
 
-ModemPrivate::~ModemPrivate()
-{
-}
-
-void ModemPrivate::setOnline(bool online)
-{
-    mOfonoModem->setOnline(online);
-}

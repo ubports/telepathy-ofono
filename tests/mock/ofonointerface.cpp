@@ -70,13 +70,13 @@ void OfonoInterface::getPropertiesAsyncErr(const QDBusError& error)
 
 void OfonoInterface::onPropertyChanged(QString property, QDBusVariant value)
 {
-    m_properties[property] = value.variant();
     Q_EMIT propertyChanged(property, value.variant());
 }
 
 void OfonoInterface::setProperty(const QString& name, const QVariant& property, const QString& password)
 {
-    QTimer::singleShot(0, this, SLOT(onPropertyChanged(name, property)));
+    m_properties[name] = property;
+    onPropertyChanged(name, QDBusVariant(property));
 }
 
 void OfonoInterface::setPropertyResp()
