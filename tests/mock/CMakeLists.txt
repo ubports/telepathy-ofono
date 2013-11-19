@@ -1,5 +1,6 @@
 set(library_SRCS
     modemprivate.cpp
+    networkregistrationprivate.cpp
     ofonocallvolume.cpp
     ofonointerface.cpp
     ofonomessage.cpp
@@ -18,6 +19,7 @@ include_directories(
 )
 
 qt5_add_dbus_adaptor(library_SRCS ModemPrivate.xml modemprivate.h ModemPrivate)
+qt5_add_dbus_adaptor(library_SRCS NetworkRegistrationPrivate.xml networkregistrationprivate.h NetworkRegistrationPrivate)
 
 add_library(ofono-qt SHARED ${library_SRCS})
 

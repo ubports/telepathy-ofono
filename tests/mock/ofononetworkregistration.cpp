@@ -26,6 +26,8 @@
 
 #include "ofononetworkregistration.h"
 #include "ofonointerface.h"
+#include "modemprivate.h"
+#include "networkregistrationprivate.h"
 
 #define REGISTER_TIMEOUT 300000
 #define SCAN_TIMEOUT 300000
@@ -53,7 +55,11 @@ OfonoNetworkRegistration::OfonoNetworkRegistration(OfonoModem::SelectionSetting 
     qDBusRegisterMetaType<OfonoOperatorStruct>();
     qDBusRegisterMetaType<OfonoOperatorList>();
 
-    connect(m_if, SIGNAL(propertyChanged(const QString&, const QVariant&)), 
+    if (!networkRegistrationData.keys().contains(modem()->path())) {
+        networkRegistrationData[modem()->path()] = new NetworkRegistrationPrivate(this, m_if);
+    }
+
+    connect(networkRegistrationData[modem()->path()]->getPropertiesInterface(), SIGNAL(propertyChanged(const QString&, const QVariant&)), 
             this, SLOT(propertyChanged(const QString&, const QVariant&)));
 }
 
