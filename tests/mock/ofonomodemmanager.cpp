@@ -12,7 +12,7 @@ OfonoModemManager::~OfonoModemManager()
 
 QStringList OfonoModemManager::modems() const
 {
-    return QStringList() << "/mock";
+    return QStringList() << "/OfonoModem";
 }
 
 void OfonoModemManager::onModemAdded(const QDBusObjectPath &path, const QVariantMap &map)

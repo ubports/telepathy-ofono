@@ -8,6 +8,8 @@ class OfonoVoiceCall;
 class OfonoMessage;
 class OfonoNetworkRegistration;
 
+#define OFONO_MOCK_MODEM_OBJECT "/OfonoModem"
+
 class ModemPrivate : public QObject, protected QDBusContext {
     Q_OBJECT
     Q_CLASSINFO("D-Bus Interface", "org.ofono.Modem")
@@ -19,6 +21,7 @@ public:
     }
 public Q_SLOTS:
     void setOnline(bool online);
+    void setProperty(const QString &name, const QVariant& value);
 private:
     OfonoModem *mOfonoModem;
     QMap <QString, OfonoVoiceCall*> mCalls;

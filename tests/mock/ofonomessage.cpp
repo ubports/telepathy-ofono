@@ -32,11 +32,10 @@
 OfonoMessage::OfonoMessage(const QString& messageId, QObject *parent)
     : QObject(parent)
 {
+    m_if = new OfonoInterface(messageId, "org.ofono.Message", OfonoGetAllOnStartup, this);
     if (!messageData.keys().contains(messageId)) {
-        m_if = new OfonoInterface(messageId, "org.ofono.Message", OfonoGetAllOnStartup, this);
         messageData[messageId] = new MessagePrivate(this, m_if);
     }
-    m_if = messageData[messageId]->getPropertiesInterface();
 
     connect(m_if, SIGNAL(propertyChanged(const QString&, const QVariant&)),
             this, SLOT(propertyChanged(const QString&, const QVariant&)));
@@ -45,11 +44,10 @@ OfonoMessage::OfonoMessage(const QString& messageId, QObject *parent)
 OfonoMessage::OfonoMessage(const OfonoMessage& message)
     : QObject(message.parent())
 {
+    m_if = new OfonoInterface(message.path(), "org.ofono.Message", OfonoGetAllOnStartup, this);
     if (!messageData.keys().contains(message.path())) {
-        m_if = new OfonoInterface(message.path(), "org.ofono.Message", OfonoGetAllOnStartup, this);
         messageData[message.path()] = new MessagePrivate(this, m_if);
     }
-    m_if = messageData[message.path()]->getPropertiesInterface();
 
     connect(m_if, SIGNAL(propertyChanged(const QString&, const QVariant&)),
             this, SLOT(propertyChanged(const QString&, const QVariant&)));

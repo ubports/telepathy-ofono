@@ -39,7 +39,7 @@ OfonoModemInterface::OfonoModemInterface(OfonoModem::SelectionSetting modemSetti
     connect(m_m, SIGNAL(validityChanged(bool)), this, SLOT(modemValidityChanged(bool)));
     connect(m_m, SIGNAL(interfacesChanged(QStringList)), this, SLOT(interfacesChanged(QStringList)));
 
-    m_if = new OfonoInterface(m_m->path(), ifname, propertySetting, this);
+    m_if = new OfonoInterface(OFONO_MOCK_MODEM_OBJECT, ifname, propertySetting, this);
     connect(m_m, SIGNAL(pathChanged(QString)), m_if, SLOT(setPath(const QString&)));
     m_isValid = checkValidity();
 }

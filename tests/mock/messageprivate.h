@@ -16,8 +16,13 @@ public:
         return mOfonoInterface;
     }
 public Q_SLOTS:
-    void setProperty(const QString &name, const QString &value);
+    QVariantMap GetProperties();
+    void SetProperty(const QString &name, const QDBusVariant &value);
+    void Cancel();
+    void MockMarkFailed();
+    void MockMarkSent();
 private:
+    QVariantMap mProperties;
     OfonoMessage *mOfonoMessage;
     OfonoInterface *mOfonoInterface;
 };
