@@ -54,7 +54,7 @@ void OfonoInterface::setPath(const QString& path)
     QDBusConnection::sessionBus().connect("org.ofono", m_path, m_ifname, 
 					     "PropertyChanged",
 					     this,
-					     SLOT(onPropertyChanged(QString, QString)));
+					     SLOT(onPropertyChanged(QString, QDBusVariant)));
 
     if (m_getpropsetting == OfonoGetAllOnStartup)
         m_properties = getAllPropertiesSync();
