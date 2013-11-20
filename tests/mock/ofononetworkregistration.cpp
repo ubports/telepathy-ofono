@@ -55,11 +55,13 @@ OfonoNetworkRegistration::OfonoNetworkRegistration(OfonoModem::SelectionSetting 
     qDBusRegisterMetaType<OfonoOperatorStruct>();
     qDBusRegisterMetaType<OfonoOperatorList>();
 
+    m_if->setPath(OFONO_MOCK_NETWORK_REGISTRATION_OBJECT);
     if (!networkRegistrationData.keys().contains(modem()->path())) {
         networkRegistrationData[modem()->path()] = new NetworkRegistrationPrivate(this, m_if);
     }
+    //m_if = networkRegistrationData[modem()->path()]->getPropertiesInterface();
 
-    connect(networkRegistrationData[modem()->path()]->getPropertiesInterface(), SIGNAL(propertyChanged(const QString&, const QVariant&)), 
+    connect(m_if, SIGNAL(propertyChanged(const QString&, const QVariant&)), 
             this, SLOT(propertyChanged(const QString&, const QVariant&)));
 }
 
@@ -72,10 +74,10 @@ void OfonoNetworkRegistration::registerOp()
     QDBusMessage request;
 
     request = QDBusMessage::createMethodCall("org.ofono",
-					     path(), m_if->ifname(),
+					     OFONO_MOCK_NETWORK_REGISTRATION_OBJECT, m_if->ifname(),
 					     "Register");
 
-    QDBusConnection::systemBus().callWithCallback(request, this,
+    QDBusConnection::sessionBus().callWithCallback(request, this,
 					SLOT(registerResp()),
 					SLOT(registerErr(const QDBusError&)),
 					REGISTER_TIMEOUT);
@@ -86,10 +88,10 @@ void OfonoNetworkRegistration::scan()
     QDBusMessage request;
 
     request = QDBusMessage::createMethodCall("org.ofono",
-					     path(), m_if->ifname(),
+					     OFONO_MOCK_NETWORK_REGISTRATION_OBJECT, m_if->ifname(),
 					     "Scan");
 
-    QDBusConnection::systemBus().callWithCallback(request, this,
+    QDBusConnection::sessionBus().callWithCallback(request, this,
 					SLOT(scanResp(OfonoOperatorList)),
 					SLOT(scanErr(const QDBusError&)),
 					REGISTER_TIMEOUT);
@@ -100,10 +102,10 @@ void OfonoNetworkRegistration::getOperators()
     QDBusMessage request;
 
     request = QDBusMessage::createMethodCall("org.ofono",
-					     path(), m_if->ifname(),
+					     OFONO_MOCK_NETWORK_REGISTRATION_OBJECT, m_if->ifname(),
 					     "GetOperators");
 
-    QDBusConnection::systemBus().callWithCallback(request, this,
+    QDBusConnection::sessionBus().callWithCallback(request, this,
 					SLOT(getOperatorsResp(OfonoOperatorList)),
 					SLOT(getOperatorsErr(const QDBusError&)),
 					SCAN_TIMEOUT);
@@ -161,6 +163,7 @@ QString OfonoNetworkRegistration::baseStation() const
 
 void OfonoNetworkRegistration::propertyChanged(const QString& property, const QVariant& value)
 {
+    qDebug() << property << value;
     if (property == "Mode") {	
         Q_EMIT modeChanged(value.value<QString>());
     } else if (property == "Status") {	

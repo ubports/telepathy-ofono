@@ -10,8 +10,8 @@ ModemPrivate::ModemPrivate(OfonoModem *ofonoModem, QObject *parent) :
     mOfonoModem(ofonoModem)
 {
     QDBusConnection::sessionBus().registerObject("/OfonoModem", this);
-    QDBusConnection::sessionBus().registerService("com.canonical.OfonoQtMock");
-    new OfonoModemAdaptor(this);
+    QDBusConnection::sessionBus().registerService("org.ofono");
+    new ModemAdaptor(this);
 }
 
 ModemPrivate::~ModemPrivate()

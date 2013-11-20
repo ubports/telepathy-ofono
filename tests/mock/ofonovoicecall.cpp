@@ -37,7 +37,7 @@ OfonoVoiceCall::OfonoVoiceCall(const QString& callId, QObject *parent)
     connect(m_if, SIGNAL(propertyChanged(const QString&, const QVariant&)),
             this, SLOT(propertyChanged(const QString&, const QVariant&)));
 
-    QDBusConnection::systemBus().connect("org.ofono",path(),m_if->ifname(),
+    QDBusConnection::sessionBus().connect("org.ofono",path(),m_if->ifname(),
                                          "DisconnectReason", this,
                                          SIGNAL(disconnectReason(const QString&)));
 
@@ -51,7 +51,7 @@ OfonoVoiceCall::OfonoVoiceCall(const OfonoVoiceCall& call)
     connect(m_if, SIGNAL(propertyChanged(const QString&, const QVariant&)),
             this, SLOT(propertyChanged(const QString&, const QVariant&)));
 
-    QDBusConnection::systemBus().connect("org.ofono",path(),m_if->ifname(),
+    QDBusConnection::sessionBus().connect("org.ofono",path(),m_if->ifname(),
                                          "DisconnectReason", this,
                                          SIGNAL(disconnectReason(const QString&)));
 }
@@ -73,7 +73,7 @@ void OfonoVoiceCall::answer()
                                              path(), m_if->ifname(),
                                              "Answer");
 
-    QDBusConnection::systemBus().callWithCallback(request, this,
+    QDBusConnection::sessionBus().callWithCallback(request, this,
                                         SLOT(answerResp()),
                                         SLOT(answerErr(const QDBusError&)),
                                         VOICECALL_TIMEOUT);
@@ -87,7 +87,7 @@ void OfonoVoiceCall::hangup()
                                              path(), m_if->ifname(),
                                              "Hangup");
 
-    QDBusConnection::systemBus().callWithCallback(request, this,
+    QDBusConnection::sessionBus().callWithCallback(request, this,
                                         SLOT(hangupResp()),
                                         SLOT(hangupErr(const QDBusError&)),
                                         VOICECALL_TIMEOUT);
@@ -104,7 +104,7 @@ void OfonoVoiceCall::deflect(const QString &number)
     arg.append(QVariant(number));
     request.setArguments(arg);
 
-    QDBusConnection::systemBus().callWithCallback(request, this,
+    QDBusConnection::sessionBus().callWithCallback(request, this,
                                         SLOT(deflectResp()),
                                         SLOT(deflectErr(const QDBusError&)),
                                         VOICECALL_TIMEOUT);

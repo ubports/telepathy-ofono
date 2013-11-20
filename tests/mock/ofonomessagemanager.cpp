@@ -26,6 +26,7 @@
 
 #include "ofonomessagemanager.h"
 #include "ofonointerface.h"
+#include "messagemanagerprivate.h"
 
 QDBusArgument &operator<<(QDBusArgument &argument, const OfonoMessageManagerStruct &message)
 {
@@ -48,6 +49,11 @@ OfonoMessageManager::OfonoMessageManager(OfonoModem::SelectionSetting modemSetti
 {
     qDBusRegisterMetaType<OfonoMessageManagerStruct>();
     qDBusRegisterMetaType<OfonoMessageManagerList>();
+
+    if (!messageManagerData.keys().contains(modem()->path())) {
+        messageManagerData[modem()->path()] = new MessageManagerPrivate(this, m_if);
+    }
+    m_if = messageManagerData[modem()->path()]->getPropertiesInterface();
 
     m_messagelist = getMessageList();
 
@@ -88,7 +94,7 @@ QStringList OfonoMessageManager::getMessageList()
     request = QDBusMessage::createMethodCall("org.ofono",
                                              path(), m_if->ifname(),
                                              "GetMessages");
-    reply = QDBusConnection::systemBus().call(request);
+    reply = QDBusConnection::sessionBus().call(request);
 
     messages = reply;
     Q_FOREACH(OfonoMessageManagerStruct message, messages) {
@@ -99,36 +105,36 @@ QStringList OfonoMessageManager::getMessageList()
 
 void OfonoMessageManager::connectDbusSignals(const QString& path)
 {
-    QDBusConnection::systemBus().disconnect("org.ofono", QString(), m_if->ifname(),
+    QDBusConnection::sessionBus().disconnect("org.ofono", QString(), m_if->ifname(),
                                          "MessageAdded",
                                          this,
                                          SLOT(onMessageAdded(const QDBusObjectPath&, const QVariantMap&)));
-    QDBusConnection::systemBus().disconnect("org.ofono", QString(), m_if->ifname(),
+    QDBusConnection::sessionBus().disconnect("org.ofono", QString(), m_if->ifname(),
                                          "MessageRemoved",
                                          this,
                                          SLOT(onMessageRemoved(const QDBusObjectPath&)));
-    QDBusConnection::systemBus().disconnect("org.ofono", QString(), m_if->ifname(),
+    QDBusConnection::sessionBus().disconnect("org.ofono", QString(), m_if->ifname(),
                                          "IncomingMessage",
                                          this,
                                          SIGNAL(incomingMessage(QString, QVariantMap)));
-    QDBusConnection::systemBus().disconnect("org.ofono", QString(), m_if->ifname(),
+    QDBusConnection::sessionBus().disconnect("org.ofono", QString(), m_if->ifname(),
                                          "ImmediateMessage",
                                          this,
                                          SIGNAL(immediateMessage(QString, QVariantMap)));
 
-    QDBusConnection::systemBus().connect("org.ofono", path, m_if->ifname(),
+    QDBusConnection::sessionBus().connect("org.ofono", path, m_if->ifname(),
                                          "MessageAdded",
                                          this,
                                          SLOT(onMessageAdded(const QDBusObjectPath&, const QVariantMap&)));
-    QDBusConnection::systemBus().connect("org.ofono", path, m_if->ifname(),
+    QDBusConnection::sessionBus().connect("org.ofono", path, m_if->ifname(),
                                          "MessageRemoved",
                                          this,
                                          SLOT(onMessageRemoved(const QDBusObjectPath&)));
-    QDBusConnection::systemBus().connect("org.ofono", path, m_if->ifname(),
+    QDBusConnection::sessionBus().connect("org.ofono", path, m_if->ifname(),
                                          "IncomingMessage",
                                          this,
                                          SIGNAL(incomingMessage(QString, QVariantMap)));
-    QDBusConnection::systemBus().connect("org.ofono", path, m_if->ifname(),
+    QDBusConnection::sessionBus().connect("org.ofono", path, m_if->ifname(),
                                          "ImmediateMessage",
                                          this,
                                          SIGNAL(immediateMessage(QString, QVariantMap)));
@@ -184,7 +190,7 @@ QDBusObjectPath OfonoMessageManager::sendMessage(const QString &to, const QStrin
                                              path(), m_if->ifname(),
                                              "SendMessage");
     request << to << message;
-    reply = QDBusConnection::systemBus().call(request);
+    reply = QDBusConnection::sessionBus().call(request);
     success = reply.isValid();
     if (!success) {
         m_if->setError(reply.error().name(), reply.error().message());

@@ -1,9 +1,13 @@
 <!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
 <node>
-  <interface name="org.ofono.NetworkRegistration">
+  <interface name="org.ofono.MessageManager">
     <method name="setProperty">
       <arg name="name" type="s" direction="in"/>
       <arg name="value" type="s" direction="in"/>
+    </method>
+    <method name="sendMessage">
+      <arg name="from" type="s" direction="in"/>
+      <arg name="text" type="s" direction="in"/>
     </method>
   </interface>
 </node>

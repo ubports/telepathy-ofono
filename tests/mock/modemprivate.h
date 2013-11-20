@@ -10,7 +10,7 @@ class OfonoNetworkRegistration;
 
 class ModemPrivate : public QObject, protected QDBusContext {
     Q_OBJECT
-    Q_CLASSINFO("D-Bus Interface", "com.canonical.OfonoQtMock.OfonoModem")
+    Q_CLASSINFO("D-Bus Interface", "org.ofono.Modem")
 public:
     ModemPrivate(OfonoModem* modemIface, QObject *parent = 0);
     ~ModemPrivate();

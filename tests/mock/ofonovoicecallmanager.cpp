@@ -101,7 +101,7 @@ QStringList OfonoVoiceCallManager::getCallList()
     request = QDBusMessage::createMethodCall("org.ofono",
                                              path(), m_if->ifname(),
                                              "GetCalls");
-    reply = QDBusConnection::systemBus().call(request);
+    reply = QDBusConnection::sessionBus().call(request);
 
     calls = reply;
     Q_FOREACH(OfonoVoiceCallManagerStruct call, calls) {
@@ -112,29 +112,29 @@ QStringList OfonoVoiceCallManager::getCallList()
 
 void OfonoVoiceCallManager::connectDbusSignals(const QString& path)
 {
-    QDBusConnection::systemBus().disconnect("org.ofono", QString(), m_if->ifname(),
+    QDBusConnection::sessionBus().disconnect("org.ofono", QString(), m_if->ifname(),
                                          "CallAdded", this,
                                          SLOT(callAddedChanged(const QDBusObjectPath&, const QVariantMap&)));
-    QDBusConnection::systemBus().disconnect("org.ofono", QString(), m_if->ifname(),
+    QDBusConnection::sessionBus().disconnect("org.ofono", QString(), m_if->ifname(),
                                          "CallRemoved", this,
                                          SLOT(callRemovedChanged(const QDBusObjectPath&)));
-    QDBusConnection::systemBus().disconnect("org.ofono", QString(), m_if->ifname(), 
+    QDBusConnection::sessionBus().disconnect("org.ofono", QString(), m_if->ifname(), 
                                         "BarringActive", this,
                                         SIGNAL(barringActive(const QString&)));
-    QDBusConnection::systemBus().disconnect("org.ofono", QString(), m_if->ifname(), 
+    QDBusConnection::sessionBus().disconnect("org.ofono", QString(), m_if->ifname(), 
                                         "Forwarded", this,
                                         SIGNAL(forwarded(const QString&)));
 
-    QDBusConnection::systemBus().connect("org.ofono", path, m_if->ifname(),
+    QDBusConnection::sessionBus().connect("org.ofono", path, m_if->ifname(),
                                          "CallAdded", this,
                                          SLOT(callAddedChanged(const QDBusObjectPath&, const QVariantMap&)));
-    QDBusConnection::systemBus().connect("org.ofono", path, m_if->ifname(),
+    QDBusConnection::sessionBus().connect("org.ofono", path, m_if->ifname(),
                                          "CallRemoved", this,
                                          SLOT(callRemovedChanged(const QDBusObjectPath&)));
-    QDBusConnection::systemBus().connect("org.ofono", path, m_if->ifname(), 
+    QDBusConnection::sessionBus().connect("org.ofono", path, m_if->ifname(), 
                                         "BarringActive", this,
                                         SIGNAL(barringActive(const QString&)));
-    QDBusConnection::systemBus().connect("org.ofono", path, m_if->ifname(), 
+    QDBusConnection::sessionBus().connect("org.ofono", path, m_if->ifname(), 
                                         "Forwarded", this,
                                         SIGNAL(forwarded(const QString&)));
 }
@@ -151,7 +151,7 @@ QDBusObjectPath OfonoVoiceCallManager::dial(const QString &number, const QString
     arg.append(QVariant(callerid_hide));
     request.setArguments(arg);
 
-    reply = QDBusConnection::systemBus().call(request);
+    reply = QDBusConnection::sessionBus().call(request);
     success = reply.isValid();
     if (!success) {
         m_if->setError(reply.error().name(), reply.error().message());
@@ -166,7 +166,7 @@ void OfonoVoiceCallManager::hangupAll()
                                              path(), m_if->ifname(),
                                              "HangupAll");
 
-    QDBusConnection::systemBus().callWithCallback(request, this,
+    QDBusConnection::sessionBus().callWithCallback(request, this,
                                         SLOT(hangupAllResp()),
                                         SLOT(hangupAllErr(const QDBusError&)),
                                         HANGUP_TIMEOUT);
@@ -182,7 +182,7 @@ void OfonoVoiceCallManager::sendTones(const QString &tonestring)
     arg.append(QVariant(tonestring));
     request.setArguments(arg);
 
-    QDBusConnection::systemBus().callWithCallback(request, this,
+    QDBusConnection::sessionBus().callWithCallback(request, this,
                                         SLOT(sendTonesResp()),
                                         SLOT(sendTonesErr(const QDBusError&)),
                                         (TONE_TIMEOUT*tonestring.length()));
@@ -195,7 +195,7 @@ void OfonoVoiceCallManager::transfer()
                                              path(), m_if->ifname(),
                                              "Transfer");
 
-    QDBusConnection::systemBus().callWithCallback(request, this,
+    QDBusConnection::sessionBus().callWithCallback(request, this,
                                         SLOT(transferResp()),
                                         SLOT(transferErr(const QDBusError&)),
                                         TRANSFER_TIMEOUT);
@@ -208,7 +208,7 @@ void OfonoVoiceCallManager::swapCalls()
                                              path(), m_if->ifname(),
                                              "SwapCalls");
 
-    QDBusConnection::systemBus().callWithCallback(request, this,
+    QDBusConnection::sessionBus().callWithCallback(request, this,
                                         SLOT(swapCallsResp()),
                                         SLOT(swapCallsErr(const QDBusError&)),
                                         SWAP_TIMEOUT);
@@ -221,7 +221,7 @@ void OfonoVoiceCallManager::releaseAndAnswer()
                                              path(), m_if->ifname(),
                                              "ReleaseAndAnswer");
 
-    QDBusConnection::systemBus().callWithCallback(request, this,
+    QDBusConnection::sessionBus().callWithCallback(request, this,
                                         SLOT(releaseAndAnswerResp()),
                                         SLOT(releaseAndAnswerErr(const QDBusError&)),
                                         HANGUP_TIMEOUT);
@@ -234,7 +234,7 @@ void OfonoVoiceCallManager::holdAndAnswer()
                                              path(), m_if->ifname(),
                                              "HoldAndAnswer");
 
-    QDBusConnection::systemBus().callWithCallback(request, this,
+    QDBusConnection::sessionBus().callWithCallback(request, this,
                                         SLOT(holdAndAnswerResp()),
                                         SLOT(holdAndAnswerErr(const QDBusError&)),
                                         HOLD_TIMEOUT);
@@ -250,7 +250,7 @@ void OfonoVoiceCallManager::privateChat(const QString &call)
     QList<QVariant>arg;
     arg.append(qVariantFromValue(QDBusObjectPath(call)));
     request.setArguments(arg);
-    QDBusConnection::systemBus().callWithCallback(request, this,
+    QDBusConnection::sessionBus().callWithCallback(request, this,
                                         SLOT(privateChatResp(const QList<QDBusObjectPath>&)),
                                         SLOT(privateChatErr(const QDBusError&)),
                                         PRIVATE_CHAT_TIMEOUT);
@@ -263,7 +263,7 @@ void OfonoVoiceCallManager::createMultiparty()
                                              path(), m_if->ifname(),
                                              "CreateMultiparty");
 
-    QDBusConnection::systemBus().callWithCallback(request, this,
+    QDBusConnection::sessionBus().callWithCallback(request, this,
                                         SLOT(createMultipartyResp(const QList<QDBusObjectPath>&)),
                                         SLOT(createMultipartyErr(const QDBusError&)),
                                         CREATE_MULTIPARTY_TIMEOUT);
@@ -276,7 +276,7 @@ void OfonoVoiceCallManager::hangupMultiparty()
                                              path(), m_if->ifname(),
                                              "HangupMultiparty");
 
-    QDBusConnection::systemBus().callWithCallback(request, this,
+    QDBusConnection::sessionBus().callWithCallback(request, this,
                                         SLOT(hangupMultipartyResp()),
                                         SLOT(hangupMultipartyErr(const QDBusError&)),
                                         HANGUP_TIMEOUT);
