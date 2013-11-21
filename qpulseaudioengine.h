@@ -19,7 +19,6 @@
 
 #ifndef QPULSEAUDIOENGINE_H
 #define QPULSEAUDIOENGINE_H
-#ifdef USE_PULSEAUDIO
 
 #include <QtCore/qmap.h>
 #include <QtCore/qbytearray.h>
@@ -61,5 +60,4 @@ private:
 
 QT_END_NAMESPACE
 
-#endif
 #endif
