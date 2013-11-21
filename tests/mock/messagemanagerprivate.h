@@ -19,6 +19,8 @@ public:
     OfonoInterface *getPropertiesInterface() {
         return mOfonoInterface;
     }
+private Q_SLOTS:
+    void onMessageDestroyed();
 public Q_SLOTS:
     QVariantMap GetProperties();
     void SetProperty(const QString &name, const QDBusVariant &value);

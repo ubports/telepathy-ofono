@@ -11,8 +11,6 @@
     </method>
     <method name="Cancel">
     </method>
-    <method name="MockCancel">
-    </method>
     <method name="MockMarkFailed">
     </method>
     <method name="MockMarkSent">

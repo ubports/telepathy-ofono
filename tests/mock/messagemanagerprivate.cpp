@@ -73,7 +73,7 @@ void MessageManagerPrivate::onMessageDestroyed()
     OfonoMessage *message = static_cast<OfonoMessage*>(sender());
     if (message) {
         QDBusMessage message = QDBusMessage::createSignal(OFONO_MOCK_MESSAGE_MANAGER_OBJECT, "org.ofono.MessageManager", "MessageRemoved");
-        message << message->path();
+        message << message.path();
         QDBusConnection::sessionBus().send(message);
 
     }
