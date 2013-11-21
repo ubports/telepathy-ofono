@@ -16,11 +16,13 @@ public:
     OfonoInterface *getPropertiesInterface() {
         return mOfonoInterface;
     }
-//Q_SIGNALS:
-//    void PropertyChanged(const QString &, const QVariant &);
+Q_SIGNALS:
+    void PropertyChanged(const QString &, const QDBusVariant &);
 public Q_SLOTS:
-    void setProperty(const QString &name, const QString &value);
+    QVariantMap GetProperties();
+    void SetProperty(const QString &name, const QDBusVariant &value);
 private:
+    QVariantMap mProperties;
     OfonoNetworkRegistration *mOfonoNetworkRegistration;
     OfonoInterface *mOfonoInterface;
 };

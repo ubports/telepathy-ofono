@@ -19,9 +19,13 @@ NetworkRegistrationPrivate::~NetworkRegistrationPrivate()
 {
 }
 
-void NetworkRegistrationPrivate::setProperty(const QString &name, const QString& value)
+QVariantMap NetworkRegistrationPrivate::GetProperties()
 {
-    QDBusMessage message = QDBusMessage::createSignal(OFONO_MOCK_NETWORK_REGISTRATION_OBJECT, "org.ofono.NetworkRegistration", "PropertyChanged");
-    message << name << QVariant::fromValue(QDBusVariant(value));
-    QDBusConnection::sessionBus().send(message);
+    return mProperties;
+}
+
+void NetworkRegistrationPrivate::SetProperty(const QString &name, const QDBusVariant& value)
+{
+    mProperties[name] = value.variant();
+    Q_EMIT PropertyChanged(name, value);
 }

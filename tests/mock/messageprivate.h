@@ -15,6 +15,8 @@ public:
     OfonoInterface *getPropertiesInterface() {
         return mOfonoInterface;
     }
+Q_SIGNALS:
+    void PropertyChanged(const QString &name, const QDBusVariant &value);
 public Q_SLOTS:
     QVariantMap GetProperties();
     void SetProperty(const QString &name, const QDBusVariant &value);

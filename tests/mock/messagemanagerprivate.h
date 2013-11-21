@@ -19,6 +19,11 @@ public:
     OfonoInterface *getPropertiesInterface() {
         return mOfonoInterface;
     }
+Q_SIGNALS:
+    void MessageRemoved(const QDBusObjectPath &obj);
+    void PropertyChanged(const QString &name, const QDBusVariant &value);
+    void MessageAdded(const QDBusObjectPath &obj, const QVariantMap &value);
+    void IncomingMessage(const QString &text, const QVariantMap &info);
 private Q_SLOTS:
     void onMessageDestroyed();
 public Q_SLOTS:

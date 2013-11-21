@@ -50,18 +50,6 @@ OfonoModem::OfonoModem(SelectionSetting setting, const QString &modemPath, QObje
         finalModemPath = "/";
     } 
     m_if = new OfonoInterface(finalModemPath, "org.ofono.Modem", OfonoGetAllOnStartup, this);
-    m_if->setProperty("Online", false);
-    m_if->setProperty("Powered", false);
-    m_if->setProperty("Lockdown", false);
-    m_if->setProperty("Emergency", false);
-    m_if->setProperty("Name", "Mock Modem");
-    m_if->setProperty("Manufacturer", "Foobar");
-    m_if->setProperty("Model", "Foobar");
-    m_if->setProperty("Revision", "1.0");
-    m_if->setProperty("Serial", "ABC123");
-    m_if->setProperty("Type", "software");
-    m_if->setProperty("Features", QStringList() << "gprs" << "cbs" << "net" << "sms" << "sim");
-    m_if->setProperty("Interfaces", QStringList() << "org.ofono.ConnectionManager" << "org.ofono.AssistedSatelliteNavigation" << "org.ofono.CellBroadcast" << "org.ofono.NetworkRegistration" << "org.ofono.CallVolume" << "org.ofono.CallMeter" << "org.ofono.SupplementaryServices" << "org.ofono.CallBarring" << "org.ofono.CallSettings" << "org.ofono.MessageWaiting" << "org.ofono.SmartMessaging" << "org.ofono.PushNotification" << "org.ofono.MessageManager" << "org.ofono.Phonebook" << "org.ofono.TextTelephony" << "org.ofono.CallForwarding" << "org.ofono.SimToolkit" << "org.ofono.NetworkTime" << "org.ofono.VoiceCallManager" << "org.ofono.SimManager");
 
     connect(m_if, SIGNAL(propertyChanged(const QString&, const QVariant&)), 
             this, SLOT(propertyChanged(const QString&, const QVariant&)));

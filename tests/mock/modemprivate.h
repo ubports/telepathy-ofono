@@ -3,6 +3,7 @@
 
 #include <QDBusAbstractAdaptor>
 #include "ofonomodem.h"
+#include <QDBusVariant>
 
 class OfonoVoiceCall;
 class OfonoMessage;
@@ -19,10 +20,14 @@ public:
     OfonoModem *ofonoModem() {
         return mOfonoModem;
     }
+Q_SIGNALS:
+    void PropertyChanged(const QString &name, const QDBusVariant& value);
 public Q_SLOTS:
-    void setOnline(bool online);
-    void setProperty(const QString &name, const QVariant& value);
+    void MockSetOnline(bool online);
+    QVariantMap GetProperties();
+    void SetProperty(const QString &name, const QDBusVariant& value);
 private:
+    QVariantMap mProperties;
     OfonoModem *mOfonoModem;
     QMap <QString, OfonoVoiceCall*> mCalls;
     QMap <QString, OfonoMessage*> mMessages;

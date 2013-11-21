@@ -1,8 +1,20 @@
 <!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
 <node>
   <interface name="org.ofono.Modem">
-    <method name="setOnline">
+    <signal name="PropertyChanged">
+      <arg name="name" type="s" direction="out"/>
+      <arg name="value" type="v" direction="out"/>
+    </signal>
+    <method name="MockSetOnline">
       <arg name="online" type="b" direction="in"/>
+    </method>
+    <method name="GetProperties">
+      <arg type="a{sv}" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QVariantMap"/>
+    </method>
+    <method name="SetProperty">
+      <arg name="name" type="s" direction="in"/>
+      <arg name="value" type="v" direction="in"/>
     </method>
   </interface>
 </node>

@@ -18,8 +18,6 @@ MessageManagerPrivate::MessageManagerPrivate(OfonoMessageManager *iface, OfonoIn
     SetProperty("UseDeliveryReports", QDBusVariant(QVariant(false)));
     SetProperty("Bearer", QDBusVariant(QVariant("")));
     SetProperty("Alphabet", QDBusVariant(QVariant("")));
-    SetProperty("UseDeliveryReports", QDBusVariant(QVariant(false)));
-    SetProperty("UseDeliveryReports", QDBusVariant(QVariant(false)));
     new MessageManagerAdaptor(this);
 }
 
@@ -36,9 +34,7 @@ void MessageManagerPrivate::SetProperty(const QString &name, const QDBusVariant&
 {
     qDebug() << "MessageManagerPrivate::SetProperty" << name << value.variant();
     mProperties[name] = value.variant();
-    QDBusMessage message = QDBusMessage::createSignal(OFONO_MOCK_MESSAGE_MANAGER_OBJECT, "org.ofono.MessageManager", "PropertyChanged");
-    message << name << QVariant::fromValue(value);
-    QDBusConnection::sessionBus().send(message);
+    Q_EMIT PropertyChanged(name, value);
 }
 
 void MessageManagerPrivate::MockSendMessage(const QString &from, const QString &text)
@@ -48,33 +44,27 @@ void MessageManagerPrivate::MockSendMessage(const QString &from, const QString &
     properties["SentTime"] = QDateTime::currentDateTime().toString(Qt::ISODate);
     properties["LocalSentTime"] = QDateTime::currentDateTime().toString(Qt::ISODate);
     
-    QDBusMessage message = QDBusMessage::createSignal(OFONO_MOCK_MESSAGE_MANAGER_OBJECT, "org.ofono.MessageManager", "IncomingMessage");
-    message << text << properties;
-    QDBusConnection::sessionBus().send(message);
+    Q_EMIT IncomingMessage(text, properties);
 }
 
 
 QDBusObjectPath MessageManagerPrivate::SendMessage(const QString &to, const QString &text)
 {
     QString newPath("/OfonoMessage"+QString::number(++messageCount));
+    QDBusObjectPath newPathObj(newPath);
     mMessages[newPath] = new OfonoMessage(newPath);
     connect(mMessages[newPath], SIGNAL(destroyed()), this, SLOT(onMessageDestroyed()));
 
-    QDBusMessage message = QDBusMessage::createSignal(OFONO_MOCK_MESSAGE_MANAGER_OBJECT, "org.ofono.MessageManager", "MessageAdded");
-    message << newPath  ;
-    QDBusConnection::sessionBus().send(message);
+    Q_EMIT MessageAdded(newPathObj, QVariantMap());
 
-
-    return QDBusObjectPath(newPath);
+    return newPathObj;
 }
 
 void MessageManagerPrivate::onMessageDestroyed()
 {
     OfonoMessage *message = static_cast<OfonoMessage*>(sender());
     if (message) {
-        QDBusMessage message = QDBusMessage::createSignal(OFONO_MOCK_MESSAGE_MANAGER_OBJECT, "org.ofono.MessageManager", "MessageRemoved");
-        message << message.path();
-        QDBusConnection::sessionBus().send(message);
-
+        mMessages.remove(message->path());
+        Q_EMIT MessageRemoved(QDBusObjectPath(message->path()));
     }
 }
