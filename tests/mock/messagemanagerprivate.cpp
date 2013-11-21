@@ -47,7 +47,6 @@ void MessageManagerPrivate::MockSendMessage(const QString &from, const QString &
     Q_EMIT IncomingMessage(text, properties);
 }
 
-
 QDBusObjectPath MessageManagerPrivate::SendMessage(const QString &to, const QString &text)
 {
     QString newPath("/OfonoMessage"+QString::number(++messageCount));

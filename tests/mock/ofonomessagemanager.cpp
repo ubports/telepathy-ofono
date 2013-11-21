@@ -54,7 +54,6 @@ OfonoMessageManager::OfonoMessageManager(OfonoModem::SelectionSetting modemSetti
         m_if->setPath(OFONO_MOCK_MESSAGE_MANAGER_OBJECT);
         messageManagerData[modem()->path()] = new MessageManagerPrivate(this, m_if);
     }
-    m_if = messageManagerData[modem()->path()]->getPropertiesInterface();
 
     m_messagelist = getMessageList();
 

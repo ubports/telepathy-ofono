@@ -12,9 +12,6 @@ class MessagePrivate : public QObject, protected QDBusContext {
 public:
     MessagePrivate(OfonoMessage *iface, OfonoInterface *prop_iface, QObject *parent = 0);
     ~MessagePrivate();
-    OfonoInterface *getPropertiesInterface() {
-        return mOfonoInterface;
-    }
 Q_SIGNALS:
     void PropertyChanged(const QString &name, const QDBusVariant &value);
 public Q_SLOTS:

@@ -59,7 +59,6 @@ OfonoNetworkRegistration::OfonoNetworkRegistration(OfonoModem::SelectionSetting 
     if (!networkRegistrationData.keys().contains(modem()->path())) {
         networkRegistrationData[modem()->path()] = new NetworkRegistrationPrivate(this, m_if);
     }
-    //m_if = networkRegistrationData[modem()->path()]->getPropertiesInterface();
 
     connect(m_if, SIGNAL(propertyChanged(const QString&, const QVariant&)), 
             this, SLOT(propertyChanged(const QString&, const QVariant&)));

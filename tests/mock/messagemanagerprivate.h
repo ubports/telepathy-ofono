@@ -16,9 +16,6 @@ class MessageManagerPrivate : public QObject, protected QDBusContext {
 public:
     MessageManagerPrivate(OfonoMessageManager *iface, OfonoInterface *prop_iface, QObject *parent = 0);
     ~MessageManagerPrivate();
-    OfonoInterface *getPropertiesInterface() {
-        return mOfonoInterface;
-    }
 Q_SIGNALS:
     void MessageRemoved(const QDBusObjectPath &obj);
     void PropertyChanged(const QString &name, const QDBusVariant &value);
