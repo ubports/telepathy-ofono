@@ -2,9 +2,7 @@
 #include <QDBusConnection>
 
 #include "voicecallmanagerprivateadaptor.h"
-#include "ofonovoicecallmanager.h"
 #include "ofonovoicecall.h"
-#include "ofonointerface.h"
 #include "voicecallprivate.h"
 
 QMap<QString, VoiceCallManagerPrivate*> voiceCallManagerData;

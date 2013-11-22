@@ -1,8 +1,8 @@
 #ifndef MODEMPRIVATE_H
 #define MODEMPRIVATE_H
 
+#include <QDBusContext>
 #include <QDBusAbstractAdaptor>
-#include "ofonomodem.h"
 #include <QDBusVariant>
 
 #define OFONO_MOCK_MODEM_OBJECT "/OfonoModem"
