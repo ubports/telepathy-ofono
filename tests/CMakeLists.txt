@@ -5,7 +5,7 @@ include_directories(
 
 macro(generate_test TESTNAME USE_DBUS)
     add_executable(${TESTNAME} ${ARGN} ${TESTNAME}.cpp)
-    qt5_use_modules(${TESTNAME} Contacts Core DBus Qml Test)
+    qt5_use_modules(${TESTNAME} Core DBus Test)
     set(TEST_COMMAND )
     if (${USE_DBUS})
         set(TEST_COMMAND -p ${CMAKE_CURRENT_BINARY_DIR}/${TESTNAME} -p -xunitxml -p -o -p ${CMAKE_BINARY_DIR}/test_${TESTNAME}.xml)
