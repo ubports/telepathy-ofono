@@ -2,15 +2,11 @@
 #include <QDBusConnection>
 
 #include "messagemanagerprivateadaptor.h"
-#include "ofonomessagemanager.h"
 #include "ofonomessage.h"
-#include "ofonointerface.h"
 
 QMap<QString, MessageManagerPrivate*> messageManagerData;
 
-MessageManagerPrivate::MessageManagerPrivate(OfonoMessageManager *iface, OfonoInterface *prop_iface, QObject *parent) :
-    mOfonoMessageManager(iface),
-    mOfonoInterface(prop_iface),
+MessageManagerPrivate::MessageManagerPrivate(QObject *parent) :
     messageCount(0),
     QObject(parent)
 {

@@ -8,12 +8,10 @@
 QMap<QString, VoiceCallPrivate*> voiceCallData;
 QMap<QString, QVariantMap> initialCallProperties;
 
-VoiceCallPrivate::VoiceCallPrivate(OfonoVoiceCall *iface, OfonoInterface *prop_iface, const QVariantMap &initialProperties, QObject *parent) :
-    mOfonoVoiceCall(iface),
-    mOfonoInterface(prop_iface),
+VoiceCallPrivate::VoiceCallPrivate(const QString &path, QObject *parent) :
     QObject(parent)
 {
-    QDBusConnection::sessionBus().registerObject(iface->path(), this);
+    QDBusConnection::sessionBus().registerObject(path, this);
     QDBusConnection::sessionBus().registerService("org.ofono");
     SetProperty("LineIdentification", QDBusVariant(QVariant("")));
     SetProperty("IncomingLine", QDBusVariant(QVariant("")));
@@ -27,7 +25,7 @@ VoiceCallPrivate::VoiceCallPrivate(OfonoVoiceCall *iface, OfonoInterface *prop_i
     SetProperty("RemoteHeld", QDBusVariant(QVariant(false)));
     SetProperty("RemoteMultiparty", QDBusVariant(QVariant(false)));
 
-    QMapIterator<QString, QVariant> i(initialCallProperties[iface->path()]);
+    QMapIterator<QString, QVariant> i(initialCallProperties[path]);
     while (i.hasNext()) {
         i.next();
         SetProperty(i.key(), QDBusVariant(i.value()));

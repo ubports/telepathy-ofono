@@ -9,9 +9,7 @@
 
 QMap<QString, VoiceCallManagerPrivate*> voiceCallManagerData;
 
-VoiceCallManagerPrivate::VoiceCallManagerPrivate(OfonoVoiceCallManager *iface, OfonoInterface *prop_iface, QObject *parent) :
-    mOfonoVoiceCallManager(iface),
-    mOfonoInterface(prop_iface),
+VoiceCallManagerPrivate::VoiceCallManagerPrivate(QObject *parent) :
     voiceCallCount(0),
     QObject(parent)
 {

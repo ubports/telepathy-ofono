@@ -29,6 +29,7 @@
 #include "ofonomodemmanager.h"
 #include "ofonomessage.h"
 #include "ofonovoicecall.h"
+#include "modemprivate.h"
 
 OfonoModem::OfonoModem(SelectionSetting setting, const QString &modemPath, QObject *parent)
 	: QObject(parent), m_selectionSetting(setting)
@@ -49,6 +50,11 @@ OfonoModem::OfonoModem(SelectionSetting setting, const QString &modemPath, QObje
     if (finalModemPath.isEmpty()) {
         finalModemPath = "/";
     } 
+
+    if (!modemData.keys().contains(finalModemPath)) {
+        modemData[finalModemPath] = new ModemPrivate();
+    }
+
     m_if = new OfonoInterface(finalModemPath, "org.ofono.Modem", OfonoGetAllOnStartup, this);
 
     connect(m_if, SIGNAL(propertyChanged(const QString&, const QVariant&)), 

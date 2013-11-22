@@ -4,9 +4,7 @@
 #include <QDBusContext>
 #include <QDBusObjectPath>
 
-class OfonoMessageManager;
 class OfonoMessage;
-class OfonoInterface;
 
 #define OFONO_MOCK_MESSAGE_MANAGER_OBJECT "/OfonoMessageManager"
 
@@ -14,7 +12,7 @@ class MessageManagerPrivate : public QObject, protected QDBusContext {
     Q_OBJECT
     Q_CLASSINFO("D-Bus Interface", "org.ofono.MessageManager")
 public:
-    MessageManagerPrivate(OfonoMessageManager *iface, OfonoInterface *prop_iface, QObject *parent = 0);
+    MessageManagerPrivate(QObject *parent = 0);
     ~MessageManagerPrivate();
 Q_SIGNALS:
     void MessageRemoved(const QDBusObjectPath &obj);
@@ -31,8 +29,6 @@ public Q_SLOTS:
 private:
     QVariantMap mProperties;
     QMap<QString, OfonoMessage*> mMessages;
-    OfonoMessageManager *mOfonoMessageManager;
-    OfonoInterface *mOfonoInterface;
     int messageCount;
 };
 

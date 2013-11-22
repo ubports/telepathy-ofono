@@ -57,7 +57,7 @@ OfonoNetworkRegistration::OfonoNetworkRegistration(OfonoModem::SelectionSetting 
 
     m_if->setPath(OFONO_MOCK_NETWORK_REGISTRATION_OBJECT);
     if (!networkRegistrationData.keys().contains(modem()->path())) {
-        networkRegistrationData[modem()->path()] = new NetworkRegistrationPrivate(this, m_if);
+        networkRegistrationData[modem()->path()] = new NetworkRegistrationPrivate();
     }
 
     connect(m_if, SIGNAL(propertyChanged(const QString&, const QVariant&)), 

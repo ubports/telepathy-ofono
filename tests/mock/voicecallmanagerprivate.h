@@ -4,9 +4,7 @@
 #include <QDBusContext>
 #include <QDBusObjectPath>
 
-class OfonoVoiceCallManager;
 class OfonoVoiceCall;
-class OfonoInterface;
 
 #define OFONO_MOCK_VOICECALL_MANAGER_OBJECT "/OfonoVoiceCallManager"
 
@@ -14,7 +12,7 @@ class VoiceCallManagerPrivate : public QObject, protected QDBusContext {
     Q_OBJECT
     Q_CLASSINFO("D-Bus Interface", "org.ofono.VoiceCallManager")
 public:
-    VoiceCallManagerPrivate(OfonoVoiceCallManager *iface, OfonoInterface *prop_iface, QObject *parent = 0);
+    VoiceCallManagerPrivate(QObject *parent = 0);
     ~VoiceCallManagerPrivate();
 Q_SIGNALS:
     void CallRemoved(const QDBusObjectPath &obj);
@@ -31,8 +29,6 @@ public Q_SLOTS:
 private:
     QVariantMap mProperties;
     QMap<QString, OfonoVoiceCall*> mVoiceCalls;
-    OfonoVoiceCallManager *mOfonoVoiceCallManager;
-    OfonoInterface *mOfonoInterface;
     int voiceCallCount;
 };
 

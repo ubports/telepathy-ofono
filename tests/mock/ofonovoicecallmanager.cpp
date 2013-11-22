@@ -64,7 +64,7 @@ OfonoVoiceCallManager::OfonoVoiceCallManager(OfonoModem::SelectionSetting modemS
 
     if (!voiceCallManagerData.keys().contains(modem()->path())) {
         m_if->setPath(OFONO_MOCK_VOICECALL_MANAGER_OBJECT);
-        voiceCallManagerData[modem()->path()] = new VoiceCallManagerPrivate(this, m_if);
+        voiceCallManagerData[modem()->path()] = new VoiceCallManagerPrivate();
     }
 
     m_calllist = getCallList();

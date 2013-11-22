@@ -2,14 +2,10 @@
 #include <QDBusConnection>
 
 #include "networkregistrationprivateadaptor.h"
-#include "ofonointerface.h"
-#include "ofononetworkregistration.h"
 
 QMap<QString, NetworkRegistrationPrivate*> networkRegistrationData;
 
-NetworkRegistrationPrivate::NetworkRegistrationPrivate(OfonoNetworkRegistration *iface, OfonoInterface *prop_iface, QObject *parent) :
-    mOfonoNetworkRegistration(iface),
-    mOfonoInterface(prop_iface),
+NetworkRegistrationPrivate::NetworkRegistrationPrivate(QObject *parent) :
     QObject(parent)
 {
     QDBusConnection::sessionBus().registerObject(OFONO_MOCK_NETWORK_REGISTRATION_OBJECT, this);

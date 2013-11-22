@@ -37,7 +37,7 @@ OfonoVoiceCall::OfonoVoiceCall(const QString& callId, QObject *parent)
 
     if (!voiceCallData.keys().contains(callId)) {
         m_if->setPath(callId);
-        voiceCallData[callId] = new VoiceCallPrivate(this, m_if);
+        voiceCallData[callId] = new VoiceCallPrivate(callId);
     }
 
     connect(m_if, SIGNAL(propertyChanged(const QString&, const QVariant&)),
@@ -56,7 +56,7 @@ OfonoVoiceCall::OfonoVoiceCall(const OfonoVoiceCall& call)
 
     if (!voiceCallData.keys().contains(call.path())) {
         m_if->setPath(call.path());
-        voiceCallData[call.path()] = new VoiceCallPrivate(this, m_if);
+        voiceCallData[call.path()] = new VoiceCallPrivate(call.path());
     }
 
     connect(m_if, SIGNAL(propertyChanged(const QString&, const QVariant&)),

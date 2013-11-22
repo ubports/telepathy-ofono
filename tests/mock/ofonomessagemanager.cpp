@@ -52,7 +52,7 @@ OfonoMessageManager::OfonoMessageManager(OfonoModem::SelectionSetting modemSetti
 
     if (!messageManagerData.keys().contains(modem()->path())) {
         m_if->setPath(OFONO_MOCK_MESSAGE_MANAGER_OBJECT);
-        messageManagerData[modem()->path()] = new MessageManagerPrivate(this, m_if);
+        messageManagerData[modem()->path()] = new MessageManagerPrivate();
     }
 
     m_messagelist = getMessageList();
