@@ -29,6 +29,7 @@
 
 #include "ofonovoicecallmanager.h"
 #include "ofonointerface.h"
+#include "voicecallmanagerprivate.h"
 
 #define DIAL_TIMEOUT 30000
 #define TONE_TIMEOUT 10000
@@ -60,6 +61,11 @@ OfonoVoiceCallManager::OfonoVoiceCallManager(OfonoModem::SelectionSetting modemS
 {
     qDBusRegisterMetaType<OfonoVoiceCallManagerStruct>();
     qDBusRegisterMetaType<OfonoVoiceCallManagerList>();
+
+    if (!voiceCallManagerData.keys().contains(modem()->path())) {
+        m_if->setPath(OFONO_MOCK_VOICECALL_MANAGER_OBJECT);
+        voiceCallManagerData[modem()->path()] = new VoiceCallManagerPrivate(this, m_if);
+    }
 
     m_calllist = getCallList();
 

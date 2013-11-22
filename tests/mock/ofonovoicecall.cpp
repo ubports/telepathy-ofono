@@ -26,6 +26,7 @@
 
 #include "ofonointerface.h"
 #include "ofonovoicecall.h"
+#include "voicecallprivate.h"
 
 #define VOICECALL_TIMEOUT 30000
 
@@ -33,6 +34,11 @@ OfonoVoiceCall::OfonoVoiceCall(const QString& callId, QObject *parent)
     : QObject(parent)
 {
     m_if = new OfonoInterface(callId, "org.ofono.VoiceCall", OfonoGetAllOnStartup, this);
+
+    if (!voiceCallData.keys().contains(callId)) {
+        m_if->setPath(callId);
+        voiceCallData[callId] = new VoiceCallPrivate(this, m_if);
+    }
 
     connect(m_if, SIGNAL(propertyChanged(const QString&, const QVariant&)),
             this, SLOT(propertyChanged(const QString&, const QVariant&)));
@@ -47,6 +53,11 @@ OfonoVoiceCall::OfonoVoiceCall(const OfonoVoiceCall& call)
     : QObject(call.parent())
 {
     m_if = new OfonoInterface(call.path(), "org.ofono.VoiceCall", OfonoGetAllOnStartup, this);
+
+    if (!voiceCallData.keys().contains(call.path())) {
+        m_if->setPath(call.path());
+        voiceCallData[call.path()] = new VoiceCallPrivate(this, m_if);
+    }
 
     connect(m_if, SIGNAL(propertyChanged(const QString&, const QVariant&)),
             this, SLOT(propertyChanged(const QString&, const QVariant&)));

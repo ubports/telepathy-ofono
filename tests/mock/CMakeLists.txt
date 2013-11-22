@@ -2,6 +2,8 @@ set(library_SRCS
     messagemanagerprivate.cpp
     messageprivate.cpp
     modemprivate.cpp
+    voicecallmanagerprivate.cpp
+    voicecallprivate.cpp
     networkregistrationprivate.cpp
     ofonocallvolume.cpp
     ofonointerface.cpp
@@ -24,6 +26,8 @@ qt5_add_dbus_adaptor(library_SRCS ModemPrivate.xml modemprivate.h ModemPrivate)
 qt5_add_dbus_adaptor(library_SRCS NetworkRegistrationPrivate.xml networkregistrationprivate.h NetworkRegistrationPrivate)
 qt5_add_dbus_adaptor(library_SRCS MessageManagerPrivate.xml messagemanagerprivate.h MessageManagerPrivate)
 qt5_add_dbus_adaptor(library_SRCS MessagePrivate.xml messageprivate.h MessagePrivate)
+qt5_add_dbus_adaptor(library_SRCS VoiceCallManagerPrivate.xml voicecallmanagerprivate.h VoiceCallManagerPrivate)
+qt5_add_dbus_adaptor(library_SRCS VoiceCallPrivate.xml voicecallprivate.h VoiceCallPrivate)
 
 add_library(ofono-qt SHARED ${library_SRCS})
 

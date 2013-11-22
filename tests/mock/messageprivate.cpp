@@ -30,9 +30,7 @@ void MessagePrivate::SetProperty(const QString &name, const QDBusVariant& value)
 {
     qDebug() << "MessagePrivate::SetProperty" << name << value.variant();
     mProperties[name] = value.variant();
-    QDBusMessage message = QDBusMessage::createSignal("/OfonoMessage"+mOfonoMessage->path(), "org.ofono.Message", "PropertyChanged");
-    message << name << QVariant::fromValue(value);
-    QDBusConnection::sessionBus().send(message);
+    Q_EMIT PropertyChanged(name, value);
 }
 
 void MessagePrivate::Cancel()

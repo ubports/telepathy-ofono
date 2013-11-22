@@ -162,7 +162,6 @@ QString OfonoNetworkRegistration::baseStation() const
 
 void OfonoNetworkRegistration::propertyChanged(const QString& property, const QVariant& value)
 {
-    qDebug() << property << value;
     if (property == "Mode") {	
         Q_EMIT modeChanged(value.value<QString>());
     } else if (property == "Status") {	

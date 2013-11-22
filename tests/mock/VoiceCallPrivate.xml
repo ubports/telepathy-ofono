@@ -1,6 +1,6 @@
 <!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
 <node>
-  <interface name="org.ofono.Message">
+  <interface name="org.ofono.VoiceCall">
     <signal name="PropertyChanged">
       <arg name="name" type="s" direction="out"/>
       <arg name="value" type="v" direction="out"/>
@@ -13,11 +13,9 @@
       <arg name="name" type="s" direction="in"/>
       <arg name="value" type="v" direction="in"/>
     </method>
-    <method name="Cancel">
+    <method name="Hangup">
     </method>
-    <method name="MockMarkFailed">
-    </method>
-    <method name="MockMarkSent">
+    <method name="Answer">
     </method>
   </interface>
 </node>
