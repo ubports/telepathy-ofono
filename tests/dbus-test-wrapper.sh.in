@@ -1,12 +1,10 @@
-#!/bin/sh -x
+#!/bin/sh
 
 # export the home folder to somewhere in /tmp
 TMPDIR=/tmp/tpofono_test_home
 rm -rf $TMPDIR
 export HOME=$TMPDIR
 
-
-dbus-monitor 2>&1 > /tmp/dbus.log &
 # now run gnome-keyring
 gnome-keyring-daemon -r -d
 
