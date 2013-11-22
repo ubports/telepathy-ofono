@@ -24,6 +24,6 @@ private:
     OfonoInterface *mOfonoInterface;
 };
 
-static QMap<QString, NetworkRegistrationPrivate*> networkRegistrationData;
+extern QMap<QString, NetworkRegistrationPrivate*> networkRegistrationData;
 
 #endif

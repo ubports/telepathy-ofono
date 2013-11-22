@@ -36,6 +36,6 @@ private:
     int messageCount;
 };
 
-static QMap<QString, MessageManagerPrivate*> messageManagerData;
+extern QMap<QString, MessageManagerPrivate*> messageManagerData;
 
 #endif

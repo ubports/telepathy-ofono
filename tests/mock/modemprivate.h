@@ -34,6 +34,6 @@ private:
 
 };
 
-static QMap<QString, ModemPrivate*> modemData;
+extern QMap<QString, ModemPrivate*> modemData;
 
 #endif

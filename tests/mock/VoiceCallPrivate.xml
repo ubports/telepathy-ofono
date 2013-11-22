@@ -17,5 +17,9 @@
     </method>
     <method name="Answer">
     </method>
+    <method name="MockSetAlerting">
+    </method>
+    <method name="MockAnswer">
+    </method>
   </interface>
 </node>

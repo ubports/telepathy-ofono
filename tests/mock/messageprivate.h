@@ -26,6 +26,6 @@ private:
     OfonoInterface *mOfonoInterface;
 };
 
-static QMap<QString, MessagePrivate*> messageData;
+extern QMap<QString, MessagePrivate*> messageData;
 
 #endif

@@ -5,6 +5,8 @@
 #include "modemprivateadaptor.h"
 #include "ofononetworkregistration.h"
 
+QMap<QString, ModemPrivate*> modemData;
+
 ModemPrivate::ModemPrivate(OfonoModem *ofonoModem, QObject *parent) :
     QObject(parent),
     mOfonoModem(ofonoModem)

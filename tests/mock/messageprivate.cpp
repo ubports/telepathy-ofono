@@ -5,6 +5,8 @@
 #include "ofonointerface.h"
 #include "ofonomessage.h"
 
+QMap<QString, MessagePrivate*> messageData;
+
 MessagePrivate::MessagePrivate(OfonoMessage *iface, OfonoInterface *prop_iface, QObject *parent) :
     mOfonoMessage(iface),
     mOfonoInterface(prop_iface),

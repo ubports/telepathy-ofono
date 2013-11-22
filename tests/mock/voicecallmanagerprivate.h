@@ -36,6 +36,6 @@ private:
     int voiceCallCount;
 };
 
-static QMap<QString, VoiceCallManagerPrivate*> voiceCallManagerData;
+extern QMap<QString, VoiceCallManagerPrivate*> voiceCallManagerData;
 
 #endif

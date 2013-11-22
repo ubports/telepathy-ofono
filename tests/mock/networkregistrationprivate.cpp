@@ -5,6 +5,8 @@
 #include "ofonointerface.h"
 #include "ofononetworkregistration.h"
 
+QMap<QString, NetworkRegistrationPrivate*> networkRegistrationData;
+
 NetworkRegistrationPrivate::NetworkRegistrationPrivate(OfonoNetworkRegistration *iface, OfonoInterface *prop_iface, QObject *parent) :
     mOfonoNetworkRegistration(iface),
     mOfonoInterface(prop_iface),

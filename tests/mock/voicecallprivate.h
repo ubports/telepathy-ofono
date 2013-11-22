@@ -19,13 +19,15 @@ public Q_SLOTS:
     void SetProperty(const QString &name, const QDBusVariant &value);
     void Hangup();
     void Answer();
+    void MockSetAlerting();
+    void MockAnswer();
 private:
     QVariantMap mProperties;
     OfonoVoiceCall *mOfonoVoiceCall;
     OfonoInterface *mOfonoInterface;
 };
 
-static QMap<QString, VoiceCallPrivate*> voiceCallData;
-static QVariantMap initialCallProperties;
+extern QMap<QString, VoiceCallPrivate*> voiceCallData;
+extern QMap<QString, QVariantMap> initialCallProperties;
 
 #endif

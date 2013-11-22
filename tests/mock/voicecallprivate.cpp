@@ -5,12 +5,15 @@
 #include "ofonointerface.h"
 #include "ofonovoicecall.h"
 
+QMap<QString, VoiceCallPrivate*> voiceCallData;
+QMap<QString, QVariantMap> initialCallProperties;
+
 VoiceCallPrivate::VoiceCallPrivate(OfonoVoiceCall *iface, OfonoInterface *prop_iface, const QVariantMap &initialProperties, QObject *parent) :
     mOfonoVoiceCall(iface),
     mOfonoInterface(prop_iface),
     QObject(parent)
 {
-    QDBusConnection::sessionBus().registerObject("/OfonoVoiceCall"+iface->path(), this);
+    QDBusConnection::sessionBus().registerObject(iface->path(), this);
     QDBusConnection::sessionBus().registerService("org.ofono");
     SetProperty("LineIdentification", QDBusVariant(QVariant("")));
     SetProperty("IncomingLine", QDBusVariant(QVariant("")));
@@ -24,8 +27,7 @@ VoiceCallPrivate::VoiceCallPrivate(OfonoVoiceCall *iface, OfonoInterface *prop_i
     SetProperty("RemoteHeld", QDBusVariant(QVariant(false)));
     SetProperty("RemoteMultiparty", QDBusVariant(QVariant(false)));
 
-    qDebug() << initialCallProperties;
-    QMapIterator<QString, QVariant> i(initialCallProperties);
+    QMapIterator<QString, QVariant> i(initialCallProperties[iface->path()]);
     while (i.hasNext()) {
         i.next();
         SetProperty(i.key(), QDBusVariant(i.value()));
@@ -58,8 +60,23 @@ void VoiceCallPrivate::Hangup()
 
 void VoiceCallPrivate::Answer()
 {
-    if (mProperties["State"] == "active") {
+    if (mProperties["State"] == QString("incoming")) {
         SetProperty("State", QDBusVariant(QVariant("active")));
     }
 }
+
+void VoiceCallPrivate::MockSetAlerting()
+{
+    if (mProperties["State"] == QString("dialing")) {
+        SetProperty("State", QDBusVariant(QVariant("alerting")));
+    }
+}
+
+void VoiceCallPrivate::MockAnswer()
+{
+    if (mProperties["State"] == QString("dialing") || mProperties["State"] == QString("alerting")) {
+        SetProperty("State", QDBusVariant(QVariant("active")));
+    }
+}
+
 

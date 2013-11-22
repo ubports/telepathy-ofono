@@ -7,12 +7,15 @@
 #include "ofonointerface.h"
 #include "voicecallprivate.h"
 
+QMap<QString, VoiceCallManagerPrivate*> voiceCallManagerData;
+
 VoiceCallManagerPrivate::VoiceCallManagerPrivate(OfonoVoiceCallManager *iface, OfonoInterface *prop_iface, QObject *parent) :
     mOfonoVoiceCallManager(iface),
     mOfonoInterface(prop_iface),
     voiceCallCount(0),
     QObject(parent)
 {
+    qDBusRegisterMetaType<QMap<QDBusObjectPath, QVariantMap> >();
     QDBusConnection::sessionBus().registerObject(OFONO_MOCK_VOICECALL_MANAGER_OBJECT, this);
     QDBusConnection::sessionBus().registerService("org.ofono");
     SetProperty("EmergencyNumbers", QDBusVariant(QVariant(QStringList())));
@@ -26,9 +29,11 @@ VoiceCallManagerPrivate::~VoiceCallManagerPrivate()
 QMap<QDBusObjectPath, QVariantMap> VoiceCallManagerPrivate::GetCalls()
 {
     QMap<QDBusObjectPath, QVariantMap> props;
-    qDebug() << mVoiceCalls;
     Q_FOREACH(const QString &key, mVoiceCalls.keys()) {
-        props[QDBusObjectPath(key)] = QVariantMap();
+        VoiceCallPrivate *callPrivate = voiceCallData[key];
+        if (callPrivate) {
+           props[QDBusObjectPath(key)] = callPrivate->GetProperties();
+        }
     }
     return props;
 }
@@ -48,21 +53,24 @@ void VoiceCallManagerPrivate::SetProperty(const QString &name, const QDBusVarian
 QDBusObjectPath VoiceCallManagerPrivate::MockIncomingCall(const QString &from)
 {
     qDebug() << "VoiceCallManagerPrivate::MockIncomingCall" << from;
-    QString newPath("/OfonoVoiceCall"+QString::number(++voiceCallCount));
+    QString newPath("/OfonoVoiceCall/OfonoVoiceCall"+QString::number(++voiceCallCount));
     QDBusObjectPath newPathObj(newPath);
 
-    initialCallProperties["State"] = "incoming";
-    initialCallProperties["LineIdentification"] = from;
-    initialCallProperties["Name"] = "";
-    initialCallProperties["Multiparty"] = false;
-    initialCallProperties["RemoteHeld"] = false;
-    initialCallProperties["RemoteMultiparty"] = false;
-    initialCallProperties["Emergency"] = false;
+    QVariantMap callProperties;
+    callProperties["State"] = "incoming";
+    callProperties["LineIdentification"] = from;
+    callProperties["Name"] = "";
+    callProperties["Multiparty"] = false;
+    callProperties["RemoteHeld"] = false;
+    callProperties["RemoteMultiparty"] = false;
+    callProperties["Emergency"] = false;
+
+    initialCallProperties[newPath] = callProperties;
 
     mVoiceCalls[newPath] = new OfonoVoiceCall(newPath);
     connect(mVoiceCalls[newPath], SIGNAL(destroyed()), this, SLOT(onVoiceCallDestroyed()));
 
-    Q_EMIT CallAdded(newPathObj, initialCallProperties);
+    Q_EMIT CallAdded(newPathObj, callProperties);
 
     return newPathObj;
 }
@@ -70,21 +78,23 @@ QDBusObjectPath VoiceCallManagerPrivate::MockIncomingCall(const QString &from)
 QDBusObjectPath VoiceCallManagerPrivate::Dial(const QString &to, const QString &hideCallerId)
 {
     qDebug() << "DIAL" << to;
-    QString newPath("/OfonoVoiceCall"+QString::number(++voiceCallCount));
+    QString newPath("/OfonoVoiceCall/OfonoVoiceCall"+QString::number(++voiceCallCount));
     QDBusObjectPath newPathObj(newPath);
 
-    initialCallProperties["State"] = "dialing";
-    initialCallProperties["LineIdentification"] = to;
-    initialCallProperties["Name"] = "";
-    initialCallProperties["Multiparty"] = false;
-    initialCallProperties["RemoteHeld"] = false;
-    initialCallProperties["RemoteMultiparty"] = false;
-    initialCallProperties["Emergency"] = false;
+    QVariantMap callProperties;
+    callProperties["State"] = "dialing";
+    callProperties["LineIdentification"] = to;
+    callProperties["Name"] = "";
+    callProperties["Multiparty"] = false;
+    callProperties["RemoteHeld"] = false;
+    callProperties["RemoteMultiparty"] = false;
+    callProperties["Emergency"] = false;
+    initialCallProperties[newPath] = callProperties;
 
     mVoiceCalls[newPath] = new OfonoVoiceCall(newPath);
     connect(mVoiceCalls[newPath], SIGNAL(destroyed()), this, SLOT(onVoiceCallDestroyed()));
 
-    Q_EMIT CallAdded(newPathObj, initialCallProperties);
+    Q_EMIT CallAdded(newPathObj, callProperties);
 
     return newPathObj;
 }
