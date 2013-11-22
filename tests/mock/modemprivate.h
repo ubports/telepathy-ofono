@@ -4,8 +4,7 @@
 #include <QDBusContext>
 #include <QDBusAbstractAdaptor>
 #include <QDBusVariant>
-
-#define OFONO_MOCK_MODEM_OBJECT "/OfonoModem"
+#include "mock_common.h"
 
 class ModemPrivate : public QObject, protected QDBusContext {
     Q_OBJECT

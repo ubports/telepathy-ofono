@@ -3,10 +3,9 @@
 
 #include <QDBusContext>
 #include <QDBusObjectPath>
+#include "mock_common.h"
 
 class OfonoMessage;
-
-#define OFONO_MOCK_MESSAGE_MANAGER_OBJECT "/OfonoMessageManager"
 
 class MessageManagerPrivate : public QObject, protected QDBusContext {
     Q_OBJECT

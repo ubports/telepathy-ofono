@@ -3,10 +3,9 @@
 
 #include <QDBusContext>
 #include <QDBusObjectPath>
+#include "mock_common.h"
 
 class OfonoVoiceCall;
-
-#define OFONO_MOCK_VOICECALL_MANAGER_OBJECT "/OfonoVoiceCallManager"
 
 class VoiceCallManagerPrivate : public QObject, protected QDBusContext {
     Q_OBJECT

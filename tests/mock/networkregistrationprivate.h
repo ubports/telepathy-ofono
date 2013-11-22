@@ -2,8 +2,7 @@
 #define NETWORKREGISTRATIONPRIVATE_H
 
 #include <QDBusContext>
-
-#define OFONO_MOCK_NETWORK_REGISTRATION_OBJECT "/OfonoNetworkRegistration"
+#include "mock_common.h"
 
 class NetworkRegistrationPrivate : public QObject, protected QDBusContext {
     Q_OBJECT
