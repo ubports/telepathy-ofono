@@ -16,6 +16,9 @@ macro(generate_test TESTNAME USE_DBUS)
     set(TEST_ENVIRONMENT "HOME=/tmp/tpofono_test_home")
     set_tests_properties(${TESTNAME} PROPERTIES
                           ENVIRONMENT ${TEST_ENVIRONMENT})
+    target_link_libraries(${TESTNAME}
+                          ${TP_QT5_LIBRARIES}
+                         )
 endmacro(generate_test)
 
 configure_file(dbus-test-wrapper.sh.in ${CMAKE_CURRENT_BINARY_DIR}/dbus-test-wrapper.sh)
@@ -23,7 +26,7 @@ configure_file(dbus-test-wrapper.sh.in ${CMAKE_CURRENT_BINARY_DIR}/dbus-test-wra
 generate_test(PhoneUtilsTest False ${CMAKE_SOURCE_DIR}/phoneutils.cpp)
 
 if (DBUS_RUNNER)
-    generate_test(DummyTest True)
+    generate_test(ConnectionTest True telepathyhelper.cpp)
 endif(DBUS_RUNNER)
 
 add_subdirectory(mock)
