@@ -40,6 +40,8 @@ void ConnectionTest::initTestCase()
                    SIGNAL(accountReady()));
     QTRY_COMPARE(spy.count(), 1);
 
+    OfonoMockController::instance()->setNetworkRegistrationStatus("registered");
+
     qRegisterMetaType<Tp::Presence>();
 }
 
