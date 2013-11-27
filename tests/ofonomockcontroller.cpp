@@ -21,7 +21,8 @@
 
 OfonoMockController::OfonoMockController(QObject *parent) :
     QObject(parent),
-    mNetworkRegistrationInterface("org.ofono", OFONO_MOCK_NETWORK_REGISTRATION_OBJECT, "org.ofono.NetworkRegistration")
+    mNetworkRegistrationInterface("org.ofono", OFONO_MOCK_NETWORK_REGISTRATION_OBJECT, "org.ofono.NetworkRegistration"),
+    mMessageManagerInterface("org.ofono", OFONO_MOCK_MESSAGE_MANAGER_OBJECT, "org.ofono.MessageManager")
 {
 }
 
@@ -31,7 +32,12 @@ OfonoMockController *OfonoMockController::instance()
     return self;
 }
 
-void OfonoMockController::setNetworkRegistrationStatus(const QString &status)
+void OfonoMockController::NetworkRegistrationSetStatus(const QString &status)
 {
     mNetworkRegistrationInterface.call("SetProperty", "Status", QVariant::fromValue(QDBusVariant(status)));
+}
+
+void OfonoMockController::MessageManagerSendMessage(const QString &from, const QString &text)
+{
+    mMessageManagerInterface.call("MockSendMessage", from, text);
 }

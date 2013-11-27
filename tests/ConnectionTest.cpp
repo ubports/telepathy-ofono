@@ -30,7 +30,7 @@ class ConnectionTest : public QObject
 private Q_SLOTS:
     void initTestCase();
     void testConnected();
-    void testUnregisterModem();
+    void testModemStatus();
 };
 
 void ConnectionTest::initTestCase()
@@ -40,7 +40,7 @@ void ConnectionTest::initTestCase()
                    SIGNAL(accountReady()));
     QTRY_COMPARE(spy.count(), 1);
 
-    OfonoMockController::instance()->setNetworkRegistrationStatus("registered");
+    OfonoMockController::instance()->NetworkRegistrationSetStatus("registered");
 
     qRegisterMetaType<Tp::Presence>();
 }
@@ -51,20 +51,54 @@ void ConnectionTest::testConnected()
     QTRY_VERIFY(TelepathyHelper::instance()->connected());
 }
 
-void ConnectionTest::testUnregisterModem()
+void ConnectionTest::testModemStatus()
 {
     Tp::ContactPtr selfContact = TelepathyHelper::instance()->account()->connection()->selfContact();
     QSignalSpy signalSpy(selfContact.data(), SIGNAL(presenceChanged(Tp::Presence)));
 
     // set the status as unregistered
-    OfonoMockController::instance()->setNetworkRegistrationStatus("unknown");
+    OfonoMockController::instance()->NetworkRegistrationSetStatus("unregistered");
     QTRY_COMPARE(signalSpy.count(), 1);
     Tp::Presence presence = signalSpy.first().first().value<Tp::Presence>();
     QCOMPARE(presence.type(), Tp::ConnectionPresenceTypeOffline);
+    signalSpy.clear();
 
     // now set the modem as registered to the network again to see if it works
+    OfonoMockController::instance()->NetworkRegistrationSetStatus("registered");
+    QTRY_COMPARE(signalSpy.count(), 1);
+    presence = signalSpy.first().first().value<Tp::Presence>();
+    QCOMPARE(presence.type(), Tp::ConnectionPresenceTypeAvailable);
     signalSpy.clear();
-    OfonoMockController::instance()->setNetworkRegistrationStatus("registered");
+
+    // searching should be reported as offline
+    OfonoMockController::instance()->NetworkRegistrationSetStatus("searching");
+    QTRY_COMPARE(signalSpy.count(), 1);
+    presence = signalSpy.first().first().value<Tp::Presence>();
+    QCOMPARE(presence.type(), Tp::ConnectionPresenceTypeOffline);
+    signalSpy.clear();
+
+    // denied should be reported as offline (set registered first to force the signal to be emitted)
+    OfonoMockController::instance()->NetworkRegistrationSetStatus("registered");
+    QTRY_COMPARE(signalSpy.count(), 1);
+    signalSpy.clear();
+    OfonoMockController::instance()->NetworkRegistrationSetStatus("denied");
+    QTRY_COMPARE(signalSpy.count(), 1);
+    presence = signalSpy.first().first().value<Tp::Presence>();
+    QCOMPARE(presence.type(), Tp::ConnectionPresenceTypeOffline);
+    signalSpy.clear();
+
+    // unknown should be reported as offline (set registered first to force the signal to be emitted)
+    OfonoMockController::instance()->NetworkRegistrationSetStatus("registered");
+    QTRY_COMPARE(signalSpy.count(), 1);
+    signalSpy.clear();
+    OfonoMockController::instance()->NetworkRegistrationSetStatus("unknown");
+    QTRY_COMPARE(signalSpy.count(), 1);
+    presence = signalSpy.first().first().value<Tp::Presence>();
+    QCOMPARE(presence.type(), Tp::ConnectionPresenceTypeOffline);
+    signalSpy.clear();
+
+    // roaming should be reported as available
+    OfonoMockController::instance()->NetworkRegistrationSetStatus("roaming");
     QTRY_COMPARE(signalSpy.count(), 1);
     presence = signalSpy.first().first().value<Tp::Presence>();
     QCOMPARE(presence.type(), Tp::ConnectionPresenceTypeAvailable);

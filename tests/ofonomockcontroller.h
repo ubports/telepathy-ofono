@@ -31,12 +31,13 @@ public:
 Q_SIGNALS:
 
 public Q_SLOTS:
-    void setNetworkRegistrationStatus(const QString &status);
+    void NetworkRegistrationSetStatus(const QString &status);
+    void MessageManagerSendMessage(const QString &from, const QString &text);
 
 private:
     explicit OfonoMockController(QObject *parent = 0);
     QDBusInterface mNetworkRegistrationInterface;
-
+    QDBusInterface mMessageManagerInterface;
 };
 
 #endif // OFONOMOCKCONTROLLER_H
