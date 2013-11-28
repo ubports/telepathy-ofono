@@ -30,17 +30,26 @@
 #include "handler.h"
 
 Q_DECLARE_METATYPE(Tp::TextChannelPtr);
+Q_DECLARE_METATYPE(QList<Tp::ContactPtr>);
 
 class MessagesTest : public QObject
 {
     Q_OBJECT
 
+Q_SIGNALS:
+    void contactsReceived(QList<Tp::ContactPtr> contacts);
+
 private Q_SLOTS:
     void initTestCase();
     void testMessageReceived();
     void testMessageSend();
+
+    // helper slots
+    void onPendingContactsFinished(Tp::PendingOperation*);
+
 private:
     Handler *mHandler;
+    Tp::AbstractClientPtr mHandlerPtr;
 };
 
 void MessagesTest::initTestCase()
@@ -48,6 +57,7 @@ void MessagesTest::initTestCase()
     qRegisterMetaType<Tp::Presence>();
     qRegisterMetaType<Tp::TextChannelPtr>();
     qRegisterMetaType<Tp::PendingOperation*>();
+    qRegisterMetaType<QList<Tp::ContactPtr> >();
     TelepathyHelper::instance();
 
     QSignalSpy spy(TelepathyHelper::instance(), SIGNAL(accountReady()));
@@ -56,6 +66,7 @@ void MessagesTest::initTestCase()
     OfonoMockController::instance()->NetworkRegistrationSetStatus("registered");
 
     mHandler = new Handler();
+    mHandlerPtr = Tp::AbstractClientPtr(mHandler);
     TelepathyHelper::instance()->registerClient(mHandler, "TpOfonoTestHandler");
     QTRY_VERIFY(mHandler->isRegistered());
 
@@ -84,16 +95,28 @@ void MessagesTest::testMessageSend()
 {
     // Request the contact to start chatting to
     Tp::AccountPtr account = TelepathyHelper::instance()->account();
-    QSignalSpy spy(account->connection()->contactManager()->contactsForIdentifiers(QStringList() << "321"),
-            SIGNAL(finished(Tp::PendingOperation*)));
+    QSignalSpy spy(this, SIGNAL(contactsReceived(QList<Tp::ContactPtr>)));
+
+    connect(account->connection()->contactManager()->contactsForIdentifiers(QStringList() << "321"),
+            SIGNAL(finished(Tp::PendingOperation*)),
+            SLOT(onPendingContactsFinished(Tp::PendingOperation*)));
 
     QTRY_COMPARE(spy.count(), 1);
-    
-   //qDebug() << spy;
-//    Tp::PendingContacts *pc = qobject_cast<Tp::PendingContacts*>(spy.first().first().value<Tp::PendingOperation*>());
-//    QVERIFY(pc);
 
+    QList<Tp::ContactPtr> contacts = spy.first().first().value<QList<Tp::ContactPtr> >();
+    QCOMPARE(contacts.count(), 1);
+    QCOMPARE(contacts.first()->id(), QString("321"));
 }
 
+
+void MessagesTest::onPendingContactsFinished(Tp::PendingOperation *op)
+{
+    Tp::PendingContacts *pc = qobject_cast<Tp::PendingContacts*>(op);
+    if (!pc) {
+        return;
+    }
+
+    Q_EMIT contactsReceived(pc->contacts());
+}
 QTEST_MAIN(MessagesTest)
 #include "MessagesTest.moc"
