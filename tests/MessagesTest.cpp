@@ -28,6 +28,7 @@
 #include "telepathyhelper.h"
 #include "ofonomockcontroller.h"
 #include "handler.h"
+#include "approvertext.h"
 
 Q_DECLARE_METATYPE(Tp::TextChannelPtr);
 Q_DECLARE_METATYPE(QList<Tp::ContactPtr>);
@@ -48,8 +49,10 @@ private Q_SLOTS:
     void onPendingContactsFinished(Tp::PendingOperation*);
 
 private:
+    Approver *mApprover;
     Handler *mHandler;
     Tp::AbstractClientPtr mHandlerPtr;
+    Tp::AbstractClientPtr mApproverPtr;
 };
 
 void MessagesTest::initTestCase()
@@ -64,15 +67,19 @@ void MessagesTest::initTestCase()
     QTRY_COMPARE(spy.count(), 1);
 
     OfonoMockController::instance()->NetworkRegistrationSetStatus("registered");
+    // the account should be connected
+    QTRY_VERIFY(TelepathyHelper::instance()->connected());
 
-    mHandler = new Handler();
+    mHandler = new Handler(this);
     mHandlerPtr = Tp::AbstractClientPtr(mHandler);
     TelepathyHelper::instance()->registerClient(mHandler, "TpOfonoTestHandler");
     QTRY_VERIFY(mHandler->isRegistered());
 
-    // the account should be connected
-    QTRY_VERIFY(TelepathyHelper::instance()->connected());
-
+    // register the approver
+    mApprover = new Approver(this);
+    mApproverPtr = Tp::AbstractClientPtr(mApprover);
+    TelepathyHelper::instance()->registerClient(mApprover, "TpOfonoTestApprover");
+    QTRY_VERIFY(mApprover->isRegistered());
 }
 
 void MessagesTest::testMessageReceived()
@@ -118,5 +125,6 @@ void MessagesTest::onPendingContactsFinished(Tp::PendingOperation *op)
 
     Q_EMIT contactsReceived(pc->contacts());
 }
+
 QTEST_MAIN(MessagesTest)
 #include "MessagesTest.moc"

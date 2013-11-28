@@ -27,7 +27,7 @@ generate_test(PhoneUtilsTest False ${CMAKE_SOURCE_DIR}/phoneutils.cpp)
 
 if (DBUS_RUNNER)
     generate_test(ConnectionTest True telepathyhelper.cpp ofonomockcontroller.cpp)
-    generate_test(MessagesTest True telepathyhelper.cpp ofonomockcontroller.cpp handler.cpp)
+    generate_test(MessagesTest True telepathyhelper.cpp ofonomockcontroller.cpp handler.cpp approvertext.cpp)
 endif(DBUS_RUNNER)
 
 add_subdirectory(mock)

@@ -217,6 +217,7 @@ void TelepathyHelper::registerClient(Tp::AbstractClient *client, QString name)
 
     if (succeeded) {
         QObject *object = dynamic_cast<QObject*>(client);
+        qDebug() << "TelepathyHelper::registerClient" << object;
         if (object) {
             object->setProperty("clientName", TP_QT_IFACE_CLIENT + "." + name );
         }
