@@ -27,8 +27,6 @@
 #include <TelepathyQt/ClientRegistrar>
 #include <TelepathyQt/TextChannel>
 
-#define TELEPHONY_SERVICE_HANDLER TP_QT_IFACE_CLIENT + ".TpOfonoTestHandler"
-
 Approver::Approver(QObject* parent)
 : QObject(parent), Tp::AbstractClientApprover(channelFilters())
 {

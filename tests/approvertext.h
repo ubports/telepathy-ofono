@@ -27,6 +27,9 @@
 #include <TelepathyQt/PendingReady>
 #include <TelepathyQt/ChannelDispatchOperation>
 
+#define TELEPHONY_SERVICE_HANDLER TP_QT_IFACE_CLIENT + ".TpOfonoTestHandler"
+#define TELEPHONY_SERVICE_APPROVER TP_QT_IFACE_CLIENT + ".TpOfonoTestApprover"
+
 class Approver : public QObject, public Tp::AbstractClientApprover
 {
     Q_OBJECT

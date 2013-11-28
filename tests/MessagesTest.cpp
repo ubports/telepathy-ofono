@@ -51,8 +51,6 @@ private Q_SLOTS:
 private:
     Approver *mApprover;
     Handler *mHandler;
-    Tp::AbstractClientPtr mHandlerPtr;
-    Tp::AbstractClientPtr mApproverPtr;
 };
 
 void MessagesTest::initTestCase()
@@ -71,15 +69,17 @@ void MessagesTest::initTestCase()
     QTRY_VERIFY(TelepathyHelper::instance()->connected());
 
     mHandler = new Handler(this);
-    mHandlerPtr = Tp::AbstractClientPtr(mHandler);
     TelepathyHelper::instance()->registerClient(mHandler, "TpOfonoTestHandler");
     QTRY_VERIFY(mHandler->isRegistered());
 
     // register the approver
     mApprover = new Approver(this);
-    mApproverPtr = Tp::AbstractClientPtr(mApprover);
     TelepathyHelper::instance()->registerClient(mApprover, "TpOfonoTestApprover");
-    QTRY_VERIFY(mApprover->isRegistered());
+    // Tp-qt does not set registered status to approvers
+    QTRY_VERIFY(QDBusConnection::sessionBus().interface()->isServiceRegistered(TELEPHONY_SERVICE_APPROVER));
+
+    // we need to wait in order to give telepathy time to notify about the approver and handler
+    QTest::qWait(2000); 
 }
 
 void MessagesTest::testMessageReceived()
@@ -113,6 +113,32 @@ void MessagesTest::testMessageSend()
     QList<Tp::ContactPtr> contacts = spy.first().first().value<QList<Tp::ContactPtr> >();
     QCOMPARE(contacts.count(), 1);
     QCOMPARE(contacts.first()->id(), QString("321"));
+
+    QSignalSpy spyTextChannel(mHandler, SIGNAL(textChannelAvailable(Tp::TextChannelPtr)));
+
+    Q_FOREACH(Tp::ContactPtr contact, contacts) {
+        account->ensureTextChat(contact, QDateTime::currentDateTime(), TP_QT_IFACE_CLIENT + ".TpOfonoTestHandler");
+    }
+    QTRY_COMPARE(spyTextChannel.count(), 1);
+
+    Tp::TextChannelPtr channel = spyTextChannel.first().first().value<Tp::TextChannelPtr>();
+    QVERIFY(channel);
+
+    QSignalSpy spyOfonoMessageAdded(OfonoMockController::instance(), SIGNAL(MessageAdded(QDBusObjectPath, QVariantMap)));
+    Tp::PendingSendMessage *message = channel->send("text");
+    QTRY_COMPARE(spyOfonoMessageAdded.count(), 1);
+
+    QDBusObjectPath path = spyOfonoMessageAdded.first().first().value<QDBusObjectPath>();
+
+    // there is no way to use Tp::ReceivedMessage because it does not have a public default constructor, therefore 
+    // we cannot use Q_DECLARE_METATYPE
+    /* 
+    QSignalSpy spyTpMessageReceived(channel.data(), SIGNAL(messageReceived(const Tp::ReceivedMessage&)));
+    OfonoMockController::instance()->MessageMarkSent(path.path());
+
+    // this is the acknowledge message
+    QTRY_COMPARE(spyTpMessageReceived.count(), 1);
+    */
 }
 
 

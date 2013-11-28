@@ -24,6 +24,7 @@ OfonoMockController::OfonoMockController(QObject *parent) :
     mNetworkRegistrationInterface("org.ofono", OFONO_MOCK_NETWORK_REGISTRATION_OBJECT, "org.ofono.NetworkRegistration"),
     mMessageManagerInterface("org.ofono", OFONO_MOCK_MESSAGE_MANAGER_OBJECT, "org.ofono.MessageManager")
 {
+    QDBusConnection::sessionBus().connect("org.ofono", OFONO_MOCK_MESSAGE_MANAGER_OBJECT, "org.ofono.MessageManager", "MessageAdded", this, SIGNAL(MessageAdded(QDBusObjectPath, QVariantMap)));
 }
 
 OfonoMockController *OfonoMockController::instance()
@@ -41,3 +42,22 @@ void OfonoMockController::MessageManagerSendMessage(const QString &from, const Q
 {
     mMessageManagerInterface.call("MockSendMessage", from, text);
 }
+
+void OfonoMockController::MessageMarkSent(const QString &objPath)
+{
+    QDBusInterface iface("org.ofono", objPath, "org.ofono.Message");
+    iface.call("MockMarkSent");
+}
+
+void OfonoMockController::MessageMarkFailed(const QString &objPath)
+{
+    QDBusInterface iface("org.ofono", objPath, "org.ofono.Message");
+    iface.call("MockMarkFailed");
+}
+
+void OfonoMockController::MessageCancel(const QString &objPath)
+{
+    QDBusInterface iface("org.ofono", objPath, "org.ofono.Message");
+    iface.call("Cancel");
+}
+

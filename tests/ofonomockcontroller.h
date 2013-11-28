@@ -29,10 +29,14 @@ public:
     static OfonoMockController *instance();
 
 Q_SIGNALS:
+    void MessageAdded(QDBusObjectPath, QVariantMap);
 
 public Q_SLOTS:
     void NetworkRegistrationSetStatus(const QString &status);
     void MessageManagerSendMessage(const QString &from, const QString &text);
+    void MessageMarkFailed(const QString &objPath);
+    void MessageMarkSent(const QString &objPath);
+    void MessageCancel(const QString &objPath);
 
 private:
     explicit OfonoMockController(QObject *parent = 0);
