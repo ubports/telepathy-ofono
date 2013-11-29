@@ -30,6 +30,7 @@ public:
 
 Q_SIGNALS:
     void MessageAdded(QDBusObjectPath, QVariantMap);
+    void CallAdded(QDBusObjectPath, QVariantMap);
 
 public Q_SLOTS:
     void NetworkRegistrationSetStatus(const QString &status);
@@ -37,11 +38,15 @@ public Q_SLOTS:
     void MessageMarkFailed(const QString &objPath);
     void MessageMarkSent(const QString &objPath);
     void MessageCancel(const QString &objPath);
-
+    void VoiceCallManagerIncomingCall(const QString &from);
+    void VoiceCallHangup(const QString &objPath);
+    void VoiceCallAnswer(const QString &objPath);
+    void VoiceCallSetAlerting(const QString &objPath);
 private:
     explicit OfonoMockController(QObject *parent = 0);
     QDBusInterface mNetworkRegistrationInterface;
     QDBusInterface mMessageManagerInterface;
+    QDBusInterface mVoiceCallManagerInterface;
 };
 
 #endif // OFONOMOCKCONTROLLER_H

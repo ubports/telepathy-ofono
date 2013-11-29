@@ -22,9 +22,11 @@
 OfonoMockController::OfonoMockController(QObject *parent) :
     QObject(parent),
     mNetworkRegistrationInterface("org.ofono", OFONO_MOCK_NETWORK_REGISTRATION_OBJECT, "org.ofono.NetworkRegistration"),
-    mMessageManagerInterface("org.ofono", OFONO_MOCK_MESSAGE_MANAGER_OBJECT, "org.ofono.MessageManager")
+    mMessageManagerInterface("org.ofono", OFONO_MOCK_MESSAGE_MANAGER_OBJECT, "org.ofono.MessageManager"),
+    mVoiceCallManagerInterface("org.ofono", OFONO_MOCK_VOICECALL_MANAGER_OBJECT, "org.ofono.VoiceCallManager")
 {
     QDBusConnection::sessionBus().connect("org.ofono", OFONO_MOCK_MESSAGE_MANAGER_OBJECT, "org.ofono.MessageManager", "MessageAdded", this, SIGNAL(MessageAdded(QDBusObjectPath, QVariantMap)));
+    QDBusConnection::sessionBus().connect("org.ofono", OFONO_MOCK_VOICECALL_MANAGER_OBJECT, "org.ofono.VoiceCallManager", "CallAdded", this, SIGNAL(CallAdded(QDBusObjectPath, QVariantMap)));
 }
 
 OfonoMockController *OfonoMockController::instance()
@@ -59,5 +61,29 @@ void OfonoMockController::MessageCancel(const QString &objPath)
 {
     QDBusInterface iface("org.ofono", objPath, "org.ofono.Message");
     iface.call("Cancel");
+}
+
+void OfonoMockController::VoiceCallManagerIncomingCall(const QString &from)
+{
+    QDBusInterface iface("org.ofono", OFONO_MOCK_VOICECALL_MANAGER_OBJECT, "org.ofono.VoiceCallManager");
+    iface.call("MockIncomingCall", from);
+}
+
+void OfonoMockController::VoiceCallSetAlerting(const QString &objPath)
+{
+    QDBusInterface iface("org.ofono", objPath, "org.ofono.Message");
+    iface.call("MockSetAlerting");
+}
+
+void OfonoMockController::VoiceCallAnswer(const QString &objPath)
+{
+    QDBusInterface iface("org.ofono", objPath, "org.ofono.VoiceCall");
+    iface.call("MockAnswer");
+}
+
+void OfonoMockController::VoiceCallHangup(const QString &objPath)
+{
+    QDBusInterface iface("org.ofono", objPath, "org.ofono.VoiceCall");
+    iface.call("Hangup");
 }
 
