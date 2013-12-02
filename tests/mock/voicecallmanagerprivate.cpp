@@ -71,6 +71,18 @@ QDBusObjectPath VoiceCallManagerPrivate::MockIncomingCall(const QString &from)
     return newPathObj;
 }
 
+void VoiceCallManagerPrivate::SwapCalls()
+{
+    Q_FOREACH(const QString &objPath, mVoiceCalls.keys()) {
+        QDBusInterface iface("org.ofono", objPath, "org.ofono.VoiceCall");
+        if (mVoiceCalls[objPath]->state() == "active") {
+            iface.call("SetProperty", "State", QVariant::fromValue(QDBusVariant("held")));;
+        } else if (mVoiceCalls[objPath]->state() == "held") {
+            iface.call("SetProperty", "State", QVariant::fromValue(QDBusVariant("active")));;
+        }
+    }
+}
+
 QDBusObjectPath VoiceCallManagerPrivate::Dial(const QString &to, const QString &hideCallerId)
 {
     qDebug() << "DIAL" << to;

@@ -44,6 +44,7 @@ private Q_SLOTS:
     void initTestCase();
     void testCallReceived();
     void testCallSend();
+    void testCallHold();
 
     // helper slots
     void onPendingContactsFinished(Tp::PendingOperation*);
@@ -85,7 +86,9 @@ void CallTest::testCallReceived()
 {
     QSignalSpy spyNewCallChannel(mHandler, SIGNAL(callChannelAvailable(Tp::CallChannelPtr)));
     QSignalSpy spyNewCallApprover(mApprover, SIGNAL(newCall()));
+    QSignalSpy spyOfonoCallAdded(OfonoMockController::instance(), SIGNAL(CallAdded(QDBusObjectPath, QVariantMap)));
     OfonoMockController::instance()->VoiceCallManagerIncomingCall("123");
+    QTRY_COMPARE(spyOfonoCallAdded.count(), 1);
     QTRY_COMPARE(spyNewCallApprover.count(), 1);
 
     mApprover->acceptCall();
@@ -93,6 +96,10 @@ void CallTest::testCallReceived()
 
     Tp::CallChannelPtr channel = spyNewCallChannel.first().first().value<Tp::CallChannelPtr>();
     QVERIFY(channel);
+
+    QDBusObjectPath path = spyOfonoCallAdded.first().first().value<QDBusObjectPath>();
+    OfonoMockController::instance()->VoiceCallHangup(path.path());
+    QTRY_COMPARE(channel->callState(), Tp::CallStateEnded);
 }
 
 void CallTest::testCallSend()
@@ -134,6 +141,30 @@ void CallTest::testCallSend()
     QTRY_COMPARE(channel->callState(), Tp::CallStateEnded);
 }
 
+void CallTest::testCallHold()
+{
+    QSignalSpy spyNewCallChannel(mHandler, SIGNAL(callChannelAvailable(Tp::CallChannelPtr)));
+    QSignalSpy spyNewCallApprover(mApprover, SIGNAL(newCall()));
+    OfonoMockController::instance()->VoiceCallManagerIncomingCall("123");
+    QTRY_COMPARE(spyNewCallApprover.count(), 1);
+
+    mApprover->acceptCall();
+    QTRY_COMPARE(spyNewCallChannel.count(), 1);
+
+    Tp::CallChannelPtr channel = spyNewCallChannel.first().first().value<Tp::CallChannelPtr>();
+    QVERIFY(channel);
+
+    channel->accept();
+    QTRY_COMPARE(channel->callState(), Tp::CallStateActive);
+
+    channel->requestHold(true);
+    QTRY_COMPARE(channel->localHoldState(), Tp::LocalHoldStateHeld);
+
+    channel->requestHold(false);
+    QTRY_COMPARE(channel->localHoldState(), Tp::LocalHoldStateUnheld);
+
+    channel->hangup();
+}
 
 void CallTest::onPendingContactsFinished(Tp::PendingOperation *op)
 {

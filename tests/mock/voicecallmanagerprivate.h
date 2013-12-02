@@ -25,6 +25,7 @@ public Q_SLOTS:
     QDBusObjectPath MockIncomingCall(const QString &from);
     QDBusObjectPath Dial(const QString &to, const QString &hideCallerId);
     QMap<QDBusObjectPath, QVariantMap> GetCalls();
+    void SwapCalls();
 private:
     QVariantMap mProperties;
     QMap<QString, OfonoVoiceCall*> mVoiceCalls;

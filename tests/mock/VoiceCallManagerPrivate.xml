@@ -35,5 +35,7 @@
       <arg type="a{oa{sv}}" direction="out"/>
       <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QMap&lt;QDBusObjectPath, QVariantMap&gt;"/>
     </method>
+    <method name="SwapCalls">
+    </method>
   </interface>
 </node>

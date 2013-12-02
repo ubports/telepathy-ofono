@@ -80,7 +80,8 @@ void Handler::handleChannels(const Tp::MethodInvocationContextPtr<> &context,
             Tp::PendingReady *pr = callChannel->becomeReady(Tp::Features()
                                              << Tp::CallChannel::FeatureCore
                                              << Tp::CallChannel::FeatureCallState
-                                             << Tp::CallChannel::FeatureContents);
+                                             << Tp::CallChannel::FeatureContents
+                                             << Tp::CallChannel::FeatureLocalHoldState);
             connect(pr, SIGNAL(finished(Tp::PendingOperation*)),
                     SLOT(onCallChannelReady(Tp::PendingOperation*)));
             mReadyRequests[pr] = callChannel;

@@ -49,6 +49,7 @@ public:
 private Q_SLOTS:
     void onClaimFinished(Tp::PendingOperation* op);
     void onHangupFinished(Tp::PendingOperation* op);
+    void onChannelReady(Tp::PendingOperation *op);
 
 Q_SIGNALS:
     void newCall();
