@@ -27,6 +27,7 @@
 #include "telepathyhelper.h"
 #include "ofonomockcontroller.h"
 #include "handler.h"
+#include "approvercall.h"
 
 Q_DECLARE_METATYPE(Tp::CallChannelPtr);
 Q_DECLARE_METATYPE(Tp::CallState);
@@ -48,6 +49,7 @@ private Q_SLOTS:
     void onPendingContactsFinished(Tp::PendingOperation*);
 
 private:
+    Approver *mApprover;
     Handler *mHandler;
 };
 
@@ -71,17 +73,25 @@ void CallTest::initTestCase()
     TelepathyHelper::instance()->registerClient(mHandler, "TpOfonoTestHandler");
     QTRY_VERIFY(mHandler->isRegistered());
 
+    mApprover = new Approver(this);
+    TelepathyHelper::instance()->registerClient(mApprover, "TpOfonoTestApprover");
+    QTRY_VERIFY(QDBusConnection::sessionBus().interface()->isServiceRegistered(TELEPHONY_SERVICE_APPROVER));
+
     // we need to wait in order to give telepathy time to notify about the approver and handler
-    QTest::qWait(2000); 
+    QTest::qWait(2000);
 }
 
 void CallTest::testCallReceived()
 {
-    QSignalSpy spy(mHandler, SIGNAL(callChannelAvailable(Tp::CallChannelPtr)));
+    QSignalSpy spyNewCallChannel(mHandler, SIGNAL(callChannelAvailable(Tp::CallChannelPtr)));
+    QSignalSpy spyNewCallApprover(mApprover, SIGNAL(newCall()));
     OfonoMockController::instance()->VoiceCallManagerIncomingCall("123");
-    QTRY_COMPARE(spy.count(), 1);
+    QTRY_COMPARE(spyNewCallApprover.count(), 1);
 
-    Tp::CallChannelPtr channel = spy.first().first().value<Tp::CallChannelPtr>();
+    mApprover->acceptCall();
+    QTRY_COMPARE(spyNewCallChannel.count(), 1);
+
+    Tp::CallChannelPtr channel = spyNewCallChannel.first().first().value<Tp::CallChannelPtr>();
     QVERIFY(channel);
 }
 

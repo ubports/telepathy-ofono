@@ -30,13 +30,18 @@
 #include <TelepathyQt/PendingReady>
 
 Handler::Handler(QObject *parent)
-    : QObject(parent), Tp::AbstractClientHandler(channelFilters())
+    : QObject(parent), Tp::AbstractClientHandler(channelFilters()), mBypassApproval(false)
 {
+}
+
+void Handler::setBypassApproval(bool bypass)
+{
+    mBypassApproval = bypass;
 }
 
 bool Handler::bypassApproval() const
 {
-    return true;
+    return mBypassApproval;
 }
 
 void Handler::handleChannels(const Tp::MethodInvocationContextPtr<> &context,

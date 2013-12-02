@@ -42,12 +42,20 @@ public:
 
     void addDispatchOperation(const Tp::MethodInvocationContextPtr<> &context,
                               const Tp::ChannelDispatchOperationPtr &dispatchOperation);
+    Tp::ChannelDispatchOperationPtr dispatchOperation(Tp::PendingOperation *op);
+    void acceptCall();
+    void rejectCall();
 
 private Q_SLOTS:
-    void processChannels();
+    void onClaimFinished(Tp::PendingOperation* op);
+    void onHangupFinished(Tp::PendingOperation* op);
+
+Q_SIGNALS:
+    void newCall();
 
 private:
     QList<Tp::ChannelDispatchOperationPtr> mDispatchOps;
+    QMap<Tp::PendingOperation*,Tp::ChannelPtr> mChannels;
 };
 
 #endif // APPROVER_H

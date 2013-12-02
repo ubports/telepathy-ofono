@@ -45,6 +45,7 @@ public:
                         const QDateTime &userActionTime,
                         const Tp::AbstractClientHandler::HandlerInfo &handlerInfo);
     Tp::ChannelClassSpecList channelFilters();
+    void setBypassApproval(bool bypass);
 
 Q_SIGNALS:
     void textChannelAvailable(Tp::TextChannelPtr textChannel);
@@ -56,6 +57,7 @@ private Q_SLOTS:
 
 private:
     QMap<Tp::PendingReady*, Tp::ChannelPtr> mReadyRequests;
+    bool mBypassApproval;
 };
 
 #endif // HANDLER_H
