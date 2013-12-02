@@ -45,6 +45,7 @@ private Q_SLOTS:
     void testCallIncoming();
     void testCallOutgoing();
     void testCallHold();
+    void testCallDTMF();
 
     // helper slots
     void onPendingContactsFinished(Tp::PendingOperation*);
@@ -165,6 +166,75 @@ void CallTest::testCallHold()
 
     channel->hangup();
 }
+
+void CallTest::testCallDTMF()
+{
+    // Request the contact to start chatting to
+    Tp::AccountPtr account = TelepathyHelper::instance()->account();
+    QSignalSpy spy(this, SIGNAL(contactsReceived(QList<Tp::ContactPtr>)));
+
+    connect(account->connection()->contactManager()->contactsForIdentifiers(QStringList() << "321"),
+            SIGNAL(finished(Tp::PendingOperation*)),
+            SLOT(onPendingContactsFinished(Tp::PendingOperation*)));
+
+    QTRY_COMPARE(spy.count(), 1);
+
+    QList<Tp::ContactPtr> contacts = spy.first().first().value<QList<Tp::ContactPtr> >();
+    QCOMPARE(contacts.count(), 1);
+    QCOMPARE(contacts.first()->id(), QString("321"));
+
+    QSignalSpy spyOfonoCallAdded(OfonoMockController::instance(), SIGNAL(CallAdded(QDBusObjectPath, QVariantMap)));
+    QSignalSpy spyCallChannel(mHandler, SIGNAL(callChannelAvailable(Tp::CallChannelPtr)));
+
+    Q_FOREACH(Tp::ContactPtr contact, contacts) {
+        account->ensureAudioCall(contact, "audio", QDateTime::currentDateTime(), TP_QT_IFACE_CLIENT + ".TpOfonoTestHandler");
+    }
+    QTRY_COMPARE(spyOfonoCallAdded.count(), 1);
+    QTRY_COMPARE(spyCallChannel.count(), 1);
+    QDBusObjectPath path = spyOfonoCallAdded.first().first().value<QDBusObjectPath>();
+
+    Tp::CallChannelPtr channel = spyCallChannel.first().first().value<Tp::CallChannelPtr>();
+    QVERIFY(channel);
+
+    OfonoMockController::instance()->VoiceCallSetAlerting(path.path());
+    QTRY_COMPARE(channel->callState(), Tp::CallStateInitialised);
+
+    OfonoMockController::instance()->VoiceCallAnswer(path.path());
+    QTRY_COMPARE(channel->callState(), Tp::CallStateActive);
+
+
+    Q_FOREACH(const Tp::CallContentPtr &content, channel->contents()) {
+        if (content->supportsDTMF()) {
+            bool ok;
+            QStringList keys;
+            keys << "0" << "1" << "2" << "3" << "4" << "5" << "6" 
+                        << "7" << "8" << "9" << "*" << "#";
+            QStringListIterator keysIterator(keys);
+            while (keysIterator.hasNext()) {
+                QString key = keysIterator.next();
+                Tp::DTMFEvent event = (Tp::DTMFEvent)key.toInt(&ok);
+                if (!ok) {
+                    if (!key.compare("*")) {
+                        event = Tp::DTMFEventAsterisk;
+                    } else if (!key.compare("#")) {
+                        event = Tp::DTMFEventHash;
+                    } else {
+                        qWarning() << "Tone not recognized. DTMF failed";
+                        return;
+                    }
+                }
+                QSignalSpy spyOfonoTonesReceived(OfonoMockController::instance(), SIGNAL(TonesReceived(const QString&)));
+                content->startDTMFTone(event);
+                QTRY_COMPARE(spyOfonoTonesReceived.count(), 1);
+                QCOMPARE(spyOfonoTonesReceived.first().first().value<QString>(), key);
+            }
+        }
+    }
+
+    OfonoMockController::instance()->VoiceCallHangup(path.path());
+    QTRY_COMPARE(channel->callState(), Tp::CallStateEnded);
+}
+
 
 void CallTest::onPendingContactsFinished(Tp::PendingOperation *op)
 {

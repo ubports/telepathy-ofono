@@ -31,6 +31,7 @@ public:
 Q_SIGNALS:
     void MessageAdded(QDBusObjectPath, QVariantMap);
     void CallAdded(QDBusObjectPath, QVariantMap);
+    void TonesReceived(QString);
 
 public Q_SLOTS:
     void NetworkRegistrationSetStatus(const QString &status);

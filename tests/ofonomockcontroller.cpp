@@ -27,6 +27,7 @@ OfonoMockController::OfonoMockController(QObject *parent) :
 {
     QDBusConnection::sessionBus().connect("org.ofono", OFONO_MOCK_MESSAGE_MANAGER_OBJECT, "org.ofono.MessageManager", "MessageAdded", this, SIGNAL(MessageAdded(QDBusObjectPath, QVariantMap)));
     QDBusConnection::sessionBus().connect("org.ofono", OFONO_MOCK_VOICECALL_MANAGER_OBJECT, "org.ofono.VoiceCallManager", "CallAdded", this, SIGNAL(CallAdded(QDBusObjectPath, QVariantMap)));
+    QDBusConnection::sessionBus().connect("org.ofono", OFONO_MOCK_VOICECALL_MANAGER_OBJECT, "org.ofono.VoiceCallManager", "TonesReceived", this, SIGNAL(TonesReceived(QString)));
 }
 
 OfonoMockController *OfonoMockController::instance()

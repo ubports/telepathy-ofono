@@ -83,6 +83,11 @@ void VoiceCallManagerPrivate::SwapCalls()
     }
 }
 
+void VoiceCallManagerPrivate::SendTones(const QString &tones)
+{
+    Q_EMIT TonesReceived(tones);
+}
+
 QDBusObjectPath VoiceCallManagerPrivate::Dial(const QString &to, const QString &hideCallerId)
 {
     qDebug() << "DIAL" << to;

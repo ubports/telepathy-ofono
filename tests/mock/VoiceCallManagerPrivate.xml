@@ -1,6 +1,9 @@
 <!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
 <node>
   <interface name="org.ofono.VoiceCallManager">
+    <signal name="TonesReceived">
+      <arg name="tones" type="s" direction="out"/>
+    </signal>
     <signal name="CallRemoved">
       <arg name="obj" type="o" direction="out"/>
     </signal>
@@ -36,6 +39,9 @@
       <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QMap&lt;QDBusObjectPath, QVariantMap&gt;"/>
     </method>
     <method name="SwapCalls">
+    </method>
+    <method name="SendTones">
+      <arg name="tones" type="s" direction="in"/>
     </method>
   </interface>
 </node>
