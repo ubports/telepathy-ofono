@@ -42,8 +42,8 @@ Q_SIGNALS:
 
 private Q_SLOTS:
     void initTestCase();
-    void testCallReceived();
-    void testCallSend();
+    void testCallIncoming();
+    void testCallOutgoing();
     void testCallHold();
 
     // helper slots
@@ -82,7 +82,7 @@ void CallTest::initTestCase()
     QTest::qWait(2000);
 }
 
-void CallTest::testCallReceived()
+void CallTest::testCallIncoming()
 {
     QSignalSpy spyNewCallChannel(mHandler, SIGNAL(callChannelAvailable(Tp::CallChannelPtr)));
     QSignalSpy spyNewCallApprover(mApprover, SIGNAL(newCall()));
@@ -102,7 +102,7 @@ void CallTest::testCallReceived()
     QTRY_COMPARE(channel->callState(), Tp::CallStateEnded);
 }
 
-void CallTest::testCallSend()
+void CallTest::testCallOutgoing()
 {
     // Request the contact to start chatting to
     Tp::AccountPtr account = TelepathyHelper::instance()->account();
