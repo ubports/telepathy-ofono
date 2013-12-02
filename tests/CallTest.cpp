@@ -119,7 +119,6 @@ void CallTest::testCallSend()
 
     OfonoMockController::instance()->VoiceCallAnswer(path.path());
     QTRY_COMPARE(channel->callState(), Tp::CallStateActive);
-    spyCallChannelStatus.clear();
 
     OfonoMockController::instance()->VoiceCallHangup(path.path());
     QTRY_COMPARE(channel->callState(), Tp::CallStateEnded);
