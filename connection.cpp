@@ -729,7 +729,6 @@ void oFonoConnection::onOfonoCallAdded(const QString &call, const QVariantMap &p
     } else {
         normalizedNumber = PhoneUtils::normalizePhoneNumber(lineIdentification);
     }
-    qDebug() << normalizedNumber << lineIdentification;
     // check if there is an open channel for this number, if so, ignore it
     Q_FOREACH(const QString &phoneNumber, mCallChannels.keys()) {
         if (PhoneUtils::comparePhoneNumbers(normalizedNumber, phoneNumber)) {
