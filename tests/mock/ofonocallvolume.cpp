@@ -26,10 +26,16 @@
 
 #include "ofonocallvolume.h"
 #include "ofonointerface.h"
+#include "callvolumeprivate.h"
 
 OfonoCallVolume::OfonoCallVolume(OfonoModem::SelectionSetting modemSetting, const QString &modemPath, QObject *parent)
     : OfonoModemInterface(modemSetting, modemPath, "org.ofono.CallVolume", OfonoGetAllOnStartup, parent)
 {
+    if (!callVolumeData.keys().contains(modem()->path())) {
+        m_if->setPath(OFONO_MOCK_CALL_VOLUME_OBJECT);
+        callVolumeData[modem()->path()] = new CallVolumePrivate();
+    }
+
     connect(m_if, SIGNAL(propertyChanged(const QString&, const QVariant&)),
             this, SLOT(propertyChanged(const QString&, const QVariant&)));
 

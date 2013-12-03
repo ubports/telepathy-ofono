@@ -28,12 +28,20 @@ OfonoMockController::OfonoMockController(QObject *parent) :
     QDBusConnection::sessionBus().connect("org.ofono", OFONO_MOCK_MESSAGE_MANAGER_OBJECT, "org.ofono.MessageManager", "MessageAdded", this, SIGNAL(MessageAdded(QDBusObjectPath, QVariantMap)));
     QDBusConnection::sessionBus().connect("org.ofono", OFONO_MOCK_VOICECALL_MANAGER_OBJECT, "org.ofono.VoiceCallManager", "CallAdded", this, SIGNAL(CallAdded(QDBusObjectPath, QVariantMap)));
     QDBusConnection::sessionBus().connect("org.ofono", OFONO_MOCK_VOICECALL_MANAGER_OBJECT, "org.ofono.VoiceCallManager", "TonesReceived", this, SIGNAL(TonesReceived(QString)));
+    QDBusConnection::sessionBus().connect("org.ofono", OFONO_MOCK_CALL_VOLUME_OBJECT, "org.ofono.CallVolume", "PropertyChanged", this, SLOT(onCallVolumePropertyChanged(QString, QDBusVariant)));
 }
 
 OfonoMockController *OfonoMockController::instance()
 {
     static OfonoMockController *self = new OfonoMockController();
     return self;
+}
+
+void OfonoMockController::onCallVolumePropertyChanged(const QString& name, const QDBusVariant& value)
+{
+    if (name == "Muted") {
+        Q_EMIT CallVolumeMuteChanged(value.variant().value<bool>());
+    }
 }
 
 void OfonoMockController::NetworkRegistrationSetStatus(const QString &status)

@@ -1,4 +1,5 @@
 set(library_SRCS
+    callvolumeprivate.cpp
     messagemanagerprivate.cpp
     messageprivate.cpp
     modemprivate.cpp
@@ -22,6 +23,7 @@ include_directories(
     ${CMAKE_BINARY_DIR}
 )
 
+qt5_add_dbus_adaptor(library_SRCS CallVolumePrivate.xml callvolumeprivate.h CallVolumePrivate)
 qt5_add_dbus_adaptor(library_SRCS ModemPrivate.xml modemprivate.h ModemPrivate)
 qt5_add_dbus_adaptor(library_SRCS NetworkRegistrationPrivate.xml networkregistrationprivate.h NetworkRegistrationPrivate)
 qt5_add_dbus_adaptor(library_SRCS MessageManagerPrivate.xml messagemanagerprivate.h MessageManagerPrivate)

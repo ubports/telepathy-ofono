@@ -2,3 +2,4 @@
 #define OFONO_MOCK_MODEM_OBJECT "/OfonoModem"
 #define OFONO_MOCK_NETWORK_REGISTRATION_OBJECT "/OfonoNetworkRegistration"
 #define OFONO_MOCK_VOICECALL_MANAGER_OBJECT "/OfonoVoiceCallManager"
+#define OFONO_MOCK_CALL_VOLUME_OBJECT "/OfonoCallVolume"

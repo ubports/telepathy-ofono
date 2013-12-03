@@ -32,6 +32,7 @@ Q_SIGNALS:
     void MessageAdded(QDBusObjectPath, QVariantMap);
     void CallAdded(QDBusObjectPath, QVariantMap);
     void TonesReceived(QString);
+    void CallVolumeMuteChanged(bool muted);
 
 public Q_SLOTS:
     void NetworkRegistrationSetStatus(const QString &status);
@@ -43,6 +44,10 @@ public Q_SLOTS:
     void VoiceCallHangup(const QString &objPath);
     void VoiceCallAnswer(const QString &objPath);
     void VoiceCallSetAlerting(const QString &objPath);
+
+private Q_SLOTS:
+    void onCallVolumePropertyChanged(const QString &name, const QDBusVariant &value);
+
 private:
     explicit OfonoMockController(QObject *parent = 0);
     QDBusInterface mNetworkRegistrationInterface;
