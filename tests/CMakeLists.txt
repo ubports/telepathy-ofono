@@ -15,16 +15,16 @@ macro(generate_test TESTNAME USE_DBUS)
     endif(${USE_DBUS})
     # force telepathy not to use system approvers when available,
     # also force usage of memory backend in history-service
-    set(TEST_ENVIRONMENT "TMP=/tmp/tpofono_test_home;
-                          HOME=$TMP;
+    set(TMPDIR "/tmp/tpofono_test_home")
+    set(TEST_ENVIRONMENT "HOME=${TMPDIR};
                           HISTORY_SQLITE_DBPATH=:memory:;
-                          XDG_CONFIG_HOME=$TMP;
-                          XDG_DATA_HOME=$TMP;
-                          XDG_CACHE_DIR=$TMP;
-                          XDG_CACHE_HOME=$TMP;
-                          XDG_DATA_DIRS=$TMP;
-                          MC_ACCOUNT_DIR=$TMP;
-                          MC_MANAGER_DIR=$TMP")
+                          XDG_CONFIG_HOME=${TMPDIR};
+                          XDG_DATA_HOME=${TMPDIR};
+                          XDG_CACHE_DIR=${TMPDIR};
+                          XDG_CACHE_HOME=${TMPDIR};
+                          XDG_DATA_DIRS=${TMPDIR};
+                          MC_ACCOUNT_DIR=${TMPDIR};
+                          MC_MANAGER_DIR=${TMPDIR}")
     set_tests_properties(${TESTNAME} PROPERTIES
                           ENVIRONMENT "${TEST_ENVIRONMENT}")
     target_link_libraries(${TESTNAME}
