@@ -3,6 +3,10 @@ Upstream-Name: telepathy-ofono
 Upstream-Contact: Tiago Salem Herrmann <tiago.herrmann@canonical.com>
 Source: https://launchpad.net/telepathy-ofono
 
+Files: *
+Copyright: 2013 Canonical, Ltd.
+License: LGPL-3
+
 Files: phoneutils.h
 Copyright: 2006 The Android Open Source Project
 License: Apache-2.0
@@ -11,13 +15,13 @@ Files: debian/*
 Copyright: 2013 Canonical, Ltd.
 License: LGPL-3
 
-Files: *.cpp
-Copyright: 2013 Canonical, Ltd.
-License: LGPL-3
-
 Files: connection.h ofonocallchannel.h ofonotextchannel.h protocol.h speakeriface.h voicemailiface.h
 Copyright: 2013 Canonical, Ltd.
 License: LGPL-3
+
+Files: tests/mock/ofono*. tests/mock/libofono*
+Copyright: 2010 Nokia Corporation and/or its subsidiary(-ies).
+License: LGPL-2.1+
 
 License: Apache-2.0
  Licensed under the Apache License, Version 2.0 (the "License");
@@ -49,3 +53,21 @@ License: LGPL-3
  .
  On Debian systems, the complete text of the GNU Lesser General
  Public License can be found in `/usr/share/common-licenses/LGPL-3'.
+
+License: LGPL-2.1+
+ This library is free software; you can redistribute it and/or modify it under
+ the terms of the GNU Lesser General Public License as published by the Free
+ Software Foundation; either version 2.1 of the License, or (at your option) any
+ later version.
+ .
+ This library is distributed in the hope that it will be useful, but WITHOUT
+ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more
+ details.
+ .
+ You should have received a copy of the GNU Lesser General Public License along
+ with this library; if not, write to the Free Software Foundation, Inc., 51
+ Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ .
+ On Debian systems, the complete text of the GNU Lesser General Public License
+ version 2.1 can be found in `/usr/share/common-licenses/LGPL-2.1`.
