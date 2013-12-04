@@ -1,6 +1,9 @@
 /*
  * Copyright (C) 2013 Canonical, Ltd.
  *
+ * Authors:
+ *  Tiago Salem Herrmann <tiago.herrmann@canonical.com>
+ *
  * This file is part of telepathy-ofono.
  *
  * telepathy-ofono is free software; you can redistribute it and/or modify
