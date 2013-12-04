@@ -13,7 +13,18 @@ macro(generate_test TESTNAME USE_DBUS)
     else (${USE_DBUS})
         add_test(${TESTNAME} ${CMAKE_CURRENT_BINARY_DIR}/${TESTNAME} -xunitxml -o ${CMAKE_BINARY_DIR}/test_${TESTNAME}.xml)
     endif(${USE_DBUS})
-    set(TEST_ENVIRONMENT "HOME=/tmp/tpofono_test_home;HISTORY_SQLITE_DBPATH=:memory:")
+    # force telepathy not to use system approvers when available,
+    # also force usage of memory backend in history-service
+    set(TEST_ENVIRONMENT "TMP=/tmp/tpofono_test_home;
+                          HOME=$TMP;
+                          HISTORY_SQLITE_DBPATH=:memory:;
+                          XDG_CONFIG_HOME=$TMP;
+                          XDG_DATA_HOME=$TMP;
+                          XDG_CACHE_DIR=$TMP;
+                          XDG_CACHE_HOME=$TMP;
+                          XDG_DATA_DIRS=$TMP;
+                          MC_ACCOUNT_DIR=$TMP;
+                          MC_MANAGER_DIR=$TMP")
     set_tests_properties(${TESTNAME} PROPERTIES
                           ENVIRONMENT "${TEST_ENVIRONMENT}")
     target_link_libraries(${TESTNAME}
