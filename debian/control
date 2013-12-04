@@ -5,11 +5,14 @@ Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 Build-Depends: cmake,
                debhelper (>= 9),
                dbus-test-runner,
+               dconf-cli,
+               gnome-keyring,
                libofono-qt-dev (>= 1.5),
                libtelepathy-qt5-dev (>= 0.9.3),
                libpulse-dev [armhf],
                qt5-default (>= 5.0),
                qtbase5-dev (>= 5.0),
+               telepathy-mission-control-5
 Standards-Version: 3.9.4
 Homepage: https://launchpad.net/telepathy-ofono
 # If you aren't a member of ~phablet-team but need to upload packaging changes,
