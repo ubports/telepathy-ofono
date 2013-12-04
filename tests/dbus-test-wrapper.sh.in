@@ -23,5 +23,7 @@ $@
 RESULT=$?
 
 kill -9 $TP_OFONO_PID
+#FIXME for some reason history-daemon is not being finished, so we have to kill it here
+killall history-daemon
 
 return $RESULT
