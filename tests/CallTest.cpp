@@ -45,6 +45,8 @@ Q_SIGNALS:
 private Q_SLOTS:
     void initTestCase();
     void testCallIncoming();
+    void testCallIncomingPrivateNumber();
+    void testCallIncomingUnknownNumber();
     void testCallOutgoing();
     void testCallHold();
     void testCallDTMF();
@@ -100,6 +102,50 @@ void CallTest::testCallIncoming()
 
     Tp::CallChannelPtr channel = spyNewCallChannel.first().first().value<Tp::CallChannelPtr>();
     QVERIFY(channel);
+
+    QDBusObjectPath path = spyOfonoCallAdded.first().first().value<QDBusObjectPath>();
+    OfonoMockController::instance()->VoiceCallHangup(path.path());
+    QTRY_COMPARE(channel->callState(), Tp::CallStateEnded);
+}
+
+void CallTest::testCallIncomingPrivateNumber()
+{
+    QSignalSpy spyNewCallChannel(mHandler, SIGNAL(callChannelAvailable(Tp::CallChannelPtr)));
+    QSignalSpy spyNewCallApprover(mApprover, SIGNAL(newCall()));
+    QSignalSpy spyOfonoCallAdded(OfonoMockController::instance(), SIGNAL(CallAdded(QDBusObjectPath, QVariantMap)));
+    OfonoMockController::instance()->VoiceCallManagerIncomingCall("withheld");
+    QTRY_COMPARE(spyOfonoCallAdded.count(), 1);
+    QTRY_COMPARE(spyNewCallApprover.count(), 1);
+
+    mApprover->acceptCall();
+    QTRY_COMPARE(spyNewCallChannel.count(), 1);
+
+    Tp::CallChannelPtr channel = spyNewCallChannel.first().first().value<Tp::CallChannelPtr>();
+    QVERIFY(channel);
+
+    QCOMPARE(channel->initiatorContact()->id(), QString("x-ofono-private"));
+
+    QDBusObjectPath path = spyOfonoCallAdded.first().first().value<QDBusObjectPath>();
+    OfonoMockController::instance()->VoiceCallHangup(path.path());
+    QTRY_COMPARE(channel->callState(), Tp::CallStateEnded);
+}
+
+void CallTest::testCallIncomingUnknownNumber()
+{
+    QSignalSpy spyNewCallChannel(mHandler, SIGNAL(callChannelAvailable(Tp::CallChannelPtr)));
+    QSignalSpy spyNewCallApprover(mApprover, SIGNAL(newCall()));
+    QSignalSpy spyOfonoCallAdded(OfonoMockController::instance(), SIGNAL(CallAdded(QDBusObjectPath, QVariantMap)));
+    OfonoMockController::instance()->VoiceCallManagerIncomingCall("");
+    QTRY_COMPARE(spyOfonoCallAdded.count(), 1);
+    QTRY_COMPARE(spyNewCallApprover.count(), 1);
+
+    mApprover->acceptCall();
+    QTRY_COMPARE(spyNewCallChannel.count(), 1);
+
+    Tp::CallChannelPtr channel = spyNewCallChannel.first().first().value<Tp::CallChannelPtr>();
+    QVERIFY(channel);
+
+    QCOMPARE(channel->initiatorContact()->id(), QString("x-ofono-unknown"));
 
     QDBusObjectPath path = spyOfonoCallAdded.first().first().value<QDBusObjectPath>();
     OfonoMockController::instance()->VoiceCallHangup(path.path());
