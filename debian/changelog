@@ -1,3 +1,13 @@
+telepathy-ofono (0.2+14.04.20131205.1-0ubuntu1) trusty; urgency=low
+
+  [ Tiago Salem Herrmann ]
+  * Accept non numeric id's. (LP: #1238939)
+
+  [ Ubuntu daily release ]
+  * Automatic snapshot from revision 52
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Thu, 05 Dec 2013 02:02:57 +0000
+
 telepathy-ofono (0.2+13.10.20131015.5-0ubuntu1) saucy; urgency=low
 
   [ Tiago Salem Herrmann ]
