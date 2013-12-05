@@ -1,0 +1,29 @@
+#!/bin/sh
+
+# export the home folder to somewhere in /tmp
+TMPDIR=/tmp/tpofono_test_home
+rm -rf $TMPDIR
+export HOME=$TMPDIR
+
+# now run gnome-keyring
+gnome-keyring-daemon -r -d
+
+# we need to set this otherwise mission-control doesn't work properly
+dconf write /org/gnome/empathy/use-conn false
+
+# start telepathy-ofono with the ofono-qt mock library
+LD_PRELOAD=@CMAKE_CURRENT_BINARY_DIR@/mock/libofono-qt.so ${CMAKE_BINARY_DIR}/telepathy-ofono &
+
+TP_OFONO_PID=$!
+
+mc-tool add ofono/ofono account0
+mc-tool enable ofono/ofono/account0
+
+$@
+RESULT=$?
+
+kill -9 $TP_OFONO_PID
+#FIXME for some reason history-daemon is not being finished, so we have to kill it here
+killall history-daemon
+
+return $RESULT

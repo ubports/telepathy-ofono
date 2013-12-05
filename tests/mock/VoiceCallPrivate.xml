@@ -1,0 +1,25 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node>
+  <interface name="org.ofono.VoiceCall">
+    <signal name="PropertyChanged">
+      <arg name="name" type="s" direction="out"/>
+      <arg name="value" type="v" direction="out"/>
+    </signal>
+    <method name="GetProperties">
+      <arg type="a{sv}" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QVariantMap"/>
+    </method>
+    <method name="SetProperty">
+      <arg name="name" type="s" direction="in"/>
+      <arg name="value" type="v" direction="in"/>
+    </method>
+    <method name="Hangup">
+    </method>
+    <method name="Answer">
+    </method>
+    <method name="MockSetAlerting">
+    </method>
+    <method name="MockAnswer">
+    </method>
+  </interface>
+</node>
