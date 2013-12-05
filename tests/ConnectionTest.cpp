@@ -43,6 +43,8 @@ void ConnectionTest::initTestCase()
     OfonoMockController::instance()->NetworkRegistrationSetStatus("registered");
 
     qRegisterMetaType<Tp::Presence>();
+
+    QTest::qWait(3000);
 }
 
 void ConnectionTest::testConnected()
