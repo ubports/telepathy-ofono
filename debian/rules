@@ -10,7 +10,7 @@ override_dh_auto_configure:
 	dh_auto_configure -- -DLIBEXEC_DIR=lib/telepathy
 
 override_dh_auto_test:
-	make -C obj-$(DEB_HOST_GNU_TYPE) test
+	CTEST_OUTPUT_ON_FAILURE=1 make -C obj-$(DEB_HOST_GNU_TYPE) test
 
 %:
 	dh $@

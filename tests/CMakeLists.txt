@@ -26,7 +26,8 @@ macro(generate_test TESTNAME USE_DBUS)
                           MC_ACCOUNT_DIR=${TMPDIR};
                           MC_MANAGER_DIR=${TMPDIR}")
     set_tests_properties(${TESTNAME} PROPERTIES
-                          ENVIRONMENT "${TEST_ENVIRONMENT}")
+                          ENVIRONMENT "${TEST_ENVIRONMENT}"
+                          TIMEOUT 30)
     target_link_libraries(${TESTNAME}
                           ${TP_QT5_LIBRARIES}
                          )
