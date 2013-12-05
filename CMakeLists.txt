@@ -1,6 +1,7 @@
 project(telepathy-ofono)
 cmake_minimum_required(VERSION 2.8)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
+set(TELEPATHY_OFONO telepathy-ofono)
 
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -25,7 +26,7 @@ IF(CMAKE_BUILD_TYPE MATCHES [cC][oO][vV][eE][rR][aA][gG][eE])
   SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftest-coverage -fprofile-arcs" )
   SET(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -coverage" )
   SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -coverage" )
-  ENABLE_COVERAGE_REPORT(TARGETS ${MESSAGING_APP})
+  ENABLE_COVERAGE_REPORT(TARGETS ${TELEPATHY_OFONO})
 ENDIF(CMAKE_BUILD_TYPE MATCHES [cC][oO][vV][eE][rR][aA][gG][eE])
 
 find_package(Qt5Core)
@@ -67,16 +68,16 @@ find_library(TELEPATHY_QT5_SERVICE_LIBRARIES telepathy-qt5-service)
 find_library(OFONO_QT_LIBRARIES ofono-qt)
 
 if(USE_PULSEAUDIO)
-    add_executable(telepathy-ofono main.cpp protocol.cpp connection.cpp ofonotextchannel.cpp ofonocallchannel.cpp voicemailiface.cpp speakeriface.cpp mmsdmanager.cpp mmsdservice.cpp mmsdmessage.cpp qpulseaudioengine.cpp phoneutils.cpp)
+    add_executable(${TELEPATHY_OFONO} main.cpp protocol.cpp connection.cpp ofonotextchannel.cpp ofonocallchannel.cpp voicemailiface.cpp speakeriface.cpp mmsdmanager.cpp mmsdservice.cpp mmsdmessage.cpp qpulseaudioengine.cpp phoneutils.cpp)
 else(USE_PULSEAUDIO)
-    add_executable(telepathy-ofono main.cpp protocol.cpp connection.cpp ofonotextchannel.cpp ofonocallchannel.cpp voicemailiface.cpp speakeriface.cpp mmsdmanager.cpp mmsdservice.cpp mmsdmessage.cpp phoneutils.cpp)
+    add_executable(${TELEPATHY_OFONO} main.cpp protocol.cpp connection.cpp ofonotextchannel.cpp ofonocallchannel.cpp voicemailiface.cpp speakeriface.cpp mmsdmanager.cpp mmsdservice.cpp mmsdmessage.cpp phoneutils.cpp)
 endif(USE_PULSEAUDIO)
-qt5_use_modules(telepathy-ofono Core DBus)
+qt5_use_modules(${TELEPATHY_OFONO} Core DBus)
 
 enable_testing()
 
-target_link_libraries(telepathy-ofono ${Qt5Core_LIBRARIES} ${Qt5DBus_LIBRARIES} ${WAUDIO_LIBRARIES} -ltelepathy-qt5 ${TELEPATHY_QT5_SERVICE_LIBRARIES} ${OFONO_QT_LIBRARIES} ${PULSEAUDIO_LIBRARIES})
-install(TARGETS telepathy-ofono DESTINATION ${DAEMON_DIR})
+target_link_libraries(${TELEPATHY_OFONO} ${Qt5Core_LIBRARIES} ${Qt5DBus_LIBRARIES} ${WAUDIO_LIBRARIES} -ltelepathy-qt5 ${TELEPATHY_QT5_SERVICE_LIBRARIES} ${OFONO_QT_LIBRARIES} ${PULSEAUDIO_LIBRARIES})
+install(TARGETS ${TELEPATHY_OFONO} DESTINATION ${DAEMON_DIR})
 
 configure_file(ofono.service.in org.freedesktop.Telepathy.ConnectionManager.ofono.service)
 install (FILES ofono.manager DESTINATION share/telepathy/managers)
