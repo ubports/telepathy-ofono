@@ -10,7 +10,7 @@ Build-Depends: cmake,
                libofono-qt-dev (>= 1.5),
                libtelepathy-qt5-dev (>= 0.9.3),
                libpulse-dev [armhf],
-               pulseaudio [armhf],
+               pulseaudio,
                qt5-default (>= 5.0),
                qtbase5-dev (>= 5.0),
                telepathy-mission-control-5
