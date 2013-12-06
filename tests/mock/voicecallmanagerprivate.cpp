@@ -81,7 +81,7 @@ QDBusObjectPath VoiceCallManagerPrivate::MockIncomingCall(const QString &from)
     initialCallProperties[newPath] = callProperties;
 
     mVoiceCalls[newPath] = new OfonoVoiceCall(newPath);
-    connect(mVoiceCalls[newPath], SIGNAL(destroyed()), this, SLOT(onVoiceCallDestroyed()));
+    connect(voiceCallData[newPath], SIGNAL(destroyed()), this, SLOT(onVoiceCallDestroyed()));
 
     Q_EMIT CallAdded(newPathObj, callProperties);
 
@@ -122,7 +122,7 @@ QDBusObjectPath VoiceCallManagerPrivate::Dial(const QString &to, const QString &
     initialCallProperties[newPath] = callProperties;
 
     mVoiceCalls[newPath] = new OfonoVoiceCall(newPath);
-    connect(mVoiceCalls[newPath], SIGNAL(destroyed()), this, SLOT(onVoiceCallDestroyed()));
+    connect(voiceCallData[newPath], SIGNAL(destroyed()), this, SLOT(onVoiceCallDestroyed()));
 
     Q_EMIT CallAdded(newPathObj, callProperties);
 
@@ -131,9 +131,11 @@ QDBusObjectPath VoiceCallManagerPrivate::Dial(const QString &to, const QString &
 
 void VoiceCallManagerPrivate::onVoiceCallDestroyed()
 {
-    OfonoVoiceCall *voiceCall = static_cast<OfonoVoiceCall*>(sender());
+    VoiceCallPrivate *voiceCall = static_cast<VoiceCallPrivate*>(sender());
     if (voiceCall) {
-        mVoiceCalls.remove(voiceCall->path());
-        Q_EMIT CallRemoved(QDBusObjectPath(voiceCall->path()));
+        voiceCallData.remove(voiceCall->objectPath());
+        mVoiceCalls[voiceCall->objectPath()]->deleteLater();
+        mVoiceCalls.remove(voiceCall->objectPath());
+        Q_EMIT CallRemoved(QDBusObjectPath(voiceCall->objectPath()));
     }
 }
