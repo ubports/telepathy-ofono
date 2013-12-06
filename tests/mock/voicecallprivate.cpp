@@ -24,7 +24,7 @@ QMap<QString, VoiceCallPrivate*> voiceCallData;
 QMap<QString, QVariantMap> initialCallProperties;
 
 VoiceCallPrivate::VoiceCallPrivate(const QString &path, QObject *parent) :
-    QObject(parent)
+    QObject(parent), mObjectPath(path)
 {
     QDBusConnection::sessionBus().registerObject(path, this);
     QDBusConnection::sessionBus().registerService("org.ofono");
@@ -51,6 +51,11 @@ VoiceCallPrivate::VoiceCallPrivate(const QString &path, QObject *parent) :
 
 VoiceCallPrivate::~VoiceCallPrivate()
 {
+}
+
+QString VoiceCallPrivate::objectPath() const
+{
+    return mObjectPath;
 }
 
 QVariantMap VoiceCallPrivate::GetProperties()

@@ -581,7 +581,9 @@ Tp::BaseChannelPtr oFonoConnection::createCallChannel(uint targetHandleType,
     Q_FOREACH(const QString &callId, mOfonoVoiceCallManager->getCalls()) {
         // check if this is an ongoing call
         OfonoVoiceCall *call = new OfonoVoiceCall(callId);
-        if (PhoneUtils::comparePhoneNumbers(call->lineIdentification(), newPhoneNumber)) {
+        if ((call->lineIdentification().isEmpty() && newPhoneNumber == "x-ofono-unknown") ||
+            (call->lineIdentification() == "withheld" && newPhoneNumber == "x-ofono-private") ||
+            PhoneUtils::comparePhoneNumbers(call->lineIdentification(), newPhoneNumber)) {
             isOngoingCall = true;
         }
         call->deleteLater();
@@ -713,8 +715,20 @@ void oFonoConnection::onOfonoCallAdded(const QString &call, const QVariantMap &p
 
     bool yours;
     Tp::DBusError error;
-    const QString lineIdentification = properties["LineIdentification"].toString();
-    const QString normalizedNumber = PhoneUtils::normalizePhoneNumber(lineIdentification);
+    QString lineIdentification = properties["LineIdentification"].toString();
+    QString normalizedNumber;
+    // TODO check if more than one private/unknown calls are supported at the same time
+    if (lineIdentification.isEmpty()) {
+        // unknown caller Id
+        lineIdentification = QString("x-ofono-unknown");
+        normalizedNumber = lineIdentification;
+    } else if (lineIdentification == "withheld") {
+        // private caller
+        lineIdentification = QString("x-ofono-private");
+        normalizedNumber = lineIdentification;
+    } else {
+        normalizedNumber = PhoneUtils::normalizePhoneNumber(lineIdentification);
+    }
     // check if there is an open channel for this number, if so, ignore it
     Q_FOREACH(const QString &phoneNumber, mCallChannels.keys()) {
         if (PhoneUtils::comparePhoneNumbers(normalizedNumber, phoneNumber)) {

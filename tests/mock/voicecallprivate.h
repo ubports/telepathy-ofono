@@ -27,6 +27,7 @@ class VoiceCallPrivate : public QObject, protected QDBusContext {
 public:
     VoiceCallPrivate(const QString &path, QObject *parent = 0);
     ~VoiceCallPrivate();
+    QString objectPath() const;
 Q_SIGNALS:
     void PropertyChanged(const QString &name, const QDBusVariant &value);
 public Q_SLOTS:
@@ -38,6 +39,7 @@ public Q_SLOTS:
     void MockAnswer();
 private:
     QVariantMap mProperties;
+    QString mObjectPath;
 };
 
 extern QMap<QString, VoiceCallPrivate*> voiceCallData;
