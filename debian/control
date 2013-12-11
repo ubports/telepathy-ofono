@@ -8,11 +8,14 @@ Build-Depends: cmake,
                dconf-cli,
                gnome-keyring,
                libofono-qt-dev (>= 1.5),
+               libqt5sql5-sqlite,
                libtelepathy-qt5-dev (>= 0.9.3),
                libpulse-dev [armhf],
+               libsqlite3-dev,
                pulseaudio,
                qt5-default (>= 5.0),
                qtbase5-dev (>= 5.0),
+               sqlite3,
                telepathy-mission-control-5
 Standards-Version: 3.9.4
 Homepage: https://launchpad.net/telepathy-ofono

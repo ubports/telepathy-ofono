@@ -18,6 +18,7 @@ macro(generate_test TESTNAME USE_DBUS)
     set(TMPDIR "/tmp/tpofono_test_home")
     set(TEST_ENVIRONMENT "HOME=${TMPDIR};
                           HISTORY_SQLITE_DBPATH=:memory:;
+                          TP_OFONO_SQLITE_DBPATH=:memory:;
                           XDG_CONFIG_HOME=${TMPDIR};
                           XDG_DATA_HOME=${TMPDIR};
                           XDG_CACHE_DIR=${TMPDIR};

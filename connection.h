@@ -21,6 +21,7 @@
 
 // qt
 #include <QTimer>
+#include <QSqlDatabase>
 
 // telepathy-qt
 #include <TelepathyQt/BaseConnection>
@@ -51,6 +52,12 @@ class oFonoConnection;
 class oFonoTextChannel;
 class oFonoCallChannel;
 class MMSDService;
+
+struct PendingMessage
+{
+    QString recipientId;
+    QDateTime timestamp;
+};
 
 class oFonoConnection : public Tp::BaseConnection
 {
@@ -93,6 +100,10 @@ public:
                                          uint targetHandle, Tp::DBusError *error);
 
     ~oFonoConnection();
+    void addPendingMessage(const QString &objectPath, const QString &id);
+    void removePendingMessage(const QString &objectPath);
+    void populatePendingMessages();
+
 Q_SIGNALS:
     void speakerModeChanged(bool active);
 
@@ -114,6 +125,7 @@ private Q_SLOTS:
     void onMMSPropertyChanged(QString property, QVariant value);
     void onCheckMMSServices();
     void onMessageRead(const QString &id);
+    void onDeliveryReportReceived(const QString &messageId, const QVariantMap &info);
 
 private:
     bool isNetworkRegistered();
@@ -138,6 +150,8 @@ private:
     QMap<QString, MMSDService*> mMmsdServices;
     QMap<QString, QList<MMSDMessage*> > mServiceMMSList;
     bool mSpeakerMode;
+    QSqlDatabase mDatabase;
+    QHash<QString, PendingMessage> mPendingMessages;
 };
 
 #endif

@@ -40,6 +40,7 @@ public:
     Tp::BaseChannelPtr baseChannel();
     void messageAcknowledged(const QString &id);
     void mmsReceived(const QString &id, const QVariantMap &properties);
+    void deliveryReportReceived(const QString& messageId, bool success);
 
 private Q_SLOTS:
     void onOfonoMessageStateChanged(QString status);
@@ -48,6 +49,7 @@ Q_SIGNALS:
     void messageRead(const QString &id);
 
 private:
+    void sendDeliveryReport(const QString &messageId, Tp::DeliveryStatus status);
     ~oFonoTextChannel();
     Tp::BaseChannelPtr mBaseChannel;
     QString mPhoneNumber;
