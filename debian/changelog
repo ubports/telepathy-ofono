@@ -1,3 +1,19 @@
+telepathy-ofono (0.2+14.04.20131211-0ubuntu1) trusty; urgency=low
+
+  [ Gustavo Pichorim Boiko ]
+  * Add ofono-qt mock interface to be used on tests. Add tests for
+    incoming/outgoing calls, Hold, Mute and DTMF.
+
+  [ Tiago Salem Herrmann ]
+  * Add ofono-qt mock interface to be used on tests. Add tests for
+    incoming/outgoing calls, Hold, Mute and DTMF.
+  * Add support for private and unknown phone numbers.
+
+  [ Ubuntu daily release ]
+  * Automatic snapshot from revision 55
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Wed, 11 Dec 2013 01:01:18 +0000
+
 telepathy-ofono (0.2+14.04.20131205.1-0ubuntu1) trusty; urgency=low
 
   [ Tiago Salem Herrmann ]
