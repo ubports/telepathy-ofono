@@ -36,6 +36,7 @@ Q_SIGNALS:
     void PropertyChanged(const QString &name, const QDBusVariant &value);
     void MessageAdded(const QDBusObjectPath &obj, const QVariantMap &value);
     void IncomingMessage(const QString &text, const QVariantMap &info);
+    void StatusReport(const QString &message, const QVariantMap &info);
 private Q_SLOTS:
     void onMessageDestroyed();
 public Q_SLOTS:
@@ -43,6 +44,7 @@ public Q_SLOTS:
     void SetProperty(const QString &name, const QDBusVariant &value);
     void MockSendMessage(const QString &from, const QString &text);
     QDBusObjectPath SendMessage(const QString &to, const QString &text);
+    void MockStatusReport(const QString &message, bool success);
 private:
     QVariantMap mProperties;
     QMap<QString, OfonoMessage*> mMessages;

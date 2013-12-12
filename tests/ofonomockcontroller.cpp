@@ -56,6 +56,11 @@ void OfonoMockController::MessageManagerSendMessage(const QString &from, const Q
     mMessageManagerInterface.call("MockSendMessage", from, text);
 }
 
+void OfonoMockController::MessageManagerStatusReport(const QString &message, bool success)
+{
+    mMessageManagerInterface.call("MockStatusReport", message, success);
+}
+
 void OfonoMockController::MessageMarkSent(const QString &objPath)
 {
     QDBusInterface iface("org.ofono", objPath, "org.ofono.Message");

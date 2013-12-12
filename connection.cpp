@@ -723,8 +723,8 @@ void oFonoConnection::onDeliveryReportReceived(const QString &messageId, const Q
     if (!mPendingMessages.contains(messageId)) {
         return;
     }
-    removePendingMessage(messageId);
     const QString normalizedNumber = PhoneUtils::normalizePhoneNumber(mPendingMessages[messageId].recipientId);
+    removePendingMessage(messageId);
     // check if there is an open channel for this sender and use it
     Q_FOREACH(const QString &phoneNumber, mTextChannels.keys()) {
         if (PhoneUtils::comparePhoneNumbers(normalizedNumber, phoneNumber)) {

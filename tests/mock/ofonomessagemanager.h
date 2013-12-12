@@ -86,6 +86,7 @@ Q_SIGNALS:
     void messageRemoved(const QString &message);
     void immediateMessage(const QString &message, const QVariantMap &info);
     void incomingMessage(const QString &message, const QVariantMap &info);
+    void statusReport(const QString &message, const QVariantMap &info);
 
 private Q_SLOTS:
     void validityChanged(bool);

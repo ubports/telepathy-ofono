@@ -74,6 +74,13 @@ QDBusObjectPath MessageManagerPrivate::SendMessage(const QString &to, const QStr
     return newPathObj;
 }
 
+void MessageManagerPrivate::MockStatusReport(const QString &message, bool success)
+{
+    QVariantMap info;
+    info["Delivered"] = success;
+    Q_EMIT StatusReport(message, info);
+}
+
 void MessageManagerPrivate::onMessageDestroyed()
 {
     OfonoMessage *message = static_cast<OfonoMessage*>(sender());

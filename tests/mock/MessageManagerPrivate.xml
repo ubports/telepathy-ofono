@@ -20,6 +20,12 @@
       <annotation name="org.qtproject.QtDBus.QtTypeName.Out1" value="QVariantMap"/>
       <annotation name="org.qtproject.QtDBus.QtTypeName.In1" value="QVariantMap"/>
     </signal>
+    <signal name="StatusReport">
+      <arg name="message" type="s" direction="out"/>
+      <arg name="info" type="a{sv}" direction="out"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.Out1" value="QVariantMap"/>
+      <annotation name="org.qtproject.QtDBus.QtTypeName.In1" value="QVariantMap"/>
+    </signal>
     <method name="GetProperties">
       <arg type="a{sv}" direction="out"/>
       <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QVariantMap"/>
@@ -36,6 +42,10 @@
       <arg type="o" direction="out"/>
       <arg name="to" type="s" direction="in"/>
       <arg name="text" type="s" direction="in"/>
+    </method>
+    <method name="MockStatusReport">
+      <arg name="message" type="s" direction="in"/>
+      <arg name="success" type="b" direction="in"/>
     </method>
   </interface>
 </node>
