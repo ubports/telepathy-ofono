@@ -37,7 +37,5 @@ public:
     QString recipientIdForMessageId(const QString &messageId);
 private:
     explicit PendingMessagesManager(QObject *parent = 0);
-    void populatePendingMessages();
     QSqlDatabase mDatabase;
-    QHash<QString, PendingMessage> mPendingMessages;
 };

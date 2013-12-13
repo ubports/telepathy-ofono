@@ -26,7 +26,6 @@ PendingMessagesManager::PendingMessagesManager(QObject *parent) :
     QObject(parent),
     mDatabase(SQLiteDatabase::instance()->database())
 {
-    populatePendingMessages();
 }
 
 PendingMessagesManager *PendingMessagesManager::instance()
@@ -54,25 +53,6 @@ QString PendingMessagesManager::recipientIdForMessageId(const QString &messageId
     return query.value(0).toString();
 }
 
-void PendingMessagesManager::populatePendingMessages()
-{
-    QSqlQuery query(SQLiteDatabase::instance()->database());
-    QString queryString("SELECT messageId,recipientId,timestamp FROM pending_messages");
-    query.prepare(queryString);
-    if (!query.exec()) {
-        qCritical() << "Error:" << query.lastError() << query.lastQuery();
-        return;
-    }
-
-    while (query.next()) {
-        PendingMessage message;
-        QString messageId = query.value(0).toString();
-        message.recipientId = query.value(1).toString();
-        message.timestamp = QDateTime::fromString(query.value(2).toString(), Qt::ISODate);
-        mPendingMessages[messageId] = message;
-    }
-}
-
 void PendingMessagesManager::addPendingMessage(const QString &messageId, const QString &recipientId)
 {
     QSqlQuery query(SQLiteDatabase::instance()->database());
@@ -91,7 +71,6 @@ void PendingMessagesManager::addPendingMessage(const QString &messageId, const Q
         qCritical() << "Error:" << query.lastError() << query.lastQuery();
         return;
     }
-    mPendingMessages[messageId] = message;
 }
 
 void PendingMessagesManager::removePendingMessage(const QString &messageId)
@@ -106,8 +85,6 @@ void PendingMessagesManager::removePendingMessage(const QString &messageId)
         qCritical() << "Error:" << query.lastError() << query.lastQuery();
         return;
     }
-
-    mPendingMessages.remove(messageId);
 }
 
 
