@@ -21,6 +21,7 @@
 
 // telepathy-ofono
 #include "ofonotextchannel.h"
+#include "pendingmessagesmanager.h"
 
 QDBusArgument &operator<<(QDBusArgument &argument, const AttachmentStruct &attachment)
 {
@@ -123,7 +124,7 @@ QString oFonoTextChannel::sendMessage(const Tp::MessagePartList& message, uint f
             error->set(TP_QT_ERROR_INVALID_ARGUMENT, mConnection->messageManager()->errorMessage());
         }
     }
-    mConnection->addPendingMessage(objpath, mPhoneNumber);
+    PendingMessagesManager::instance()->addPendingMessage(objpath, mPhoneNumber);
 
     OfonoMessage *msg = new OfonoMessage(objpath);
     QObject::connect(msg, SIGNAL(stateChanged(QString)), SLOT(onOfonoMessageStateChanged(QString)));
@@ -140,7 +141,7 @@ void oFonoTextChannel::onOfonoMessageStateChanged(QString status)
             msg->deleteLater();
         } else if(status == "failed") {
             delivery_status = Tp::DeliveryStatusPermanentlyFailed;
-            mConnection->removePendingMessage(msg->path());
+            PendingMessagesManager::instance()->removePendingMessage(msg->path());
             msg->deleteLater();
         } else if(status == "pending") {
             delivery_status = Tp::DeliveryStatusTemporarilyFailed;

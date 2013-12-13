@@ -93,6 +93,7 @@ set(TELEPATHY_OFONO_SRC
    mmsdmanager.cpp
    mmsdservice.cpp
    mmsdmessage.cpp
+   pendingmessagesmanager.cpp
    phoneutils.cpp
    sqlitedatabase.cpp
    ${telepathyfono_RES})

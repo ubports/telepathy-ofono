@@ -17,9 +17,6 @@
  */
 
 #include <QDebug>
-#include <QStandardPaths>
-#include <QSqlQuery>
-#include <QSqlError>
 
 #include <TelepathyQt/Constants>
 #include <TelepathyQt/BaseChannel>
@@ -45,6 +42,7 @@
 #endif
 
 #include "sqlitedatabase.h"
+#include "pendingmessagesmanager.h"
 
 static void enable_earpiece()
 {
@@ -146,8 +144,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     mHandleCount(0),
     mRegisterTimer(new QTimer(this)),
     mMmsdManager(new MMSDManager(this)),
-    mSpeakerMode(false),
-    mDatabase(SQLiteDatabase::instance()->database())
+    mSpeakerMode(false)
 {
     setSelfHandle(newHandle("<SelfHandle>"));
 
@@ -252,64 +249,6 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     // workaround: we can't add services here as tp-ofono interfaces are not exposed on dbus
     // todo: use QDBusServiceWatcher
     QTimer::singleShot(1000, this, SLOT(onCheckMMSServices()));
-
-    populatePendingMessages();
-}
-
-void oFonoConnection::populatePendingMessages()
-{
-    QSqlQuery query(SQLiteDatabase::instance()->database());
-    QString queryString("SELECT messageId,recipientId,timestamp FROM pending_messages");
-    query.prepare(queryString);
-    if (!query.exec()) {
-        qCritical() << "Error:" << query.lastError() << query.lastQuery();
-        return;
-    }
-
-    while (query.next()) {
-        PendingMessage message;
-        QString messageId = query.value(0).toString();
-        message.recipientId = query.value(1).toString();
-        message.timestamp = QDateTime::fromString(query.value(2).toString(), Qt::ISODate);
-        mPendingMessages[messageId] = message;
-    }
-}
-
-void oFonoConnection::addPendingMessage(const QString &messageId, const QString &recipientId)
-{
-    QSqlQuery query(SQLiteDatabase::instance()->database());
-
-    PendingMessage message;
-    message.recipientId = recipientId;
-    message.timestamp = QDateTime::currentDateTimeUtc();
-
-    QString queryString("INSERT into pending_messages (messageId, recipientId, timestamp) VALUES (:messageId, :recipientId, :timestamp)");
-    query.prepare(queryString);
-    query.bindValue(":messageId", messageId);
-    query.bindValue(":recipientId", message.recipientId);
-    query.bindValue(":timestamp", message.timestamp.toString(Qt::ISODate));
-
-    if (!query.exec()) {
-        qCritical() << "Error:" << query.lastError() << query.lastQuery();
-        return;
-    }
-    mPendingMessages[messageId] = message;
-}
-
-void oFonoConnection::removePendingMessage(const QString &messageId)
-{
-    QSqlQuery query(SQLiteDatabase::instance()->database());
-    QString queryString("DELETE FROM pending_messages WHERE messageId=:messageId");
-
-    query.prepare(queryString);
-    query.bindValue(":messageId", messageId);
-
-    if (!query.exec()) {
-        qCritical() << "Error:" << query.lastError() << query.lastQuery();
-        return;
-    }
-
-    mPendingMessages.remove(messageId);
 }
 
 void oFonoConnection::onCheckMMSServices()
@@ -720,11 +659,12 @@ OfonoCallVolume *oFonoConnection::callVolume()
 
 void oFonoConnection::onDeliveryReportReceived(const QString &messageId, const QVariantMap& info)
 {
-    if (!mPendingMessages.contains(messageId)) {
+    const QString pendingMessageNumber = PendingMessagesManager::instance()->recipientIdForMessageId(messageId);
+    if (pendingMessageNumber.isEmpty()) {
         return;
     }
-    const QString normalizedNumber = PhoneUtils::normalizePhoneNumber(mPendingMessages[messageId].recipientId);
-    removePendingMessage(messageId);
+    const QString normalizedNumber = PhoneUtils::normalizePhoneNumber(pendingMessageNumber);
+    PendingMessagesManager::instance()->removePendingMessage(messageId);
     // check if there is an open channel for this sender and use it
     Q_FOREACH(const QString &phoneNumber, mTextChannels.keys()) {
         if (PhoneUtils::comparePhoneNumbers(normalizedNumber, phoneNumber)) {
