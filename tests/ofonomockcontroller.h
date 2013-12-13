@@ -39,6 +39,7 @@ Q_SIGNALS:
 public Q_SLOTS:
     void NetworkRegistrationSetStatus(const QString &status);
     void MessageManagerSendMessage(const QString &from, const QString &text);
+    void MessageManagerStatusReport(const QString &message, bool success);
     void MessageMarkFailed(const QString &objPath);
     void MessageMarkSent(const QString &objPath);
     void MessageCancel(const QString &objPath);

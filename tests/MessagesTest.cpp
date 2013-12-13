@@ -130,17 +130,17 @@ void MessagesTest::testMessageSend()
 
     QDBusObjectPath path = spyOfonoMessageAdded.first().first().value<QDBusObjectPath>();
 
-    // there is no way to use Tp::ReceivedMessage because it does not have a public default constructor, therefore 
-    // we cannot use Q_DECLARE_METATYPE
-    /* 
-    QSignalSpy spyTpMessageReceived(channel.data(), SIGNAL(messageReceived(const Tp::ReceivedMessage&)));
     OfonoMockController::instance()->MessageMarkSent(path.path());
+    QTRY_COMPARE(channel->messageQueue().count(), 1);
 
-    // this is the acknowledge message
-    QTRY_COMPARE(spyTpMessageReceived.count(), 1);
-    */
+    QVERIFY(channel->messageQueue()[0].isDeliveryReport());
+    QCOMPARE(channel->messageQueue()[0].deliveryDetails().status(), Tp::DeliveryStatusAccepted);
+
+    OfonoMockController::instance()->MessageManagerStatusReport(path.path(), true);
+    QTRY_COMPARE(channel->messageQueue().count(), 2);
+    QVERIFY(channel->messageQueue()[1].isDeliveryReport());
+    QCOMPARE(channel->messageQueue()[1].deliveryDetails().status(), Tp::DeliveryStatusDelivered);
 }
-
 
 void MessagesTest::onPendingContactsFinished(Tp::PendingOperation *op)
 {

@@ -41,6 +41,9 @@
 #include "qpulseaudioengine.h"
 #endif
 
+#include "sqlitedatabase.h"
+#include "pendingmessagesmanager.h"
+
 static void enable_earpiece()
 {
 #ifdef USE_AUDIOFLINGER
@@ -227,6 +230,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     plugInterface(Tp::AbstractConnectionInterfacePtr::dynamicCast(contactsIface));
 
     QObject::connect(mOfonoMessageManager, SIGNAL(incomingMessage(QString,QVariantMap)), this, SLOT(onOfonoIncomingMessage(QString,QVariantMap)));
+    QObject::connect(mOfonoMessageManager, SIGNAL(statusReport(QString,QVariantMap)), this, SLOT(onDeliveryReportReceived(QString,QVariantMap)));
     QObject::connect(mOfonoVoiceCallManager, SIGNAL(callAdded(QString,QVariantMap)), SLOT(onOfonoCallAdded(QString, QVariantMap)));
     QObject::connect(mOfonoVoiceCallManager, SIGNAL(validityChanged(bool)), SLOT(onValidityChanged(bool)));
     QObject::connect(mOfonoNetworkRegistration, SIGNAL(statusChanged(QString)), SLOT(onOfonoNetworkRegistrationChanged(QString)));
@@ -651,6 +655,33 @@ OfonoVoiceCallManager *oFonoConnection::voiceCallManager()
 OfonoCallVolume *oFonoConnection::callVolume()
 {
     return mOfonoCallVolume;
+}
+
+void oFonoConnection::onDeliveryReportReceived(const QString &messageId, const QVariantMap& info)
+{
+    const QString pendingMessageNumber = PendingMessagesManager::instance()->recipientIdForMessageId(messageId);
+    if (pendingMessageNumber.isEmpty()) {
+        return;
+    }
+    const QString normalizedNumber = PhoneUtils::normalizePhoneNumber(pendingMessageNumber);
+    PendingMessagesManager::instance()->removePendingMessage(messageId);
+    // check if there is an open channel for this sender and use it
+    Q_FOREACH(const QString &phoneNumber, mTextChannels.keys()) {
+        if (PhoneUtils::comparePhoneNumbers(normalizedNumber, phoneNumber)) {
+            mTextChannels[phoneNumber]->deliveryReportReceived(messageId, info["Delivered"].toBool());
+            return;
+        }
+    }
+
+    Tp::DBusError error;
+    bool yours;
+    uint handle = newHandle(normalizedNumber);
+    ensureChannel(TP_QT_IFACE_CHANNEL_TYPE_TEXT,Tp::HandleTypeContact, handle, yours, handle, false, &error);
+    if(error.isValid()) {
+        qWarning() << "Error creating channel for incoming message" << error.name() << error.message();
+        return;
+    }
+    mTextChannels[normalizedNumber]->deliveryReportReceived(messageId, info["Delivered"].toBool());
 }
 
 void oFonoConnection::onOfonoIncomingMessage(const QString &message, const QVariantMap &info)

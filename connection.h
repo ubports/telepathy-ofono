@@ -93,6 +93,7 @@ public:
                                          uint targetHandle, Tp::DBusError *error);
 
     ~oFonoConnection();
+
 Q_SIGNALS:
     void speakerModeChanged(bool active);
 
@@ -114,6 +115,7 @@ private Q_SLOTS:
     void onMMSPropertyChanged(QString property, QVariant value);
     void onCheckMMSServices();
     void onMessageRead(const QString &id);
+    void onDeliveryReportReceived(const QString &messageId, const QVariantMap &info);
 
 private:
     bool isNetworkRegistered();

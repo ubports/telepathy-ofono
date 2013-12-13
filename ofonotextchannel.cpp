@@ -21,6 +21,7 @@
 
 // telepathy-ofono
 #include "ofonotextchannel.h"
+#include "pendingmessagesmanager.h"
 
 QDBusArgument &operator<<(QDBusArgument &argument, const AttachmentStruct &attachment)
 {
@@ -86,6 +87,24 @@ Tp::BaseChannelPtr oFonoTextChannel::baseChannel()
     return mBaseChannel;
 }
 
+void oFonoTextChannel::sendDeliveryReport(const QString &messageId, Tp::DeliveryStatus status)
+{
+    Tp::MessagePartList partList;
+    Tp::MessagePart header;
+    header["message-sender"] = QDBusVariant(mTargetHandle);
+    header["message-sender-id"] = QDBusVariant(mPhoneNumber);
+    header["message-type"] = QDBusVariant(Tp::ChannelTextMessageTypeDeliveryReport);
+    header["delivery-status"] = QDBusVariant(status);
+    header["delivery-token"] = QDBusVariant(messageId);
+    partList << header;
+    mTextChannel->addReceivedMessage(partList);
+}
+
+void oFonoTextChannel::deliveryReportReceived(const QString &messageId, bool success)
+{
+    sendDeliveryReport(messageId, success ? Tp::DeliveryStatusDelivered : Tp::DeliveryStatusPermanentlyFailed);
+}
+
 void oFonoTextChannel::messageAcknowledged(const QString &id)
 {
     Q_EMIT messageRead(id);
@@ -105,6 +124,7 @@ QString oFonoTextChannel::sendMessage(const Tp::MessagePartList& message, uint f
             error->set(TP_QT_ERROR_INVALID_ARGUMENT, mConnection->messageManager()->errorMessage());
         }
     }
+    PendingMessagesManager::instance()->addPendingMessage(objpath, mPhoneNumber);
 
     OfonoMessage *msg = new OfonoMessage(objpath);
     QObject::connect(msg, SIGNAL(stateChanged(QString)), SLOT(onOfonoMessageStateChanged(QString)));
@@ -117,26 +137,19 @@ void oFonoTextChannel::onOfonoMessageStateChanged(QString status)
     if(msg) {
         Tp::DeliveryStatus delivery_status;
         if (status == "sent") {
-            delivery_status = Tp::DeliveryStatusDelivered;
+            delivery_status = Tp::DeliveryStatusAccepted;
             msg->deleteLater();
         } else if(status == "failed") {
             delivery_status = Tp::DeliveryStatusPermanentlyFailed;
+            PendingMessagesManager::instance()->removePendingMessage(msg->path());
             msg->deleteLater();
         } else if(status == "pending") {
-            delivery_status = Tp::DeliveryStatusAccepted;
+            delivery_status = Tp::DeliveryStatusTemporarilyFailed;
         } else {
             delivery_status = Tp::DeliveryStatusUnknown;
         }
 
-        Tp::MessagePartList partList;
-        Tp::MessagePart header;
-        header["message-sender"] = QDBusVariant(mTargetHandle);
-        header["message-sender-id"] = QDBusVariant(mPhoneNumber);
-        header["message-type"] = QDBusVariant(Tp::ChannelTextMessageTypeDeliveryReport);
-        header["delivery-status"] = QDBusVariant(delivery_status);
-        header["delivery-token"] = QDBusVariant(msg->path());
-        partList << header;
-        mTextChannel->addReceivedMessage(partList);
+        sendDeliveryReport(msg->path(), delivery_status);
     }
 }
 

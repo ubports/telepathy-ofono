@@ -25,7 +25,7 @@ QMap<QString, MessagePrivate*> messageData;
 MessagePrivate::MessagePrivate(const QString &path, QObject *parent) :
     QObject(parent)
 {
-    QDBusConnection::sessionBus().registerObject("/OfonoMessage"+path, this);
+    QDBusConnection::sessionBus().registerObject(path, this);
     QDBusConnection::sessionBus().registerService("org.ofono");
     SetProperty("State", QDBusVariant(QVariant("pending")));
 
