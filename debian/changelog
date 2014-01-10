@@ -1,3 +1,13 @@
+telepathy-ofono (0.2+14.04.20140110-0ubuntu1) trusty; urgency=low
+
+  [ Tiago Salem Herrmann ]
+  * Add delivery report support.
+
+  [ Ubuntu daily release ]
+  * Automatic snapshot from revision 57
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Fri, 10 Jan 2014 01:01:29 +0000
+
 telepathy-ofono (0.2+14.04.20131211-0ubuntu1) trusty; urgency=low
 
   [ Gustavo Pichorim Boiko ]
