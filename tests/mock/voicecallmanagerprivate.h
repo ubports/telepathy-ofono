@@ -42,6 +42,7 @@ public Q_SLOTS:
     QVariantMap GetProperties();
     void SetProperty(const QString &name, const QDBusVariant &value);
     QDBusObjectPath MockIncomingCall(const QString &from);
+    void MockFailNextDtmf();
     QDBusObjectPath Dial(const QString &to, const QString &hideCallerId);
     QMap<QDBusObjectPath, QVariantMap> GetCalls();
     void SwapCalls();
@@ -50,6 +51,7 @@ private:
     QVariantMap mProperties;
     QMap<QString, OfonoVoiceCall*> mVoiceCalls;
     int voiceCallCount;
+    bool failNextDtmf;
 };
 
 extern QMap<QString, VoiceCallManagerPrivate*> voiceCallManagerData;

@@ -28,7 +28,9 @@ oFonoCallChannel::oFonoCallChannel(oFonoConnection *conn, QString phoneNumber, u
     mRequestedHangup(false),
     mConnection(conn),
     mPhoneNumber(phoneNumber),
-    mTargetHandle(targetHandle)
+    mTargetHandle(targetHandle),
+    mDtmfLock(false)
+    
 {
     Tp::BaseChannelPtr baseChannel = Tp::BaseChannel::create(mConnection, TP_QT_IFACE_CHANNEL_TYPE_CALL, targetHandle, Tp::HandleTypeContact);
     Tp::BaseChannelCallTypePtr callType = Tp::BaseChannelCallType::create(baseChannel.data(),
@@ -122,6 +124,7 @@ void oFonoCallChannel::init()
     QObject::connect(mConnection->callVolume(), SIGNAL(mutedChanged(bool)), SLOT(onOfonoMuteChanged(bool)));
     QObject::connect(this, SIGNAL(stateChanged(QString)), SLOT(onOfonoCallStateChanged(QString)));
     QObject::connect(mConnection, SIGNAL(speakerModeChanged(bool)), mSpeakerIface.data(), SLOT(setSpeakerMode(bool)));
+    QObject::connect(mConnection->voiceCallManager(), SIGNAL(sendTonesComplete(bool)), SLOT(onDtmfComplete(bool)));
 
     mSpeakerIface->setSpeakerMode(mConnection->speakerMode());
 }
@@ -156,6 +159,31 @@ void oFonoCallChannel::onMuteStateChanged(const Tp::LocalMuteState &state, Tp::D
     }
 }
 
+void oFonoCallChannel::sendNextDtmf()
+{
+    if (mDtmfLock) {
+        return;
+    }
+    if (!mDtmfPendingStrings.isEmpty()) {
+        mDtmfLock = true;
+        mConnection->voiceCallManager()->sendTones(mDtmfPendingStrings.front());
+    }
+}
+
+void oFonoCallChannel::onDtmfComplete(bool success)
+{
+    mDtmfLock = false;
+    if (success) {
+        mDtmfPendingStrings.removeFirst();
+       if (mDtmfPendingStrings.isEmpty()) {
+           return;
+       }
+       sendNextDtmf();
+    } else {
+        QTimer::singleShot(1000, this, SLOT(sendNextDtmf()));
+    }
+}
+
 void oFonoCallChannel::onDTMFStartTone(uchar event, Tp::DBusError *error)
 {
     QString finalString;
@@ -168,7 +196,14 @@ void oFonoCallChannel::onDTMFStartTone(uchar event, Tp::DBusError *error)
     }
 
     qDebug() << "start tone" << finalString;
-    mConnection->voiceCallManager()->sendTones(finalString);
+    // we can't append to the first item in the queue as it is being sent and 
+    // we dont know yet if it will succeed or not.
+    if (mDtmfPendingStrings.count() > 1) {
+        mDtmfPendingStrings[1] += finalString;
+    } else {
+        mDtmfPendingStrings << finalString;
+    }
+    sendNextDtmf();
 }
 
 void oFonoCallChannel::onDTMFStopTone(Tp::DBusError *error)
@@ -195,6 +230,9 @@ void oFonoCallChannel::onOfonoCallStateChanged(const QString &state)
     reason.reason = Tp::CallStateChangeReasonUserRequested;
     reason.message = "";
     reason.DBusReason = "";
+    // we invalidate the pending dtmf strings if the call status is changed
+    mDtmfPendingStrings.clear();
+    mDtmfLock = false;
     if (state == "disconnected") {
         qDebug() << "disconnected";
         if (mIncoming && mPreviousState == "incoming" && !mRequestedHangup) {

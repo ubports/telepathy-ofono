@@ -85,6 +85,12 @@ void OfonoMockController::VoiceCallManagerIncomingCall(const QString &from)
     iface.call("MockIncomingCall", from);
 }
 
+void OfonoMockController::VoiceCallManagerFailNextDtmf()
+{
+    QDBusInterface iface("org.ofono", OFONO_MOCK_VOICECALL_MANAGER_OBJECT, "org.ofono.VoiceCallManager");
+    iface.call("MockFailNextDtmf");
+}
+
 void OfonoMockController::VoiceCallSetAlerting(const QString &objPath)
 {
     QDBusInterface iface("org.ofono", objPath, "org.ofono.VoiceCall");

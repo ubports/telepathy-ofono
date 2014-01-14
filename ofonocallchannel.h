@@ -51,8 +51,9 @@ public:
 
 private Q_SLOTS:
     void onOfonoCallStateChanged(const QString &state);
+    void onDtmfComplete(bool success);
+    void sendNextDtmf();
     void init();
-
 
     void onOfonoMuteChanged(bool mute);
 
@@ -71,7 +72,8 @@ private:
     Tp::BaseChannelCallTypePtr mCallChannel;
     Tp::BaseCallContentDTMFInterfacePtr mDTMFIface;
     Tp::BaseCallContentPtr mCallContent;
-
+    bool mDtmfLock;
+    QStringList mDtmfPendingStrings;
 };
 
 #endif // OFONOCALLCHANNEL_H

@@ -43,5 +43,7 @@
     <method name="SendTones">
       <arg name="tones" type="s" direction="in"/>
     </method>
+    <method name="MockFailNextDtmf">
+    </method>
   </interface>
 </node>

@@ -26,6 +26,7 @@ QMap<QString, VoiceCallManagerPrivate*> voiceCallManagerData;
 
 VoiceCallManagerPrivate::VoiceCallManagerPrivate(QObject *parent) :
     voiceCallCount(0),
+    failNextDtmf(false),
     QObject(parent)
 {
     qDBusRegisterMetaType<QMap<QDBusObjectPath, QVariantMap> >();
@@ -61,6 +62,11 @@ void VoiceCallManagerPrivate::SetProperty(const QString &name, const QDBusVarian
     qDebug() << "VoiceCallManagerPrivate::SetProperty" << name << value.variant();
     mProperties[name] = value.variant();
     Q_EMIT PropertyChanged(name, value);
+}
+
+void VoiceCallManagerPrivate::MockFailNextDtmf()
+{
+    failNextDtmf = true;
 }
 
 QDBusObjectPath VoiceCallManagerPrivate::MockIncomingCall(const QString &from)
@@ -102,6 +108,11 @@ void VoiceCallManagerPrivate::SwapCalls()
 
 void VoiceCallManagerPrivate::SendTones(const QString &tones)
 {
+    if (failNextDtmf) {
+        failNextDtmf = false;
+        sendErrorReply("org.ofono.Error.InProgress", "Operation already in progress"); 
+        return;
+    }
     Q_EMIT TonesReceived(tones);
 }
 
