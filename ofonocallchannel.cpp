@@ -164,8 +164,10 @@ void oFonoCallChannel::sendNextDtmf()
     if (mDtmfLock) {
         return;
     }
-    mDtmfLock = true;
-    mConnection->voiceCallManager()->sendTones(mDtmfPendingStrings.front());
+    if (!mDtmfPendingStrings.isEmpty()) {
+        mDtmfLock = true;
+        mConnection->voiceCallManager()->sendTones(mDtmfPendingStrings.front());
+    }
 }
 
 void oFonoCallChannel::onDtmfComplete(bool success)
@@ -228,6 +230,9 @@ void oFonoCallChannel::onOfonoCallStateChanged(const QString &state)
     reason.reason = Tp::CallStateChangeReasonUserRequested;
     reason.message = "";
     reason.DBusReason = "";
+    // we invalidate the pending dtmf strings if the call status is changed
+    mDtmfPendingStrings.clear();
+    mDtmfLock = false;
     if (state == "disconnected") {
         qDebug() << "disconnected";
         if (mIncoming && mPreviousState == "incoming" && !mRequestedHangup) {
