@@ -284,7 +284,6 @@ void CallTest::testCallDTMF()
             content->startDTMFTone((Tp::DTMFEvent)QString("1").toInt(&ok));
             OfonoMockController::instance()->VoiceCallManagerFailNextDtmf();
             content->startDTMFTone((Tp::DTMFEvent)QString("2").toInt(&ok));
-            OfonoMockController::instance()->VoiceCallManagerFailNextDtmf();
             content->startDTMFTone((Tp::DTMFEvent)QString("3").toInt(&ok));
             QTRY_COMPARE(spyOfonoTonesReceived.count(), 2);
             QCOMPARE(spyOfonoTonesReceived.first().first().value<QString>(), QString("1"));
