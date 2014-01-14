@@ -277,6 +277,19 @@ void CallTest::testCallDTMF()
                 QTRY_COMPARE(spyOfonoTonesReceived.count(), 1);
                 QCOMPARE(spyOfonoTonesReceived.first().first().value<QString>(), key);
             }
+
+            // test failed tones
+            QSignalSpy spyOfonoTonesReceived(OfonoMockController::instance(), SIGNAL(TonesReceived(const QString&)));
+            OfonoMockController::instance()->VoiceCallManagerFailNextDtmf();
+            content->startDTMFTone((Tp::DTMFEvent)QString("1").toInt(&ok));
+            OfonoMockController::instance()->VoiceCallManagerFailNextDtmf();
+            content->startDTMFTone((Tp::DTMFEvent)QString("2").toInt(&ok));
+            OfonoMockController::instance()->VoiceCallManagerFailNextDtmf();
+            content->startDTMFTone((Tp::DTMFEvent)QString("3").toInt(&ok));
+            QTRY_COMPARE(spyOfonoTonesReceived.count(), 2);
+            QCOMPARE(spyOfonoTonesReceived.first().first().value<QString>(), QString("1"));
+            spyOfonoTonesReceived.removeFirst();
+            QCOMPARE(spyOfonoTonesReceived.first().first().value<QString>(), QString("23"));
         }
     }
 

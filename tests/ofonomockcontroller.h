@@ -44,6 +44,7 @@ public Q_SLOTS:
     void MessageMarkSent(const QString &objPath);
     void MessageCancel(const QString &objPath);
     void VoiceCallManagerIncomingCall(const QString &from);
+    void VoiceCallManagerFailNextDtmf();
     void VoiceCallHangup(const QString &objPath);
     void VoiceCallAnswer(const QString &objPath);
     void VoiceCallSetAlerting(const QString &objPath);
