@@ -1,3 +1,14 @@
+telepathy-ofono (0.2+14.04.20140117-0ubuntu1) trusty; urgency=low
+
+  [ Tiago Salem Herrmann ]
+  * Check if the previous sendTones() succeeded before sending more
+    tones. (LP: #1268648)
+
+  [ Ubuntu daily release ]
+  * Automatic snapshot from revision 59
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Fri, 17 Jan 2014 01:01:57 +0000
+
 telepathy-ofono (0.2+14.04.20140110-0ubuntu1) trusty; urgency=low
 
   [ Tiago Salem Herrmann ]
