@@ -39,11 +39,10 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, AttachmentStruct 
     return argument;
 }
 
-oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, QString phoneNumber, uint targetHandle, QObject *parent):
+oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, QStringList phoneNumbers, QObject *parent):
     QObject(parent),
     mConnection(conn),
-    mPhoneNumber(phoneNumber),
-    mTargetHandle(targetHandle),
+    mPhoneNumbers(phoneNumbers),
     mMessageCounter(1)
 {
     qDBusRegisterMetaType<AttachmentStruct>();
@@ -51,7 +50,7 @@ oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, QString phoneNumber, u
 
     Tp::BaseChannelPtr baseChannel = Tp::BaseChannel::create(mConnection,
                                                              TP_QT_IFACE_CHANNEL_TYPE_TEXT,
-                                                             targetHandle,
+                                                             mConnection->ensureHandle(mPhoneNumbers[0]),
                                                              Tp::HandleTypeContact);
     Tp::BaseChannelTextTypePtr textType = Tp::BaseChannelTextType::create(baseChannel.data());
     baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(textType));
@@ -72,10 +71,54 @@ oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, QString phoneNumber, u
     mMessagesIface->setSendMessageCallback(Tp::memFun(this,&oFonoTextChannel::sendMessage));
 
     baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mMessagesIface));
+
+    mGroupIface = Tp::BaseChannelGroupInterface::create(Tp::ChannelGroupFlagCanAdd, conn->selfHandle());
+    mGroupIface->setAddMembersCallback(Tp::memFun(this,&oFonoTextChannel::onAddMembers));
+    mGroupIface->setRemoveMembersCallback(Tp::memFun(this,&oFonoTextChannel::onRemoveMembers));
+
+    baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mGroupIface));
+    addMembers(phoneNumbers);
+
     mBaseChannel = baseChannel;
     mTextChannel = Tp::BaseChannelTextTypePtr::dynamicCast(mBaseChannel->interface(TP_QT_IFACE_CHANNEL_TYPE_TEXT));
     mTextChannel->setMessageAcknowledgedCallback(Tp::memFun(this,&oFonoTextChannel::messageAcknowledged));
     QObject::connect(mBaseChannel.data(), SIGNAL(closed()), this, SLOT(deleteLater()));
+}
+
+void oFonoTextChannel::onAddMembers(const Tp::UIntList& handles, const QString& message, Tp::DBusError* error)
+{
+    Q_FOREACH(uint handle, handles) {
+        if (mMembers.contains(handle)) {
+            continue;
+        } else {
+            mMembers << handle;
+        }
+    }
+    addMembers(mConnection->inspectHandles(Tp::HandleTypeContact, handles, error));
+}
+
+void oFonoTextChannel::onRemoveMembers(const Tp::UIntList& handles, const QString& message, Tp::DBusError* error)
+{
+    Q_FOREACH(uint handle, handles)
+        mMembers.removeAll(handle);
+    mGroupIface->removeMembers(handles);
+}
+
+void oFonoTextChannel::addMembers(QStringList phoneNumbers)
+{
+    Tp::UIntList handles;
+    Q_FOREACH(const QString &phoneNumber, phoneNumbers) {
+        handles << mConnection->ensureHandle(phoneNumber);
+        if (!mPhoneNumbers.contains(phoneNumber)) {
+            mPhoneNumbers << phoneNumber;
+        }
+    }
+    mGroupIface->addMembers(handles, phoneNumbers);
+}
+
+Tp::UIntList oFonoTextChannel::members()
+{
+    return mMembers;
 }
 
 oFonoTextChannel::~oFonoTextChannel()
@@ -87,12 +130,12 @@ Tp::BaseChannelPtr oFonoTextChannel::baseChannel()
     return mBaseChannel;
 }
 
-void oFonoTextChannel::sendDeliveryReport(const QString &messageId, Tp::DeliveryStatus status)
+void oFonoTextChannel::sendDeliveryReport(const QString &messageId, uint handle, Tp::DeliveryStatus status)
 {
     Tp::MessagePartList partList;
     Tp::MessagePart header;
-    header["message-sender"] = QDBusVariant(mTargetHandle);
-    header["message-sender-id"] = QDBusVariant(mPhoneNumber);
+    header["message-sender"] = QDBusVariant(handle);
+    header["message-sender-id"] = QDBusVariant(mPhoneNumbers[0]);
     header["message-type"] = QDBusVariant(Tp::ChannelTextMessageTypeDeliveryReport);
     header["delivery-status"] = QDBusVariant(status);
     header["delivery-token"] = QDBusVariant(messageId);
@@ -100,9 +143,9 @@ void oFonoTextChannel::sendDeliveryReport(const QString &messageId, Tp::Delivery
     mTextChannel->addReceivedMessage(partList);
 }
 
-void oFonoTextChannel::deliveryReportReceived(const QString &messageId, bool success)
+void oFonoTextChannel::deliveryReportReceived(const QString &messageId, uint handle, bool success)
 {
-    sendDeliveryReport(messageId, success ? Tp::DeliveryStatusDelivered : Tp::DeliveryStatusPermanentlyFailed);
+    sendDeliveryReport(messageId, handle, success ? Tp::DeliveryStatusDelivered : Tp::DeliveryStatusPermanentlyFailed);
 }
 
 void oFonoTextChannel::messageAcknowledged(const QString &id)
@@ -116,18 +159,25 @@ QString oFonoTextChannel::sendMessage(const Tp::MessagePartList& message, uint f
     Tp::MessagePart header = message.at(0);
     Tp::MessagePart body = message.at(1);
 
-    QString objpath = mConnection->messageManager()->sendMessage(mPhoneNumber, body["content"].variant().toString(), success).path();
-    if (objpath.isEmpty() || !success) {
-        if (!success) {
-            qWarning() << mConnection->messageManager()->errorName() << mConnection->messageManager()->errorMessage();
-        } else {
-            error->set(TP_QT_ERROR_INVALID_ARGUMENT, mConnection->messageManager()->errorMessage());
+    QString objpath;
+    Q_FOREACH(QString phoneNumber, mPhoneNumbers) {
+        objpath = mConnection->messageManager()->sendMessage(phoneNumber, body["content"].variant().toString(), success).path();
+        // dont fail if this is a group chat as we cannot track individual messages
+        OfonoMessage *msg = new OfonoMessage(objpath);
+        QObject::connect(msg, SIGNAL(stateChanged(QString)), SLOT(onOfonoMessageStateChanged(QString)));
+        if ((objpath.isEmpty() || !success) && mPhoneNumbers.size() == 1) {
+            if (!success) {
+                qWarning() << mConnection->messageManager()->errorName() << mConnection->messageManager()->errorMessage();
+            } else {
+                error->set(TP_QT_ERROR_INVALID_ARGUMENT, mConnection->messageManager()->errorMessage());
+            }
+            msg->deleteLater();
+            continue;
         }
+        // FIXME: track pending messages only if delivery reports are enabled. We need a system config option for it.
+        PendingMessagesManager::instance()->addPendingMessage(objpath, phoneNumber);
     }
-    PendingMessagesManager::instance()->addPendingMessage(objpath, mPhoneNumber);
-
-    OfonoMessage *msg = new OfonoMessage(objpath);
-    QObject::connect(msg, SIGNAL(stateChanged(QString)), SLOT(onOfonoMessageStateChanged(QString)));
+    // return only the last one in case of group chat for history purposes
     return objpath;
 }
 
@@ -149,11 +199,11 @@ void oFonoTextChannel::onOfonoMessageStateChanged(QString status)
             delivery_status = Tp::DeliveryStatusUnknown;
         }
 
-        sendDeliveryReport(msg->path(), delivery_status);
+        sendDeliveryReport(msg->path(), mConnection->ensureHandle(mPhoneNumbers[0]), delivery_status);
     }
 }
 
-void oFonoTextChannel::messageReceived(const QString &message, const QVariantMap &info)
+void oFonoTextChannel::messageReceived(const QString &message, uint handle, const QVariantMap &info)
 {
     Tp::MessagePartList partList;
 
@@ -164,15 +214,15 @@ void oFonoTextChannel::messageReceived(const QString &message, const QVariantMap
     Tp::MessagePart header;
     header["message-token"] = QDBusVariant(info["SentTime"].toString() +"-" + QString::number(mMessageCounter++));
     header["message-received"] = QDBusVariant(QDateTime::fromString(info["SentTime"].toString(), Qt::ISODate).toTime_t());
-    header["message-sender"] = QDBusVariant(mTargetHandle);
-    header["message-sender-id"] = QDBusVariant(mPhoneNumber);
+    header["message-sender"] = QDBusVariant(handle);
+    header["message-sender-id"] = QDBusVariant(mPhoneNumbers[0]);
     header["message-type"] = QDBusVariant(Tp::ChannelTextMessageTypeNormal);
     partList << header << body;
 
     mTextChannel->addReceivedMessage(partList);
 }
 
-void oFonoTextChannel::mmsReceived(const QString &id, const QVariantMap &properties)
+void oFonoTextChannel::mmsReceived(const QString &id, uint handle, const QVariantMap &properties)
 {
     Tp::MessagePartList message;
     QString subject = properties["Subject"].toString();
@@ -180,7 +230,7 @@ void oFonoTextChannel::mmsReceived(const QString &id, const QVariantMap &propert
 
     Tp::MessagePart header;
     header["message-token"] = QDBusVariant(id);
-    header["message-sender"] = QDBusVariant(mTargetHandle);
+    header["message-sender"] = QDBusVariant(handle);
     header["message-received"] = QDBusVariant(QDateTime::fromString(properties["Date"].toString(), Qt::ISODate).toTime_t());
     header["message-type"] = QDBusVariant(Tp::DeliveryStatusDelivered);
     if (!subject.isEmpty())

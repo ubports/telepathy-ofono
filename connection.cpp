@@ -311,7 +311,7 @@ void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &pr
         Q_FOREACH(const QString &phoneNumber, mTextChannels.keys()) {
             if (PhoneUtils::comparePhoneNumbers(normalizedNumber, phoneNumber)) {
                 qDebug() << "existing channel" << mTextChannels[phoneNumber];
-                mTextChannels[phoneNumber]->mmsReceived(path, properties);
+                mTextChannels[phoneNumber]->mmsReceived(path, ensureHandle(normalizedNumber), properties);
                 return;
             }
         }
@@ -325,7 +325,7 @@ void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &pr
             qCritical() << "Error creating channel for incoming message " << error.name() << error.message();
             return;
         }
-        mTextChannels[normalizedNumber]->mmsReceived(path, properties);
+        mTextChannels[normalizedNumber]->mmsReceived(path, ensureHandle(normalizedNumber), properties);
     }
 }
 
@@ -540,13 +540,15 @@ Tp::BaseChannelPtr oFonoConnection::createTextChannel(uint targetHandleType,
 
     QString newPhoneNumber = mHandles.value(targetHandle);
 
-    Q_FOREACH(const QString &phoneNumber, mTextChannels.keys()) {
-        if (PhoneUtils::comparePhoneNumbers(phoneNumber, newPhoneNumber)) {
-            return mTextChannels[phoneNumber]->baseChannel();
+    QMap<QString, oFonoTextChannel*>::const_iterator it = mTextChannels.constBegin();
+    while (it != mTextChannels.constEnd()) {
+        if (it.value()->members().size() == 1 && PhoneUtils::comparePhoneNumbers(it.key(), newPhoneNumber)) {
+            return it.value()->baseChannel();
         }
+        ++it;
     }
 
-    mTextChannels[newPhoneNumber] = new oFonoTextChannel(this, newPhoneNumber, targetHandle);
+    mTextChannels[newPhoneNumber] = new oFonoTextChannel(this, QStringList() << newPhoneNumber);
     QObject::connect(mTextChannels[newPhoneNumber], SIGNAL(messageRead(QString)), SLOT(onMessageRead(QString)));
     QObject::connect(mTextChannels[newPhoneNumber], SIGNAL(destroyed()), SLOT(onTextChannelClosed()));
     qDebug() << mTextChannels[newPhoneNumber];
@@ -666,11 +668,13 @@ void oFonoConnection::onDeliveryReportReceived(const QString &messageId, const Q
     const QString normalizedNumber = PhoneUtils::normalizePhoneNumber(pendingMessageNumber);
     PendingMessagesManager::instance()->removePendingMessage(messageId);
     // check if there is an open channel for this sender and use it
-    Q_FOREACH(const QString &phoneNumber, mTextChannels.keys()) {
-        if (PhoneUtils::comparePhoneNumbers(normalizedNumber, phoneNumber)) {
-            mTextChannels[phoneNumber]->deliveryReportReceived(messageId, info["Delivered"].toBool());
+    QMap<QString, oFonoTextChannel*>::const_iterator it = mTextChannels.constBegin();
+    while (it != mTextChannels.constEnd()) {
+        if (it.value()->members().size() == 1 && PhoneUtils::comparePhoneNumbers(normalizedNumber, it.key())) {
+            it.value()->deliveryReportReceived(messageId, ensureHandle(normalizedNumber), info["Delivered"].toBool());
             return;
         }
+        ++it;
     }
 
     Tp::DBusError error;
@@ -681,18 +685,20 @@ void oFonoConnection::onDeliveryReportReceived(const QString &messageId, const Q
         qWarning() << "Error creating channel for incoming message" << error.name() << error.message();
         return;
     }
-    mTextChannels[normalizedNumber]->deliveryReportReceived(messageId, info["Delivered"].toBool());
+    mTextChannels[normalizedNumber]->deliveryReportReceived(messageId, ensureHandle(normalizedNumber), info["Delivered"].toBool());
 }
 
 void oFonoConnection::onOfonoIncomingMessage(const QString &message, const QVariantMap &info)
 {
     const QString normalizedNumber = PhoneUtils::normalizePhoneNumber(info["Sender"].toString());
     // check if there is an open channel for this sender and use it
-    Q_FOREACH(const QString &phoneNumber, mTextChannels.keys()) {
-        if (PhoneUtils::comparePhoneNumbers(normalizedNumber, phoneNumber)) {
-            mTextChannels[phoneNumber]->messageReceived(message, info);
+    QMap<QString, oFonoTextChannel*>::const_iterator it = mTextChannels.constBegin();
+    while (it != mTextChannels.constEnd()) {
+        if (it.value()->members().size() == 1 && PhoneUtils::comparePhoneNumbers(normalizedNumber, it.key())) {
+            it.value()->messageReceived(message, ensureHandle(normalizedNumber), info);
             return;
         }
+        ++it;
     }
 
     Tp::DBusError error;
@@ -703,7 +709,7 @@ void oFonoConnection::onOfonoIncomingMessage(const QString &message, const QVari
         qWarning() << "Error creating channel for incoming message" << error.name() << error.message();
         return;
     }
-    mTextChannels[normalizedNumber]->messageReceived(message, info);
+    mTextChannels[normalizedNumber]->messageReceived(message, ensureHandle(normalizedNumber), info);
 }
 
 void oFonoConnection::onTextChannelClosed()
