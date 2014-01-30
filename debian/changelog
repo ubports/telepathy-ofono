@@ -1,3 +1,10 @@
+telepathy-ofono (0.2+14.04.20140130-0ubuntu1) trusty; urgency=low
+
+  [ Tiago Salem Herrmann ]
+  * set Tp::CallStateChangeReasonNoAnswer also for waiting calls.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Thu, 30 Jan 2014 17:01:56 +0000
+
 telepathy-ofono (0.2+14.04.20140117-0ubuntu1) trusty; urgency=low
 
   [ Tiago Salem Herrmann ]
