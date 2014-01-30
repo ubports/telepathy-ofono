@@ -65,7 +65,7 @@ public:
     QStringList inspectHandles(uint handleType, const Tp::UIntList& handles, Tp::DBusError *error);
     Tp::UIntList requestHandles(uint handleType, const QStringList& identifiers, Tp::DBusError* error);
     Tp::BaseChannelPtr createChannel(const QString& channelType, uint targetHandleType,
-                                     uint targetHandle, Tp::DBusError *error);
+                                     uint targetHandle,  const QVariantMap &hints, Tp::DBusError *error);
     Tp::ContactAttributesMap getContactAttributes(const Tp::UIntList &handles, const QStringList &ifaces, Tp::DBusError *error);
     uint setPresence(const QString& status, const QString& statusMessage, Tp::DBusError *error);
     void connect(Tp::DBusError *error);
@@ -87,10 +87,11 @@ public:
     OfonoCallVolume *callVolume();
 
     uint ensureHandle(const QString &phoneNumber);
+    oFonoTextChannel* textChannelForMembers(const QStringList &members);
     Tp::BaseChannelPtr createTextChannel(uint targetHandleType,
-                                         uint targetHandle, Tp::DBusError *error);
+                                         uint targetHandle,  const QVariantMap &hints, Tp::DBusError *error);
     Tp::BaseChannelPtr createCallChannel(uint targetHandleType,
-                                         uint targetHandle, Tp::DBusError *error);
+                                         uint targetHandle,  const QVariantMap &hints, Tp::DBusError *error);
 
     ~oFonoConnection();
 
@@ -122,7 +123,7 @@ private:
     void addMMSToService(const QString &path, const QVariantMap &properties, const QString &servicePath);
     QMap<uint, QString> mHandles;
 
-    QMap<QString, oFonoTextChannel*> mTextChannels;
+    QList<oFonoTextChannel*> mTextChannels;
     QMap<QString, oFonoCallChannel*> mCallChannels;
 
     QStringList mModems;

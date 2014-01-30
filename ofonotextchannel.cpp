@@ -48,10 +48,18 @@ oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, QStringList phoneNumbe
     qDBusRegisterMetaType<AttachmentStruct>();
     qDBusRegisterMetaType<AttachmentList>();
 
-    Tp::BaseChannelPtr baseChannel = Tp::BaseChannel::create(mConnection,
-                                                             TP_QT_IFACE_CHANNEL_TYPE_TEXT,
-                                                             mConnection->ensureHandle(mPhoneNumbers[0]),
-                                                             Tp::HandleTypeContact);
+    Tp::BaseChannelPtr baseChannel;
+    if (phoneNumbers.size() == 1) {
+        baseChannel = Tp::BaseChannel::create(mConnection,
+                                              TP_QT_IFACE_CHANNEL_TYPE_TEXT,
+                                              mConnection->ensureHandle(mPhoneNumbers[0]),
+                                              Tp::HandleTypeContact);
+    } else {
+        baseChannel = Tp::BaseChannel::create(mConnection,
+                                              TP_QT_IFACE_CHANNEL_TYPE_TEXT,
+                                              0,
+                                              Tp::HandleTypeNone);
+    }
     Tp::BaseChannelTextTypePtr textType = Tp::BaseChannelTextType::create(baseChannel.data());
     baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(textType));
 
@@ -99,8 +107,12 @@ void oFonoTextChannel::onAddMembers(const Tp::UIntList& handles, const QString& 
 
 void oFonoTextChannel::onRemoveMembers(const Tp::UIntList& handles, const QString& message, Tp::DBusError* error)
 {
-    Q_FOREACH(uint handle, handles)
+    Q_FOREACH(uint handle, handles) {
+        Q_FOREACH(const QString &phoneNumber, mConnection->inspectHandles(Tp::HandleTypeContact, Tp::UIntList() << handle, error)) {
+            mPhoneNumbers.removeAll(phoneNumber);
+        }
         mMembers.removeAll(handle);
+    }
     mGroupIface->removeMembers(handles);
 }
 
@@ -108,9 +120,13 @@ void oFonoTextChannel::addMembers(QStringList phoneNumbers)
 {
     Tp::UIntList handles;
     Q_FOREACH(const QString &phoneNumber, phoneNumbers) {
-        handles << mConnection->ensureHandle(phoneNumber);
+        uint handle = mConnection->ensureHandle(phoneNumber);
+        handles << handle;
         if (!mPhoneNumbers.contains(phoneNumber)) {
             mPhoneNumbers << phoneNumber;
+        }
+        if (!mMembers.contains(handle)) {
+            mMembers << handle;
         }
     }
     mGroupIface->addMembers(handles, phoneNumbers);
