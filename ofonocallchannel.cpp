@@ -235,7 +235,7 @@ void oFonoCallChannel::onOfonoCallStateChanged(const QString &state)
     mDtmfLock = false;
     if (state == "disconnected") {
         qDebug() << "disconnected";
-        if (mIncoming && mPreviousState == "incoming" && !mRequestedHangup) {
+        if (mIncoming && (mPreviousState == "incoming" || mPreviousState == "waiting") && !mRequestedHangup) {
             reason.reason = Tp::CallStateChangeReasonNoAnswer;
         }
         mCallChannel->setCallState(Tp::CallStateEnded, 0, reason, stateDetails);
