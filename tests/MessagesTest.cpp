@@ -44,6 +44,7 @@ private Q_SLOTS:
     void initTestCase();
     void testMessageReceived();
     void testMessageSend();
+    void testMessageSendGroupChat();
 
     // helper slots
     void onPendingContactsFinished(Tp::PendingOperation*);
@@ -140,6 +141,36 @@ void MessagesTest::testMessageSend()
     QTRY_COMPARE(channel->messageQueue().count(), 2);
     QVERIFY(channel->messageQueue()[1].isDeliveryReport());
     QCOMPARE(channel->messageQueue()[1].deliveryDetails().status(), Tp::DeliveryStatusDelivered);
+}
+
+void MessagesTest::testMessageSendGroupChat()
+{
+    // Request the contact to start chatting to
+    Tp::AccountPtr account = TelepathyHelper::instance()->account();
+    QSignalSpy spy(this, SIGNAL(contactsReceived(QList<Tp::ContactPtr>)));
+
+    connect(account->connection()->contactManager()->contactsForIdentifiers(QStringList() << "321" << "123"),
+            SIGNAL(finished(Tp::PendingOperation*)),
+            SLOT(onPendingContactsFinished(Tp::PendingOperation*)));
+
+    QTRY_COMPARE(spy.count(), 1);
+
+    QList<Tp::ContactPtr> contacts = spy.first().first().value<QList<Tp::ContactPtr> >();
+    QCOMPARE(contacts.count(), 2);
+    QCOMPARE(contacts[0]->id(), QString("321"));
+    QCOMPARE(contacts[1]->id(), QString("123"));
+
+    QSignalSpy spyTextChannel(mHandler, SIGNAL(textChannelAvailable(Tp::TextChannelPtr)));
+
+    account->createConferenceTextChat(QList<Tp::ChannelPtr>(), contacts, QDateTime::currentDateTime(), TP_QT_IFACE_CLIENT + ".TpOfonoTestHandler");
+    QTRY_COMPARE(spyTextChannel.count(), 1);
+
+    Tp::TextChannelPtr channel = spyTextChannel.first().first().value<Tp::TextChannelPtr>();
+    QVERIFY(channel);
+
+    QSignalSpy spyOfonoMessageAdded(OfonoMockController::instance(), SIGNAL(MessageAdded(QDBusObjectPath, QVariantMap)));
+    Tp::PendingSendMessage *message = channel->send("text");
+    QTRY_COMPARE(spyOfonoMessageAdded.count(), 2);
 }
 
 void MessagesTest::onPendingContactsFinished(Tp::PendingOperation *op)
