@@ -69,6 +69,15 @@ oFonoConferenceCallChannel::oFonoConferenceCallChannel(oFonoConnection *conn, QO
 
     mCallChannel->setHangupCallback(Tp::memFun(this,&oFonoConferenceCallChannel::onHangup));
 
+    Tp::CallStateReason reason;
+    QVariantMap stateDetails;
+    reason.actor =  0;
+    reason.reason = Tp::CallStateChangeReasonUserRequested;
+    reason.message = "";
+    reason.DBusReason = "";
+
+    mCallChannel->setCallState(Tp::CallStateActive, 0, reason, stateDetails);
+
     // init must be called after initialization, otherwise we will have no object path registered.
     QTimer::singleShot(0, this, SLOT(init()));
 }
@@ -89,7 +98,7 @@ void oFonoConferenceCallChannel::onChannelMerged(oFonoCallChannel *channel)
     QDBusObjectPath path(channel->baseChannel()->objectPath());
     if (!mCallChannels.keys().contains(path)) {
         mCallChannels[path] = channel;
-        Q_EMIT mConferenceIface->channelMerged(path, 0, Tp::QualifiedPropertyValueMap()); 
+        Q_EMIT mConferenceIface->channelMerged(path, 0, Tp::QualifiedPropertyValueMap());
     }
 }
 
@@ -99,6 +108,17 @@ void oFonoConferenceCallChannel::onChannelSplitted(oFonoCallChannel *channel)
     if (mCallChannels.keys().contains(path)) {
         mCallChannels.remove(path);
         Q_EMIT mConferenceIface->channelRemoved(path, QVariantMap());
+    }
+    if (mCallChannels.size() < 2) {
+        Tp::CallStateReason reason;
+        QVariantMap stateDetails;
+        reason.actor =  0;
+        reason.reason = Tp::CallStateChangeReasonUserRequested;
+        reason.message = "";
+        reason.DBusReason = "";
+
+        mCallChannel->setCallState(Tp::CallStateEnded, 0, reason, stateDetails);
+        mBaseChannel->close();
     }
 }
 
