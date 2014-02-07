@@ -50,6 +50,7 @@
 class oFonoConnection;
 class oFonoTextChannel;
 class oFonoCallChannel;
+class oFonoConferenceCallChannel;
 class MMSDService;
 
 class oFonoConnection : public Tp::BaseConnection
@@ -85,6 +86,7 @@ public:
     OfonoMessageManager *messageManager();
     OfonoVoiceCallManager *voiceCallManager();
     OfonoCallVolume *callVolume();
+    QMap<QString, oFonoCallChannel*> callChannels();
 
     uint ensureHandle(const QString &phoneNumber);
     oFonoTextChannel* textChannelForMembers(const QStringList &members);
@@ -97,6 +99,8 @@ public:
 
 Q_SIGNALS:
     void speakerModeChanged(bool active);
+    void channelMerged(oFonoCallChannel *channel);
+    void channelSplitted(oFonoCallChannel *channel);
 
 public Q_SLOTS:
     void Q_DBUS_EXPORT onTryRegister();
@@ -117,6 +121,9 @@ private Q_SLOTS:
     void onCheckMMSServices();
     void onMessageRead(const QString &id);
     void onDeliveryReportReceived(const QString &messageId, const QVariantMap &info);
+    void onConferenceCallChannelClosed();
+    void onCallChannelMerged();
+    void onCallChannelSplitted();
 
 private:
     bool isNetworkRegistered();
@@ -140,6 +147,7 @@ private:
     MMSDManager *mMmsdManager;
     QMap<QString, MMSDService*> mMmsdServices;
     QMap<QString, QList<MMSDMessage*> > mServiceMMSList;
+    oFonoConferenceCallChannel *mConferenceCall;
     bool mSpeakerMode;
 };
 
