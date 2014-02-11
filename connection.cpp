@@ -628,6 +628,8 @@ Tp::BaseChannelPtr oFonoConnection::createCallChannel(uint targetHandleType,
             QObject::connect(mConferenceCall, SIGNAL(destroyed()), SLOT(onConferenceCallChannelClosed()));
             return mConferenceCall->baseChannel();
         }
+        error->set(TP_QT_ERROR_NOT_AVAILABLE, "Impossible to merge calls");
+        return Tp::BaseChannelPtr();
     }
 
     Q_FOREACH(const QString &phoneNumber, mCallChannels.keys()) {

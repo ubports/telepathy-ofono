@@ -73,7 +73,6 @@ private:
     BaseChannelSpeakerInterfacePtr mSpeakerIface;
     Tp::BaseChannelCallTypePtr mCallChannel;
     Tp::BaseCallContentDTMFInterfacePtr mDTMFIface;
-    Tp::BaseCallContentPtr mCallContent;
     bool mDtmfLock;
     QStringList mDtmfPendingStrings;
 };

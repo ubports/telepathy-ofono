@@ -98,7 +98,7 @@ void oFonoConferenceCallChannel::onChannelMerged(oFonoCallChannel *channel)
     QDBusObjectPath path(channel->baseChannel()->objectPath());
     if (!mCallChannels.keys().contains(path)) {
         mCallChannels[path] = channel;
-        Q_EMIT mConferenceIface->channelMerged(path, 0, Tp::QualifiedPropertyValueMap());
+        mConferenceIface->mergeChannel(path, 0, Tp::QualifiedPropertyValueMap());
     }
 }
 
@@ -107,9 +107,9 @@ void oFonoConferenceCallChannel::onChannelSplitted(oFonoCallChannel *channel)
     QDBusObjectPath path(channel->baseChannel()->objectPath());
     if (mCallChannels.keys().contains(path)) {
         mCallChannels.remove(path);
-        Q_EMIT mConferenceIface->channelRemoved(path, QVariantMap());
+        mConferenceIface->removeChannel(path, QVariantMap());
     }
-    if (mCallChannels.size() < 2) {
+    if (mCallChannels.size() == 1) {
         Tp::CallStateReason reason;
         QVariantMap stateDetails;
         reason.actor =  0;
@@ -140,6 +140,8 @@ void oFonoConferenceCallChannel::init()
     QVariantMap stateDetails;
     Tp::CallStateReason reason;
 
+    mObjPath = mBaseChannel->objectPath();
+
     reason.actor =  0;
     reason.reason = Tp::CallStateChangeReasonProgressMade;
     reason.message = "";
@@ -147,25 +149,19 @@ void oFonoConferenceCallChannel::init()
 
     mCallChannel->setCallState(Tp::CallStateActive, 0, reason, stateDetails);
 
-    mCallContent = Tp::BaseCallContent::create(mBaseChannel->dbusConnection(), mBaseChannel.data(), "audio", Tp::MediaStreamTypeAudio, Tp::MediaStreamDirectionNone);
-
     mDTMFIface = Tp::BaseCallContentDTMFInterface::create();
-    mCallContent->plugInterface(Tp::AbstractCallContentInterfacePtr::dynamicCast(mDTMFIface));
-    mCallChannel->addContent(mCallContent);
 
     mDTMFIface->setStartToneCallback(Tp::memFun(this,&oFonoConferenceCallChannel::onDTMFStartTone));
     mDTMFIface->setStopToneCallback(Tp::memFun(this,&oFonoConferenceCallChannel::onDTMFStopTone));
 
     QObject::connect(mBaseChannel.data(), SIGNAL(closed()), this, SLOT(deleteLater()));
     QObject::connect(mConnection->callVolume(), SIGNAL(mutedChanged(bool)), SLOT(onOfonoMuteChanged(bool)));
-    QObject::connect(this, SIGNAL(stateChanged(QString)), SLOT(onOfonoCallStateChanged(QString)));
     QObject::connect(mConnection, SIGNAL(speakerModeChanged(bool)), mSpeakerIface.data(), SLOT(setSpeakerMode(bool)));
     QObject::connect(mConnection->voiceCallManager(), SIGNAL(sendTonesComplete(bool)), SLOT(onDtmfComplete(bool)));
 
     mSpeakerIface->setSpeakerMode(mConnection->speakerMode());
     QObject::connect(mConnection, SIGNAL(channelMerged(oFonoCallChannel*)), this, SLOT(onChannelMerged(oFonoCallChannel*)));
     QObject::connect(mConnection, SIGNAL(channelSplitted(oFonoCallChannel*)), this, SLOT(onChannelSplitted(oFonoCallChannel*)));
-
 }
 
 void oFonoConferenceCallChannel::onOfonoMuteChanged(bool mute)
