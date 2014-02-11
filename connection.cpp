@@ -668,12 +668,33 @@ Tp::BaseChannelPtr oFonoConnection::createCallChannel(uint targetHandleType,
         return Tp::BaseChannelPtr();
     }
 
-    mCallChannels[newPhoneNumber] = new oFonoCallChannel(this, newPhoneNumber, targetHandle,objpath.path());
-    QObject::connect(mCallChannels[newPhoneNumber], SIGNAL(destroyed()), SLOT(onCallChannelClosed()));
-    QObject::connect(mCallChannels[newPhoneNumber], SIGNAL(merged()), SLOT(onCallChannelMerged()));
-    QObject::connect(mCallChannels[newPhoneNumber], SIGNAL(splitted()), SLOT(onCallChannelSplitted()));
-    qDebug() << mCallChannels[newPhoneNumber];
-    return mCallChannels[newPhoneNumber]->baseChannel();
+    oFonoCallChannel *channel = new oFonoCallChannel(this, newPhoneNumber, targetHandle,objpath.path());
+    mCallChannels[newPhoneNumber] = channel;
+    QObject::connect(channel, SIGNAL(destroyed()), SLOT(onCallChannelClosed()));
+    QObject::connect(channel, SIGNAL(merged()), SLOT(onCallChannelMerged()));
+    QObject::connect(channel, SIGNAL(splitted()), SLOT(onCallChannelSplitted()));
+    QObject::connect(channel, SIGNAL(multipartyCallHeld()), SLOT(onMultipartyCallHeld()));
+    QObject::connect(channel, SIGNAL(multipartyCallActive()), SLOT(onMultipartyCallActive()));
+    qDebug() << channel;
+    return channel->baseChannel();
+}
+
+void oFonoConnection::onMultipartyCallHeld()
+{
+    if (!mConferenceCall) {
+        return;
+    }
+
+    mConferenceCall->setConferenceActive(false);
+}
+
+void oFonoConnection::onMultipartyCallActive()
+{
+    if (!mConferenceCall) {
+        return;
+    }
+
+    mConferenceCall->setConferenceActive(true);
 }
 
 void oFonoConnection::onCallChannelMerged()

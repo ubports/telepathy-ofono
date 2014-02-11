@@ -271,6 +271,9 @@ void oFonoCallChannel::onOfonoCallStateChanged(const QString &state)
     } else if (state == "active") {
         qDebug() << "active";
         mHoldIface->setHoldState(Tp::LocalHoldStateUnheld, Tp::LocalHoldStateReasonNone);
+        if (mMultiparty) {
+            Q_EMIT multipartyCallActive();
+        }
         if (mPreviousState == "dialing" || mPreviousState == "alerting" || 
                 mPreviousState == "incoming") {
             mConnection->callVolume()->setMuted(false);
@@ -279,6 +282,9 @@ void oFonoCallChannel::onOfonoCallStateChanged(const QString &state)
         mCallChannel->setCallState(Tp::CallStateActive, 0, reason, stateDetails);
     } else if (state == "held") {
         mHoldIface->setHoldState(Tp::LocalHoldStateHeld, Tp::LocalHoldStateReasonNone);
+        if (mMultiparty) {
+            Q_EMIT multipartyCallHeld();
+        }
         qDebug() << "held";
     } else if (state == "dialing") {
         qDebug() << "dialing";

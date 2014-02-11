@@ -54,6 +54,8 @@ public:
 Q_SIGNALS:
     void splitted();
     void merged();
+    void multipartyCallHeld();
+    void multipartyCallActive();
 
 private Q_SLOTS:
     void onOfonoCallStateChanged(const QString &state);

@@ -48,6 +48,7 @@ public:
     void onTurnOnSpeaker(bool active, Tp::DBusError *error);
     void onMerge(const QDBusObjectPath &channel, Tp::DBusError *error);
     Tp::BaseChannelPtr baseChannel();
+    void setConferenceActive(bool active);
 
 private Q_SLOTS:
     void onDtmfComplete(bool success);

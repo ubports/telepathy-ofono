@@ -124,6 +124,8 @@ private Q_SLOTS:
     void onConferenceCallChannelClosed();
     void onCallChannelMerged();
     void onCallChannelSplitted();
+    void onMultipartyCallHeld();
+    void onMultipartyCallActive();
 
 private:
     bool isNetworkRegistered();

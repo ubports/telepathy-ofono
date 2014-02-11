@@ -170,6 +170,15 @@ void oFonoConferenceCallChannel::onOfonoMuteChanged(bool mute)
     mMuteIface->setMuteState(state);
 }
 
+void oFonoConferenceCallChannel::setConferenceActive(bool active)
+{
+    if (active) {
+        mHoldIface->setHoldState(Tp::LocalHoldStateUnheld, Tp::LocalHoldStateReasonNone);
+    } else {
+        mHoldIface->setHoldState(Tp::LocalHoldStateHeld, Tp::LocalHoldStateReasonNone);
+    }
+}
+
 void oFonoConferenceCallChannel::onHoldStateChanged(const Tp::LocalHoldState &state, const Tp::LocalHoldStateReason &reason, Tp::DBusError *error)
 {
     mConnection->voiceCallManager()->swapCalls();
