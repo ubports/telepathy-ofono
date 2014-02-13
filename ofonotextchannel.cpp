@@ -95,13 +95,6 @@ oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, QStringList phoneNumbe
 
 void oFonoTextChannel::onAddMembers(const Tp::UIntList& handles, const QString& message, Tp::DBusError* error)
 {
-    Q_FOREACH(uint handle, handles) {
-        if (mMembers.contains(handle)) {
-            continue;
-        } else {
-            mMembers << handle;
-        }
-    }
     addMembers(mConnection->inspectHandles(Tp::HandleTypeContact, handles, error));
 }
 
