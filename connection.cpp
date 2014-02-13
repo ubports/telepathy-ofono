@@ -304,15 +304,17 @@ oFonoTextChannel* oFonoConnection::textChannelForMembers(const QStringList &memb
 {
     Q_FOREACH(oFonoTextChannel* channel, mTextChannels) {
         int count = 0;
+        Tp::DBusError error;
         if (members.size() != channel->members().size()) {
             continue;
         }
+        QStringList phoneNumbersOld = inspectHandles(Tp::HandleTypeContact, channel->members(), &error);
+        if (error.isValid()) {
+            continue;
+        }
+
         Q_FOREACH(const QString &phoneNumberNew, members) {
-            Tp::DBusError error;
-            Q_FOREACH(const QString &phoneNumberOld, inspectHandles(Tp::HandleTypeContact, channel->members(), &error)) {
-                if (error.isValid()) {
-                    continue;
-                }
+            Q_FOREACH(const QString &phoneNumberOld, phoneNumbersOld) {
                 if (PhoneUtils::comparePhoneNumbers(PhoneUtils::normalizePhoneNumber(phoneNumberOld), PhoneUtils::normalizePhoneNumber(phoneNumberNew))) {
                     count++;
                 }
