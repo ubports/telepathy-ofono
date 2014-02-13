@@ -176,7 +176,7 @@ QString oFonoTextChannel::sendMessage(const Tp::MessagePartList& message, uint f
     Tp::MessagePart body = message.at(1);
 
     QString objpath;
-    Q_FOREACH(QString phoneNumber, mPhoneNumbers) {
+    Q_FOREACH(const QString &phoneNumber, mPhoneNumbers) {
         objpath = mConnection->messageManager()->sendMessage(phoneNumber, body["content"].variant().toString(), success).path();
         // dont fail if this is a group chat as we cannot track individual messages
         OfonoMessage *msg = new OfonoMessage(objpath);
