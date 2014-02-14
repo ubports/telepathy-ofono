@@ -54,6 +54,7 @@ public:
 Q_SIGNALS:
     void splitted();
     void merged();
+    void closed();
     void multipartyCallHeld();
     void multipartyCallActive();
 

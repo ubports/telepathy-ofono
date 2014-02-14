@@ -670,7 +670,8 @@ Tp::BaseChannelPtr oFonoConnection::createCallChannel(uint targetHandleType,
 
     oFonoCallChannel *channel = new oFonoCallChannel(this, newPhoneNumber, targetHandle,objpath.path());
     mCallChannels[newPhoneNumber] = channel;
-    QObject::connect(channel, SIGNAL(destroyed()), SLOT(onCallChannelClosed()));
+    QObject::connect(channel, SIGNAL(destroyed()), SLOT(onCallChannelDestroyed()));
+    QObject::connect(channel, SIGNAL(closed()), SLOT(onCallChannelClosed()));
     QObject::connect(channel, SIGNAL(merged()), SLOT(onCallChannelMerged()));
     QObject::connect(channel, SIGNAL(splitted()), SLOT(onCallChannelSplitted()));
     QObject::connect(channel, SIGNAL(multipartyCallHeld()), SLOT(onMultipartyCallHeld()));
@@ -703,7 +704,7 @@ void oFonoConnection::onCallChannelMerged()
         return;
     }
     oFonoCallChannel *channel = static_cast<oFonoCallChannel*>(sender());
-    Q_EMIT channelMerged(channel);
+    Q_EMIT channelMerged(QDBusObjectPath(channel->baseChannel()->objectPath()));
 }
 
 void oFonoConnection::onCallChannelSplitted()
@@ -712,7 +713,7 @@ void oFonoConnection::onCallChannelSplitted()
         return;
     }
     oFonoCallChannel *channel = static_cast<oFonoCallChannel*>(sender());
-    Q_EMIT channelSplitted(channel);
+    Q_EMIT channelSplitted(QDBusObjectPath(channel->baseChannel()->objectPath()));
 }
 
 
@@ -818,6 +819,16 @@ void oFonoConnection::onTextChannelClosed()
 void oFonoConnection::onCallChannelClosed()
 {
     qDebug() << "onCallChannelClosed()";
+    oFonoCallChannel *channel = static_cast<oFonoCallChannel*>(sender());
+    if (channel) {
+        Q_EMIT channelHangup(QDBusObjectPath(channel->baseChannel()->objectPath()));
+    }
+}
+
+
+void oFonoConnection::onCallChannelDestroyed()
+{
+    qDebug() << "onCallChannelDestroyed()";
     oFonoCallChannel *channel = static_cast<oFonoCallChannel*>(sender());
     if (channel) {
         QString key = mCallChannels.key(channel);

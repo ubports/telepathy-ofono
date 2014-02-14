@@ -267,6 +267,7 @@ void oFonoCallChannel::onOfonoCallStateChanged(const QString &state)
             reason.reason = Tp::CallStateChangeReasonNoAnswer;
         }
         mCallChannel->setCallState(Tp::CallStateEnded, 0, reason, stateDetails);
+        Q_EMIT closed();
         mBaseChannel->close();
     } else if (state == "active") {
         qDebug() << "active";

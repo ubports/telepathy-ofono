@@ -32,7 +32,7 @@ oFonoConferenceCallChannel::oFonoConferenceCallChannel(oFonoConnection *conn, QO
     Q_FOREACH(oFonoCallChannel *channel, mConnection->callChannels().values()) {
         if (channel->callState() == Tp::CallStateActive) {
             QDBusObjectPath path(channel->baseChannel()->objectPath());
-            mCallChannels[path] = channel;
+            mCallChannels << path;
         }
     }
 
@@ -53,7 +53,7 @@ oFonoConferenceCallChannel::oFonoConferenceCallChannel(oFonoConnection *conn, QO
     mSpeakerIface = BaseChannelSpeakerInterface::create();
     mSpeakerIface->setTurnOnSpeakerCallback(Tp::memFun(this,&oFonoConferenceCallChannel::onTurnOnSpeaker));
 
-    mConferenceIface = Tp::BaseChannelConferenceInterface::create(mCallChannels.keys());
+    mConferenceIface = Tp::BaseChannelConferenceInterface::create(mCallChannels);
 
     mMergeableIface = Tp::BaseChannelMergeableConferenceInterface::create();
     mMergeableIface->setMergeCallback(Tp::memFun(this,&oFonoConferenceCallChannel::onMerge));
@@ -93,20 +93,18 @@ void oFonoConferenceCallChannel::onMerge(const QDBusObjectPath &channel, Tp::DBu
     mConnection->voiceCallManager()->createMultiparty();
 }
 
-void oFonoConferenceCallChannel::onChannelMerged(oFonoCallChannel *channel)
+void oFonoConferenceCallChannel::onChannelMerged(const QDBusObjectPath &path)
 {
-    QDBusObjectPath path(channel->baseChannel()->objectPath());
-    if (!mCallChannels.keys().contains(path)) {
-        mCallChannels[path] = channel;
-        mConferenceIface->mergeChannel(path, 0, Tp::QualifiedPropertyValueMap());
+    if (!mCallChannels.contains(path)) {
+        mCallChannels << path;
+        mConferenceIface->mergeChannel(path, 0, QVariantMap());
     }
 }
 
-void oFonoConferenceCallChannel::onChannelSplitted(oFonoCallChannel *channel)
+void oFonoConferenceCallChannel::onChannelSplitted(const QDBusObjectPath &path)
 {
-    QDBusObjectPath path(channel->baseChannel()->objectPath());
-    if (mCallChannels.keys().contains(path)) {
-        mCallChannels.remove(path);
+    if (mCallChannels.contains(path)) {
+        mCallChannels.removeAll(path);
         mConferenceIface->removeChannel(path, QVariantMap());
     }
     if (mCallChannels.size() == 1) {
@@ -160,8 +158,9 @@ void oFonoConferenceCallChannel::init()
     QObject::connect(mConnection->voiceCallManager(), SIGNAL(sendTonesComplete(bool)), SLOT(onDtmfComplete(bool)));
 
     mSpeakerIface->setSpeakerMode(mConnection->speakerMode());
-    QObject::connect(mConnection, SIGNAL(channelMerged(oFonoCallChannel*)), this, SLOT(onChannelMerged(oFonoCallChannel*)));
-    QObject::connect(mConnection, SIGNAL(channelSplitted(oFonoCallChannel*)), this, SLOT(onChannelSplitted(oFonoCallChannel*)));
+    QObject::connect(mConnection, SIGNAL(channelMerged(const QDBusObjectPath&)), this, SLOT(onChannelMerged(const QDBusObjectPath&)));
+    QObject::connect(mConnection, SIGNAL(channelSplitted(const QDBusObjectPath&)), this, SLOT(onChannelSplitted(const QDBusObjectPath&)));
+    QObject::connect(mConnection, SIGNAL(channelHangup(const QDBusObjectPath&)), this, SLOT(onChannelSplitted(const QDBusObjectPath&)));
 }
 
 void oFonoConferenceCallChannel::onOfonoMuteChanged(bool mute)

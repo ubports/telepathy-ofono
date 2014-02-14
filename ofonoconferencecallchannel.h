@@ -56,8 +56,8 @@ private Q_SLOTS:
     void init();
 
     void onOfonoMuteChanged(bool mute);
-    void onChannelMerged(oFonoCallChannel *channel);
-    void onChannelSplitted(oFonoCallChannel *channel);
+    void onChannelMerged(const QDBusObjectPath &path);
+    void onChannelSplitted(const QDBusObjectPath &path);
 
 private:
     QString mObjPath;
@@ -65,7 +65,7 @@ private:
     bool mIncoming;
     bool mRequestedHangup;
     oFonoConnection *mConnection;
-    QMap<QDBusObjectPath, oFonoCallChannel*> mCallChannels;
+    QList<QDBusObjectPath> mCallChannels;
     Tp::BaseChannelPtr mBaseChannel;
     Tp::BaseChannelHoldInterfacePtr mHoldIface;
     Tp::BaseChannelConferenceInterfacePtr mConferenceIface;

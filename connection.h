@@ -99,8 +99,9 @@ public:
 
 Q_SIGNALS:
     void speakerModeChanged(bool active);
-    void channelMerged(oFonoCallChannel *channel);
-    void channelSplitted(oFonoCallChannel *channel);
+    void channelMerged(const QDBusObjectPath &objPath);
+    void channelSplitted(const QDBusObjectPath &objPath);
+    void channelHangup(const QDBusObjectPath &objPath);
 
 public Q_SLOTS:
     void Q_DBUS_EXPORT onTryRegister();
@@ -112,6 +113,7 @@ private Q_SLOTS:
     void onOfonoNetworkRegistrationChanged(const QString &status);
     void onTextChannelClosed();
     void onCallChannelClosed();
+    void onCallChannelDestroyed();
     void onValidityChanged(bool valid);
     void onMMSDServiceAdded(const QString&);
     void onMMSDServiceRemoved(const QString&);
