@@ -34,13 +34,17 @@ class oFonoTextChannel : public QObject
 {
     Q_OBJECT
 public:
-    oFonoTextChannel(oFonoConnection *conn, QString phoneNumber, uint targetHandle, QObject *parent = 0);
+    oFonoTextChannel(oFonoConnection *conn, QStringList phoneNumbers, QObject *parent = 0);
     QString sendMessage(const Tp::MessagePartList& message, uint flags, Tp::DBusError* error);
-    void messageReceived(const QString & message, const QVariantMap &info);
+    void messageReceived(const QString & message, uint handle, const QVariantMap &info);
     Tp::BaseChannelPtr baseChannel();
     void messageAcknowledged(const QString &id);
-    void mmsReceived(const QString &id, const QVariantMap &properties);
-    void deliveryReportReceived(const QString& messageId, bool success);
+    void mmsReceived(const QString &id, uint handle, const QVariantMap &properties);
+    void deliveryReportReceived(const QString& messageId, uint handle, bool success);
+    void addMembers(QStringList phoneNumbers);
+    Tp::UIntList members();
+    void onAddMembers(const Tp::UIntList& handles, const QString& message, Tp::DBusError* error);
+    void onRemoveMembers(const Tp::UIntList& handles, const QString& message, Tp::DBusError* error);
 
 private Q_SLOTS:
     void onOfonoMessageStateChanged(QString status);
@@ -49,15 +53,16 @@ Q_SIGNALS:
     void messageRead(const QString &id);
 
 private:
-    void sendDeliveryReport(const QString &messageId, Tp::DeliveryStatus status);
+    void sendDeliveryReport(const QString &messageId, uint handle, Tp::DeliveryStatus status);
     ~oFonoTextChannel();
     Tp::BaseChannelPtr mBaseChannel;
-    QString mPhoneNumber;
+    QStringList mPhoneNumbers;
     oFonoConnection *mConnection;
-    uint mTargetHandle;
     Tp::BaseChannelMessagesInterfacePtr mMessagesIface;
+    Tp::BaseChannelGroupInterfacePtr mGroupIface;
     Tp::BaseChannelTextTypePtr mTextChannel;
     uint mMessageCounter;
+    Tp::UIntList mMembers;
 };
 
 #endif // OFONOTEXTCHANNEL_H
