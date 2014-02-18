@@ -167,27 +167,92 @@ QString oFonoTextChannel::sendMessage(const Tp::MessagePartList& message, uint f
     bool success = true;
     Tp::MessagePart header = message.at(0);
     Tp::MessagePart body = message.at(1);
-
     QString objpath;
-    Q_FOREACH(const QString &phoneNumber, mPhoneNumbers) {
+
+    if (mPhoneNumbers.size() == 1) {
+        QString phoneNumber = mPhoneNumbers[0];
+        uint handle = mConnection->ensureHandle(phoneNumber);
         objpath = mConnection->messageManager()->sendMessage(phoneNumber, body["content"].variant().toString(), success).path();
-        // dont fail if this is a group chat as we cannot track individual messages
-        OfonoMessage *msg = new OfonoMessage(objpath);
-        QObject::connect(msg, SIGNAL(stateChanged(QString)), SLOT(onOfonoMessageStateChanged(QString)));
-        if ((objpath.isEmpty() || !success) && mPhoneNumbers.size() == 1) {
+        if (objpath.isEmpty() || !success) {
             if (!success) {
                 qWarning() << mConnection->messageManager()->errorName() << mConnection->messageManager()->errorMessage();
             } else {
                 error->set(TP_QT_ERROR_INVALID_ARGUMENT, mConnection->messageManager()->errorMessage());
             }
+            // create a unique id for this message tha ofono failed to send
+            objpath = QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + "-" + QString::number(mMessageCounter++);
+            mPendingDeliveryReportFailed[objpath] = handle;
+            QTimer::singleShot(0, this, SLOT(onProcessPendingDeliveryReport()));
+            return objpath;
+        }
+        OfonoMessage *msg = new OfonoMessage(objpath);
+        if (msg->state() == "") {
+            // message was already sent or failed too fast (this case is only reproducible with the emulator)
             msg->deleteLater();
-            continue;
+            mPendingDeliveryReportDelivered[objpath] = handle;
+            QTimer::singleShot(0, this, SLOT(onProcessPendingDeliveryReport()));
+            return objpath;
         }
         // FIXME: track pending messages only if delivery reports are enabled. We need a system config option for it.
-        PendingMessagesManager::instance()->addPendingMessage(objpath, phoneNumber);
+        PendingMessagesManager::instance()->addPendingMessage(objpath, mPhoneNumbers[0]);
+        QObject::connect(msg, SIGNAL(stateChanged(QString)), SLOT(onOfonoMessageStateChanged(QString)));
+        return objpath;
+    } else {
+        bool someMessageSent = false;
+        QString lastPhoneNumber;
+        Q_FOREACH(const QString &phoneNumber, mPhoneNumbers) {
+            uint handle = mConnection->ensureHandle(mPhoneNumbers[0]);
+            objpath = mConnection->messageManager()->sendMessage(phoneNumber, body["content"].variant().toString(), success).path();
+            lastPhoneNumber = phoneNumber;
+            // dont fail if this is a group chat as we cannot track individual messages
+            if (objpath.isEmpty() || !success) {
+                if (!success) {
+                    qWarning() << mConnection->messageManager()->errorName() << mConnection->messageManager()->errorMessage();
+                } else {
+                    error->set(TP_QT_ERROR_INVALID_ARGUMENT, mConnection->messageManager()->errorMessage());
+                }
+                continue;
+            }
+            someMessageSent = true;
+        }
+        if (!someMessageSent) {
+            // for group chat we only fail if all the messages failed to send
+            objpath = QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + "-" + QString::number(mMessageCounter++);
+            uint handle = mConnection->ensureHandle(lastPhoneNumber);
+            mPendingDeliveryReportFailed[objpath] = handle;
+            QTimer::singleShot(0, this, SLOT(onProcessPendingDeliveryReport()));
+            return objpath;
+        }
+        OfonoMessage *msg = new OfonoMessage(objpath);
+        if (msg->state() == "") {
+            // message was already sent or failed too fast (this case is only reproducible with the emulator)
+            msg->deleteLater();
+            uint handle = mConnection->ensureHandle(lastPhoneNumber);
+            mPendingDeliveryReportDelivered[objpath] = handle;
+            QTimer::singleShot(0, this, SLOT(onProcessPendingDeliveryReport()));
+            // return only the last one in case of group chat for history purposes
+            return objpath;
+        }
+        QObject::connect(msg, SIGNAL(stateChanged(QString)), SLOT(onOfonoMessageStateChanged(QString)));
+        return objpath;
     }
-    // return only the last one in case of group chat for history purposes
-    return objpath;
+}
+
+void oFonoTextChannel::onProcessPendingDeliveryReport()
+{
+    QMapIterator<QString, uint> i1(mPendingDeliveryReportFailed);
+    while(i1.hasNext()) {
+        i1.next();
+        sendDeliveryReport(i1.key(), i1.value(), Tp::DeliveryStatusPermanentlyFailed);
+    }
+    QMapIterator<QString, uint> i2(mPendingDeliveryReportDelivered);
+    while(i2.hasNext()) {
+        i2.next();
+        sendDeliveryReport(i2.key(), i2.value(), Tp::DeliveryStatusPermanentlyFailed);
+    }
+
+    mPendingDeliveryReportFailed.clear();
+    mPendingDeliveryReportDelivered.clear();
 }
 
 void oFonoTextChannel::onOfonoMessageStateChanged(QString status)
