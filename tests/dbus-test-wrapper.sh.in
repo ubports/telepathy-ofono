@@ -5,11 +5,6 @@ TMPDIR=/tmp/tpofono_test_home
 rm -rf $TMPDIR
 export HOME=$TMPDIR
 
-/usr/bin/pulseaudio -k
-killall pulseaudio
-/usr/bin/pulseaudio -D
-PULSEAUDIO_PID=$!
-
 # now run gnome-keyring
 gnome-keyring-daemon -r -d
 
@@ -28,7 +23,6 @@ $@
 RESULT=$?
 
 kill -9 $TP_OFONO_PID
-kill -9 $PULSEAUDIO_PID
 #FIXME for some reason history-daemon is not being finished, so we have to kill it here
 killall history-daemon
 
