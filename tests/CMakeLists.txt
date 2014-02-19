@@ -25,7 +25,8 @@ macro(generate_test TESTNAME USE_DBUS)
                           XDG_CACHE_HOME=${TMPDIR};
                           XDG_DATA_DIRS=${TMPDIR};
                           MC_ACCOUNT_DIR=${TMPDIR};
-                          MC_MANAGER_DIR=${TMPDIR}")
+                          MC_MANAGER_DIR=${TMPDIR};
+                          PA_DISABLED=1")
     set_tests_properties(${TESTNAME} PROPERTIES
                           ENVIRONMENT "${TEST_ENVIRONMENT}"
                           TIMEOUT 30)

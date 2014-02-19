@@ -146,15 +146,24 @@ void oFonoCallChannel::onHoldStateChanged(const Tp::LocalHoldState &state, const
 
 void oFonoCallChannel::onMuteStateChanged(const Tp::LocalMuteState &state, Tp::DBusError *error)
 {
+    bool hasPulseAudio = true;
+    QByteArray pulseAudioDisabled = qgetenv("PA_DISABLED");
+    if (!pulseAudioDisabled.isEmpty()) {
+        hasPulseAudio = false;
+    }
     if (state == Tp::LocalMuteStateMuted) {
         mConnection->callVolume()->setMuted(true);
 #ifdef USE_PULSEAUDIO
-        QPulseAudioEngine::instance()->setMicMute(true);
+        if(hasPulseAudio) {
+            QPulseAudioEngine::instance()->setMicMute(true);
+        }
 #endif
     } else if (state == Tp::LocalMuteStateUnmuted) {
         mConnection->callVolume()->setMuted(false);
 #ifdef USE_PULSEAUDIO
-        QPulseAudioEngine::instance()->setMicMute(false);
+        if(hasPulseAudio) {
+            QPulseAudioEngine::instance()->setMicMute(false);
+        }
 #endif
     }
 }
