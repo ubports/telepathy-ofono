@@ -837,7 +837,7 @@ void oFonoConnection::setSpeakerMode(bool active)
 {
     if (mSpeakerMode != active) {
         mSpeakerMode = active;
-        updateAudioRoute();
+        QMetaObject::invokeMethod(this, "updateAudioRoute", Qt::QueuedConnection);
         Q_EMIT speakerModeChanged(active);
     }
 }
