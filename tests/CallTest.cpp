@@ -85,7 +85,7 @@ void CallTest::initTestCase()
     QTRY_VERIFY(QDBusConnection::sessionBus().interface()->isServiceRegistered(TELEPHONY_SERVICE_APPROVER));
 
     // we need to wait in order to give telepathy time to notify about the approver and handler
-    QTest::qWait(3000);
+    QTest::qWait(10000);
 }
 
 void CallTest::testCallIncoming()
