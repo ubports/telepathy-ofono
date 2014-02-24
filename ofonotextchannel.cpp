@@ -240,15 +240,15 @@ QString oFonoTextChannel::sendMessage(const Tp::MessagePartList& message, uint f
 
 void oFonoTextChannel::onProcessPendingDeliveryReport()
 {
-    QMapIterator<QString, uint> i1(mPendingDeliveryReportFailed);
-    while(i1.hasNext()) {
-        i1.next();
-        sendDeliveryReport(i1.key(), i1.value(), Tp::DeliveryStatusPermanentlyFailed);
+    QMapIterator<QString, uint> iterator(mPendingDeliveryReportFailed);
+    while(iterator.hasNext()) {
+        iterator.next();
+        sendDeliveryReport(iterator.key(), iterator.value(), Tp::DeliveryStatusPermanentlyFailed);
     }
-    QMapIterator<QString, uint> i2(mPendingDeliveryReportDelivered);
-    while(i2.hasNext()) {
-        i2.next();
-        sendDeliveryReport(i2.key(), i2.value(), Tp::DeliveryStatusPermanentlyFailed);
+    iterator = mPendingDeliveryReportDelivered;
+    while(iterator.hasNext()) {
+        iterator.next();
+        sendDeliveryReport(iterator.key(), iterator.value(), Tp::DeliveryStatusPermanentlyFailed);
     }
 
     mPendingDeliveryReportFailed.clear();
