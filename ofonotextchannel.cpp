@@ -179,7 +179,7 @@ QString oFonoTextChannel::sendMessage(const Tp::MessagePartList& message, uint f
             } else {
                 error->set(TP_QT_ERROR_INVALID_ARGUMENT, mConnection->messageManager()->errorMessage());
             }
-            // create a unique id for this message tha ofono failed to send
+            // create an unique id for this message that ofono failed to send
             objpath = QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + "-" + QString::number(mMessageCounter++);
             mPendingDeliveryReportFailed[objpath] = handle;
             QTimer::singleShot(0, this, SLOT(onProcessPendingDeliveryReport()));
