@@ -1,3 +1,13 @@
+telepathy-ofono (0.2+14.04.20140228-0ubuntu1) trusty; urgency=low
+
+  [ Tiago Salem Herrmann ]
+  * Update audio route asynchronously when enabling/disabling speaker
+    mode. (LP: #1277765)
+  * Mark messages as failed when recipients are invalid or when no
+    messages to a group chat could be sent. (LP: #1277761)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Fri, 28 Feb 2014 14:51:17 +0000
+
 telepathy-ofono (0.2+14.04.20140217-0ubuntu1) trusty; urgency=low
 
   [ Tiago Salem Herrmann ]
