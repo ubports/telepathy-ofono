@@ -844,6 +844,11 @@ void oFonoConnection::setSpeakerMode(bool active)
 
 void oFonoConnection::updateAudioRoute()
 {
+    QByteArray pulseAudioDisabled = qgetenv("PA_DISABLED");
+    if (!pulseAudioDisabled.isEmpty()) {
+        return;
+    }
+
     int currentCalls = mOfonoVoiceCallManager->getCalls().size();
     if (currentCalls != 0) {
         if (currentCalls == 1) {

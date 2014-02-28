@@ -9,7 +9,7 @@ macro(generate_test TESTNAME USE_DBUS)
     set(TEST_COMMAND )
     if (${USE_DBUS})
         set(TEST_COMMAND -p ${CMAKE_CURRENT_BINARY_DIR}/${TESTNAME} -p -xunitxml -p -o -p ${CMAKE_BINARY_DIR}/test_${TESTNAME}.xml)
-        add_test(${TESTNAME} ${DBUS_RUNNER} --keep-env --task /usr/bin/pulseaudio --ignore-return --task ${CMAKE_CURRENT_BINARY_DIR}/dbus-test-wrapper.sh ${TEST_COMMAND})
+        add_test(${TESTNAME} ${DBUS_RUNNER} --keep-env --task ${CMAKE_CURRENT_BINARY_DIR}/dbus-test-wrapper.sh ${TEST_COMMAND})
     else (${USE_DBUS})
         add_test(${TESTNAME} ${CMAKE_CURRENT_BINARY_DIR}/${TESTNAME} -xunitxml -o ${CMAKE_BINARY_DIR}/test_${TESTNAME}.xml)
     endif(${USE_DBUS})
@@ -25,7 +25,8 @@ macro(generate_test TESTNAME USE_DBUS)
                           XDG_CACHE_HOME=${TMPDIR};
                           XDG_DATA_DIRS=${TMPDIR};
                           MC_ACCOUNT_DIR=${TMPDIR};
-                          MC_MANAGER_DIR=${TMPDIR}")
+                          MC_MANAGER_DIR=${TMPDIR};
+                          PA_DISABLED=1")
     set_tests_properties(${TESTNAME} PROPERTIES
                           ENVIRONMENT "${TEST_ENVIRONMENT}"
                           TIMEOUT 30)
