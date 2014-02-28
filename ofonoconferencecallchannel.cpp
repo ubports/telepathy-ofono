@@ -108,6 +108,9 @@ void oFonoConferenceCallChannel::onChannelSplitted(const QDBusObjectPath &path)
         mConferenceIface->removeChannel(path, QVariantMap());
     }
     if (mCallChannels.size() == 1) {
+        // remove the call channel from the conference before closing it.
+        mConferenceIface->removeChannel(mCallChannels.takeFirst(), QVariantMap());
+
         Tp::CallStateReason reason;
         QVariantMap stateDetails;
         reason.actor =  0;
