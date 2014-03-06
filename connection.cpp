@@ -352,7 +352,7 @@ void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &pr
         bool yours;
         qDebug() << "new handle" << normalizedNumber;
         uint handle = newHandle(normalizedNumber);
-        ensureChannel(TP_QT_IFACE_CHANNEL_TYPE_TEXT,Tp::HandleTypeContact, handle, yours, handle, false, &error);
+        ensureChannel(TP_QT_IFACE_CHANNEL_TYPE_TEXT,Tp::HandleTypeContact, handle, yours, handle, false, QVariantMap(), &error);
         if(error.isValid()) {
             qCritical() << "Error creating channel for incoming message " << error.name() << error.message();
             return;
@@ -632,32 +632,12 @@ Tp::BaseChannelPtr oFonoConnection::createCallChannel(uint targetHandleType,
         return Tp::BaseChannelPtr();
     }
 
-    Q_FOREACH(const QString &phoneNumber, mCallChannels.keys()) {
-        if (PhoneUtils::comparePhoneNumbers(phoneNumber, newPhoneNumber)) {
-            return mCallChannels[phoneNumber]->baseChannel();
-        }
-    }
+    QDBusObjectPath objpath(hints["ofonoObjPath"].toString());
 
-    bool isOngoingCall = false;
-    QDBusObjectPath objpath;
-    Q_FOREACH(const QString &callId, mOfonoVoiceCallManager->getCalls()) {
-        // check if this is an ongoing call
-        OfonoVoiceCall *call = new OfonoVoiceCall(callId);
-        if ((call->lineIdentification().isEmpty() && newPhoneNumber == "x-ofono-unknown") ||
-            (call->lineIdentification() == "withheld" && newPhoneNumber == "x-ofono-private") ||
-            PhoneUtils::comparePhoneNumbers(call->lineIdentification(), newPhoneNumber)) {
-            isOngoingCall = true;
-        }
-        call->deleteLater();
-        if (isOngoingCall) {
-            objpath.setPath(callId);
-            break;
-        }
-    }
-
-    if (!isOngoingCall) {
+    if (objpath.path().isEmpty()) {
         objpath = mOfonoVoiceCallManager->dial(newPhoneNumber, "", success);
     }
+
     qDebug() << "success " << success;
     if (objpath.path().isEmpty() || !success) {
         if (!success) {
@@ -668,8 +648,8 @@ Tp::BaseChannelPtr oFonoConnection::createCallChannel(uint targetHandleType,
         return Tp::BaseChannelPtr();
     }
 
-    oFonoCallChannel *channel = new oFonoCallChannel(this, newPhoneNumber, targetHandle,objpath.path());
-    mCallChannels[newPhoneNumber] = channel;
+    oFonoCallChannel *channel = new oFonoCallChannel(this, newPhoneNumber, targetHandle, objpath.path());
+    mCallChannels[objpath.path()] = channel;
     QObject::connect(channel, SIGNAL(destroyed()), SLOT(onCallChannelDestroyed()));
     QObject::connect(channel, SIGNAL(closed()), SLOT(onCallChannelClosed()));
     QObject::connect(channel, SIGNAL(merged()), SLOT(onCallChannelMerged()));
@@ -770,7 +750,7 @@ void oFonoConnection::onDeliveryReportReceived(const QString &messageId, const Q
     Tp::DBusError error;
     bool yours;
     uint handle = newHandle(normalizedNumber);
-    ensureChannel(TP_QT_IFACE_CHANNEL_TYPE_TEXT,Tp::HandleTypeContact, handle, yours, handle, false, &error);
+    ensureChannel(TP_QT_IFACE_CHANNEL_TYPE_TEXT,Tp::HandleTypeContact, handle, yours, handle, false, QVariantMap(), &error);
     if(error.isValid()) {
         qWarning() << "Error creating channel for incoming message" << error.name() << error.message();
         return;
@@ -795,7 +775,7 @@ void oFonoConnection::onOfonoIncomingMessage(const QString &message, const QVari
     Tp::DBusError error;
     bool yours;
     uint handle = newHandle(normalizedNumber);
-    ensureChannel(TP_QT_IFACE_CHANNEL_TYPE_TEXT,Tp::HandleTypeContact, handle, yours, handle, false, &error);
+    ensureChannel(TP_QT_IFACE_CHANNEL_TYPE_TEXT,Tp::HandleTypeContact, handle, yours, handle, false, QVariantMap(), &error);
     if(error.isValid()) {
         qWarning() << "Error creating channel for incoming message" << error.name() << error.message();
         return;
@@ -850,6 +830,26 @@ uint oFonoConnection::ensureHandle(const QString &phoneNumber)
     return newHandle(normalizedNumber);
 }
 
+Tp::BaseChannelPtr oFonoConnection::ensureChannel(const QString &channelType, uint targetHandleType,
+        uint targetHandle, bool &yours, uint initiatorHandle,
+        bool suppressHandler,
+        const QVariantMap &hints,
+        Tp::DBusError* error)
+{
+    // we only reuse old text channels
+    if (channelType == TP_QT_IFACE_CHANNEL_TYPE_TEXT) {
+        Q_FOREACH(oFonoTextChannel *channel, mTextChannels) {
+            if (channel->baseChannel()->targetHandleType() == targetHandleType
+                    && channel->baseChannel()->targetHandle() == targetHandle) {
+                yours = false;
+                return channel->baseChannel();
+            }
+        }
+    }
+    yours = true;
+    return Tp::BaseConnection::createChannel(channelType, targetHandleType, targetHandle, initiatorHandle, suppressHandler, hints, error);
+}
+
 void oFonoConnection::onOfonoCallAdded(const QString &call, const QVariantMap &properties)
 {
     qDebug() << "new call" << call << properties;
@@ -857,6 +857,13 @@ void oFonoConnection::onOfonoCallAdded(const QString &call, const QVariantMap &p
     bool yours;
     Tp::DBusError error;
     QString lineIdentification = properties["LineIdentification"].toString();
+
+    // check if there is an open channel for this call, if so, ignore it
+    if (mCallChannels.keys().contains(call)) {
+        qWarning() << "call channel for this object path already exists: " << call;
+        return;
+    }
+
     QString normalizedNumber;
     // TODO check if more than one private/unknown calls are supported at the same time
     if (lineIdentification.isEmpty()) {
@@ -870,13 +877,6 @@ void oFonoConnection::onOfonoCallAdded(const QString &call, const QVariantMap &p
     } else {
         normalizedNumber = PhoneUtils::normalizePhoneNumber(lineIdentification);
     }
-    // check if there is an open channel for this number, if so, ignore it
-    Q_FOREACH(const QString &phoneNumber, mCallChannels.keys()) {
-        if (PhoneUtils::comparePhoneNumbers(normalizedNumber, phoneNumber)) {
-            qWarning() << "call channel for this number already exists: " << phoneNumber;
-            return;
-        }
-    }
 
     uint handle = ensureHandle(normalizedNumber);
     uint initiatorHandle = 0;
@@ -889,7 +889,9 @@ void oFonoConnection::onOfonoCallAdded(const QString &call, const QVariantMap &p
     qDebug() << "initiatorHandle " <<initiatorHandle;
     qDebug() << "handle" << handle;
 
-    Tp::BaseChannelPtr channel  = ensureChannel(TP_QT_IFACE_CHANNEL_TYPE_CALL, Tp::HandleTypeContact, handle, yours, initiatorHandle, false, &error);
+    QVariantMap hints;
+    hints["ofonoObjPath"] = call;
+    Tp::BaseChannelPtr channel  = ensureChannel(TP_QT_IFACE_CHANNEL_TYPE_CALL, Tp::HandleTypeContact, handle, yours, initiatorHandle, false, hints, &error);
     if (error.isValid() || channel.isNull()) {
         qWarning() << "error creating the channel " << error.name() << error.message();
         return;

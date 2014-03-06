@@ -66,7 +66,7 @@ public:
     QStringList inspectHandles(uint handleType, const Tp::UIntList& handles, Tp::DBusError *error);
     Tp::UIntList requestHandles(uint handleType, const QStringList& identifiers, Tp::DBusError* error);
     Tp::BaseChannelPtr createChannel(const QString& channelType, uint targetHandleType,
-                                     uint targetHandle,  const QVariantMap &hints, Tp::DBusError *error);
+                                     uint targetHandle, const QVariantMap &hints, Tp::DBusError *error);
     Tp::ContactAttributesMap getContactAttributes(const Tp::UIntList &handles, const QStringList &ifaces, Tp::DBusError *error);
     uint setPresence(const QString& status, const QString& statusMessage, Tp::DBusError *error);
     void connect(Tp::DBusError *error);
@@ -91,9 +91,15 @@ public:
     uint ensureHandle(const QString &phoneNumber);
     oFonoTextChannel* textChannelForMembers(const QStringList &members);
     Tp::BaseChannelPtr createTextChannel(uint targetHandleType,
-                                         uint targetHandle,  const QVariantMap &hints, Tp::DBusError *error);
+                                         uint targetHandle, const QVariantMap &hints, Tp::DBusError *error);
     Tp::BaseChannelPtr createCallChannel(uint targetHandleType,
-                                         uint targetHandle,  const QVariantMap &hints, Tp::DBusError *error);
+                                         uint targetHandle, const QVariantMap &hints, Tp::DBusError *error);
+    Tp::BaseChannelPtr ensureChannel(const QString &channelType, uint targetHandleType,
+        uint targetHandle, bool &yours, uint initiatorHandle,
+        bool suppressHandler,
+        const QVariantMap &hints,
+        Tp::DBusError* error);
+
 
     ~oFonoConnection();
 
