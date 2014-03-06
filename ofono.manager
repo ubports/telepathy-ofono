@@ -4,4 +4,5 @@ BusName = org.freedesktop.Telepathy.ConnectionManager.ofono
 ObjectPath = /org/freedesktop/Telepathy/ConnectionManager/ofono
 
 [Protocol ofono]
+param-modem-objpath=s
 
