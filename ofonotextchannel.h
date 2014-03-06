@@ -34,7 +34,7 @@ class oFonoTextChannel : public QObject
 {
     Q_OBJECT
 public:
-    oFonoTextChannel(oFonoConnection *conn, QStringList phoneNumbers, QObject *parent = 0);
+    oFonoTextChannel(oFonoConnection *conn, QStringList phoneNumbers, bool flash = false, QObject *parent = 0);
     QString sendMessage(const Tp::MessagePartList& message, uint flags, Tp::DBusError* error);
     void messageReceived(const QString & message, uint handle, const QVariantMap &info);
     Tp::BaseChannelPtr baseChannel();
@@ -60,9 +60,11 @@ private:
     oFonoConnection *mConnection;
     Tp::BaseChannelMessagesInterfacePtr mMessagesIface;
     Tp::BaseChannelGroupInterfacePtr mGroupIface;
+    Tp::BaseChannelSMSInterfacePtr mSMSIface;
     Tp::BaseChannelTextTypePtr mTextChannel;
     uint mMessageCounter;
     Tp::UIntList mMembers;
+    bool mFlash;
 };
 
 #endif // OFONOTEXTCHANNEL_H

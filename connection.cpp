@@ -234,6 +234,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     plugInterface(Tp::AbstractConnectionInterfacePtr::dynamicCast(contactsIface));
 
     QObject::connect(mOfonoMessageManager, SIGNAL(incomingMessage(QString,QVariantMap)), this, SLOT(onOfonoIncomingMessage(QString,QVariantMap)));
+    QObject::connect(mOfonoMessageManager, SIGNAL(immediateMessage(QString,QVariantMap)), this, SLOT(onOfonoImmediateMessage(QString,QVariantMap)));
     QObject::connect(mOfonoMessageManager, SIGNAL(statusReport(QString,QVariantMap)), this, SLOT(onDeliveryReportReceived(QString,QVariantMap)));
     QObject::connect(mOfonoVoiceCallManager, SIGNAL(callAdded(QString,QVariantMap)), SLOT(onOfonoCallAdded(QString, QVariantMap)));
     QObject::connect(mOfonoVoiceCallManager, SIGNAL(validityChanged(bool)), SLOT(onValidityChanged(bool)));
@@ -573,13 +574,18 @@ Tp::BaseChannelPtr oFonoConnection::createTextChannel(uint targetHandleType,
     Q_UNUSED(targetHandleType);
 
     QStringList phoneNumbers;
+    bool flash = false;
     if (hints.contains(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeHandles"))) {
         phoneNumbers << inspectHandles(Tp::HandleTypeContact, qdbus_cast<Tp::UIntList>(hints[TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeHandles")]), error);
     } else {
         phoneNumbers << mHandles.value(targetHandle);
     }
 
-    oFonoTextChannel *channel = new oFonoTextChannel(this, phoneNumbers);
+    if (hints.contains(TP_QT_IFACE_CHANNEL_INTERFACE_SMS + QLatin1String(".Flash"))) {
+        flash = hints[TP_QT_IFACE_CHANNEL_INTERFACE_SMS + QLatin1String(".Flash")].toBool();
+    }
+
+    oFonoTextChannel *channel = new oFonoTextChannel(this, phoneNumbers, flash);
     mTextChannels << channel;
     QObject::connect(channel, SIGNAL(messageRead(QString)), SLOT(onMessageRead(QString)));
     QObject::connect(channel, SIGNAL(destroyed()), SLOT(onTextChannelClosed()));
@@ -764,6 +770,16 @@ void oFonoConnection::onDeliveryReportReceived(const QString &messageId, const Q
 
 void oFonoConnection::onOfonoIncomingMessage(const QString &message, const QVariantMap &info)
 {
+    ensureTextChannel(message, info, false);
+}
+
+void oFonoConnection::onOfonoImmediateMessage(const QString &message, const QVariantMap &info)
+{
+    ensureTextChannel(message, info, true);
+}
+
+void oFonoConnection::ensureTextChannel(const QString &message, const QVariantMap &info, bool flash)
+{
     const QString normalizedNumber = PhoneUtils::normalizePhoneNumber(info["Sender"].toString());
     // check if there is an open channel for this sender and use it
     oFonoTextChannel *channel = textChannelForMembers(QStringList() << normalizedNumber);
@@ -774,8 +790,10 @@ void oFonoConnection::onOfonoIncomingMessage(const QString &message, const QVari
 
     Tp::DBusError error;
     bool yours;
+    QVariantMap hints;
+    hints[TP_QT_IFACE_CHANNEL_INTERFACE_SMS + QLatin1String(".Flash")] = flash;
     uint handle = newHandle(normalizedNumber);
-    ensureChannel(TP_QT_IFACE_CHANNEL_TYPE_TEXT,Tp::HandleTypeContact, handle, yours, handle, false, QVariantMap(), &error);
+    ensureChannel(TP_QT_IFACE_CHANNEL_TYPE_TEXT,Tp::HandleTypeContact, handle, yours, handle, false, hints, &error);
     if(error.isValid()) {
         qWarning() << "Error creating channel for incoming message" << error.name() << error.message();
         return;

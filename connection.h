@@ -115,6 +115,7 @@ public Q_SLOTS:
 
 private Q_SLOTS:
     void onOfonoIncomingMessage(const QString &message, const QVariantMap &info);
+    void onOfonoImmediateMessage(const QString &message, const QVariantMap &info);
     void onOfonoCallAdded(const QString &call, const QVariantMap &properties);
     void onOfonoNetworkRegistrationChanged(const QString &status);
     void onTextChannelClosed();
@@ -138,6 +139,7 @@ private Q_SLOTS:
 private:
     bool isNetworkRegistered();
     void addMMSToService(const QString &path, const QVariantMap &properties, const QString &servicePath);
+    void ensureTextChannel(const QString &message, const QVariantMap &info, bool flash);
     QMap<uint, QString> mHandles;
 
     QList<oFonoTextChannel*> mTextChannels;
