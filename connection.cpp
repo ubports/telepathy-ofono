@@ -142,7 +142,6 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     mOfonoNetworkRegistration(new OfonoNetworkRegistration(OfonoModem::AutomaticSelect, "")),
     mOfonoMessageWaiting(new OfonoMessageWaiting(OfonoModem::AutomaticSelect, "")),
     mHandleCount(0),
-    mRegisterTimer(new QTimer(this)),
     mMmsdManager(new MMSDManager(this)),
     mSpeakerMode(false)
 {
@@ -237,8 +236,6 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     QObject::connect(mOfonoNetworkRegistration, SIGNAL(statusChanged(QString)), SLOT(onOfonoNetworkRegistrationChanged(QString)));
     QObject::connect(mOfonoMessageWaiting, SIGNAL(voicemailMessageCountChanged(int)), voicemailIface.data(), SLOT(setVoicemailCount(int)));
     QObject::connect(mOfonoMessageWaiting, SIGNAL(voicemailWaitingChanged(bool)), voicemailIface.data(), SLOT(setVoicemailIndicator(bool)));
-
-    QObject::connect(mRegisterTimer, SIGNAL(timeout()), SLOT(onTryRegister()));
 
     QObject::connect(mMmsdManager, SIGNAL(serviceAdded(const QString&)), SLOT(onMMSDServiceAdded(const QString&)));
     QObject::connect(mMmsdManager, SIGNAL(serviceRemoved(const QString&)), SLOT(onMMSDServiceRemoved(const QString&)));
@@ -395,29 +392,10 @@ oFonoConnection::~oFonoConnection() {
     mOfonoVoiceCallManager->deleteLater();
     mOfonoCallVolume->deleteLater();
     mOfonoNetworkRegistration->deleteLater();
-    mRegisterTimer->deleteLater();
     Q_FOREACH(MMSDService *service, mMmsdServices) {
         onMMSDServiceRemoved(service->path());
     }
    
-}
-
-void oFonoConnection::onTryRegister()
-{
-    bool networkRegistered = isNetworkRegistered();
-    if (networkRegistered) {
-        setOnline(networkRegistered);
-        mRegisterTimer->stop();
-        return;
-    }
-
-    // if we have modem, check if it is online
-    OfonoModem *modem = mOfonoNetworkRegistration->modem();
-    if (modem) {
-        if (!modem->online()) {
-            modem->setOnline(true);
-        }
-    }
 }
 
 bool oFonoConnection::isNetworkRegistered()
@@ -437,9 +415,6 @@ void oFonoConnection::onOfonoNetworkRegistrationChanged(const QString &status)
     qDebug() << "onOfonoNetworkRegistrationChanged" << status << "is network registered: " << isNetworkRegistered();
     if (!isNetworkRegistered() && mRequestedSelfPresence.type == Tp::ConnectionPresenceTypeAvailable) {
         setOnline(false);
-        onTryRegister();
-        mRegisterTimer->setInterval(OFONO_REGISTER_RETRY_TIME);
-        mRegisterTimer->start();
         return;
     }
     setOnline(isNetworkRegistered());
@@ -450,11 +425,10 @@ uint oFonoConnection::setPresence(const QString& status, const QString& statusMe
     qDebug() << "setPresence" << status;
     if (status == "available") {
         mRequestedSelfPresence.type = Tp::ConnectionPresenceTypeAvailable;
-        if (!isNetworkRegistered()) {
-            onTryRegister();
-            mRegisterTimer->setInterval(OFONO_REGISTER_RETRY_TIME);
-            mRegisterTimer->start();
-        }
+    }
+    if(!mOfonoNetworkRegistration->modem() ||!mOfonoNetworkRegistration->modem()->online() || !isNetworkRegistered()) {
+        // this prevents tp-qt to propagate the available status
+        error->set(TP_QT_ERROR_NETWORK_ERROR, "Modem is offline");
     }
     return selfHandle();
 }
@@ -481,10 +455,8 @@ void oFonoConnection::onValidityChanged(bool valid)
     QObject::connect(mOfonoVoiceCallManager->modem(), SIGNAL(onlineChanged(bool)), SLOT(onValidityChanged(bool)));
     if (!isNetworkRegistered() && mRequestedSelfPresence.type == Tp::ConnectionPresenceTypeAvailable) {
         setOnline(false);
-        onTryRegister();
-        mRegisterTimer->setInterval(OFONO_REGISTER_RETRY_TIME);
-        mRegisterTimer->start();
     }
+    setOnline(isNetworkRegistered());
 }
 
 void oFonoConnection::setOnline(bool online)
