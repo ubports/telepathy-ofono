@@ -16,8 +16,8 @@
  * Authors: Tiago Salem Herrmann <tiago.herrmann@canonical.com>
  */
 
-#ifndef OFONOCALLCHANNEL_H
-#define OFONOCALLCHANNEL_H
+#ifndef OFONOCONFERENCECALLCHANNEL_H
+#define OFONOCONFERENCECALLCHANNEL_H
 
 #include <QObject>
 
@@ -33,59 +33,49 @@
 
 class oFonoConnection;
 
-class oFonoCallChannel : public OfonoVoiceCall
+class oFonoConferenceCallChannel : public QObject
 {
     Q_OBJECT
 public:
-    oFonoCallChannel(oFonoConnection *conn, QString phoneNumber, uint targetHandle, QString voiceObj, QObject *parent = 0);
-    ~oFonoCallChannel();
-    Tp::BaseChannelPtr baseChannel();
+    oFonoConferenceCallChannel(oFonoConnection *conn, QObject *parent = 0);
+    ~oFonoConferenceCallChannel();
 
     void onHangup(uint reason, const QString &detailedReason, const QString &message, Tp::DBusError* error);
-    void onAccept(Tp::DBusError*);
     void onMuteStateChanged(const Tp::LocalMuteState &state, Tp::DBusError *error);
     void onHoldStateChanged(const Tp::LocalHoldState &state, const Tp::LocalHoldStateReason &reason, Tp::DBusError *error);
     void onDTMFStartTone(uchar event, Tp::DBusError *error);
     void onDTMFStopTone(Tp::DBusError *error);
     void onTurnOnSpeaker(bool active, Tp::DBusError *error);
-    void onSplit(Tp::DBusError *error);
-    Tp::CallState callState();
-
-Q_SIGNALS:
-    void splitted();
-    void merged();
-    void closed();
-    void multipartyCallHeld();
-    void multipartyCallActive();
+    void onMerge(const QDBusObjectPath &channel, Tp::DBusError *error);
+    Tp::BaseChannelPtr baseChannel();
+    void setConferenceActive(bool active);
 
 private Q_SLOTS:
-    void onOfonoCallStateChanged(const QString &state);
     void onDtmfComplete(bool success);
     void sendNextDtmf();
     void init();
 
     void onOfonoMuteChanged(bool mute);
-    void onMultipartyChanged(bool multiparty);
+    void onChannelMerged(const QDBusObjectPath &path);
+    void onChannelSplitted(const QDBusObjectPath &path);
 
 private:
     QString mObjPath;
     QString mPreviousState;
     bool mIncoming;
     bool mRequestedHangup;
-    Tp::BaseChannelPtr mBaseChannel;
-    QString mPhoneNumber;
     oFonoConnection *mConnection;
-    uint mTargetHandle;
+    QList<QDBusObjectPath> mCallChannels;
+    Tp::BaseChannelPtr mBaseChannel;
     Tp::BaseChannelHoldInterfacePtr mHoldIface;
-    Tp::BaseChannelSplittableInterfacePtr mSplittableIface;
+    Tp::BaseChannelConferenceInterfacePtr mConferenceIface;
+    Tp::BaseChannelMergeableConferenceInterfacePtr mMergeableIface;
     Tp::BaseCallMuteInterfacePtr mMuteIface;
     BaseChannelSpeakerInterfacePtr mSpeakerIface;
     Tp::BaseChannelCallTypePtr mCallChannel;
     Tp::BaseCallContentDTMFInterfacePtr mDTMFIface;
-    Tp::BaseCallContentPtr mCallContent;
     bool mDtmfLock;
     QStringList mDtmfPendingStrings;
-    bool mMultiparty;
 };
 
-#endif // OFONOCALLCHANNEL_H
+#endif // OFONOCONFERENCECALLCHANNEL_H

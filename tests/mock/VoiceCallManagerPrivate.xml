@@ -43,6 +43,13 @@
     <method name="SendTones">
       <arg name="tones" type="s" direction="in"/>
     </method>
+    <method name="CreateMultiparty">
+      <arg type="ao" direction="out"/>
+    </method>
+    <method name="PrivateChat">
+      <arg type="ao" direction="out"/>
+      <arg name="call" type="o" direction="in"/>
+    </method>
     <method name="MockFailNextDtmf">
     </method>
   </interface>

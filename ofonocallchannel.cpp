@@ -29,7 +29,8 @@ oFonoCallChannel::oFonoCallChannel(oFonoConnection *conn, QString phoneNumber, u
     mConnection(conn),
     mPhoneNumber(phoneNumber),
     mTargetHandle(targetHandle),
-    mDtmfLock(false)
+    mDtmfLock(false),
+    mMultiparty(false)
     
 {
     Tp::BaseChannelPtr baseChannel = Tp::BaseChannel::create(mConnection, TP_QT_IFACE_CHANNEL_TYPE_CALL, targetHandle, Tp::HandleTypeContact);
@@ -49,9 +50,13 @@ oFonoCallChannel::oFonoCallChannel(oFonoConnection *conn, QString phoneNumber, u
     mSpeakerIface = BaseChannelSpeakerInterface::create();
     mSpeakerIface->setTurnOnSpeakerCallback(Tp::memFun(this,&oFonoCallChannel::onTurnOnSpeaker));
 
+    mSplittableIface = Tp::BaseChannelSplittableInterface::create();
+    mSplittableIface->setSplitCallback(Tp::memFun(this,&oFonoCallChannel::onSplit));
+
     baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mHoldIface));
     baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mMuteIface));
     baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mSpeakerIface));
+    baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mSplittableIface));
 
     mBaseChannel = baseChannel;
     mCallChannel = Tp::BaseChannelCallTypePtr::dynamicCast(mBaseChannel->interface(TP_QT_IFACE_CHANNEL_TYPE_CALL));
@@ -61,6 +66,16 @@ oFonoCallChannel::oFonoCallChannel(oFonoConnection *conn, QString phoneNumber, u
 
     // init must be called after initialization, otherwise we will have no object path registered.
     QTimer::singleShot(0, this, SLOT(init()));
+}
+
+Tp::CallState oFonoCallChannel::callState()
+{
+    return (Tp::CallState)mCallChannel->callState();
+}
+
+void oFonoCallChannel::onSplit(Tp::DBusError *error)
+{
+    mConnection->voiceCallManager()->privateChat(path());
 }
 
 void oFonoCallChannel::onTurnOnSpeaker(bool active, Tp::DBusError *error)
@@ -87,6 +102,7 @@ void oFonoCallChannel::onAccept(Tp::DBusError*)
 void oFonoCallChannel::init()
 {
     mIncoming = this->state() == "incoming" || this->state() == "waiting";
+    mMultiparty = this->multiparty();
     mPreviousState = this->state();
     mObjPath = mBaseChannel->objectPath();
 
@@ -125,8 +141,20 @@ void oFonoCallChannel::init()
     QObject::connect(this, SIGNAL(stateChanged(QString)), SLOT(onOfonoCallStateChanged(QString)));
     QObject::connect(mConnection, SIGNAL(speakerModeChanged(bool)), mSpeakerIface.data(), SLOT(setSpeakerMode(bool)));
     QObject::connect(mConnection->voiceCallManager(), SIGNAL(sendTonesComplete(bool)), SLOT(onDtmfComplete(bool)));
+    QObject::connect(this, SIGNAL(multipartyChanged(bool)), this, SLOT(onMultipartyChanged(bool)));
 
     mSpeakerIface->setSpeakerMode(mConnection->speakerMode());
+}
+
+void oFonoCallChannel::onMultipartyChanged(bool multiparty)
+{
+    // if previous state was multparty then split
+    if (multiparty) {
+        Q_EMIT merged();
+    } else {
+        Q_EMIT splitted();
+    }
+    mMultiparty = multiparty;
 }
 
 void oFonoCallChannel::onOfonoMuteChanged(bool mute)
@@ -248,10 +276,14 @@ void oFonoCallChannel::onOfonoCallStateChanged(const QString &state)
             reason.reason = Tp::CallStateChangeReasonNoAnswer;
         }
         mCallChannel->setCallState(Tp::CallStateEnded, 0, reason, stateDetails);
+        Q_EMIT closed();
         mBaseChannel->close();
     } else if (state == "active") {
         qDebug() << "active";
         mHoldIface->setHoldState(Tp::LocalHoldStateUnheld, Tp::LocalHoldStateReasonNone);
+        if (mMultiparty) {
+            Q_EMIT multipartyCallActive();
+        }
         if (mPreviousState == "dialing" || mPreviousState == "alerting" || 
                 mPreviousState == "incoming") {
             mConnection->callVolume()->setMuted(false);
@@ -260,6 +292,9 @@ void oFonoCallChannel::onOfonoCallStateChanged(const QString &state)
         mCallChannel->setCallState(Tp::CallStateActive, 0, reason, stateDetails);
     } else if (state == "held") {
         mHoldIface->setHoldState(Tp::LocalHoldStateHeld, Tp::LocalHoldStateReasonNone);
+        if (mMultiparty) {
+            Q_EMIT multipartyCallHeld();
+        }
         qDebug() << "held";
     } else if (state == "dialing") {
         qDebug() << "dialing";
