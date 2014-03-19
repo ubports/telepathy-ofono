@@ -60,8 +60,10 @@ QVariantMap VoiceCallManagerPrivate::GetProperties()
 void VoiceCallManagerPrivate::SetProperty(const QString &name, const QDBusVariant& value)
 {
     qDebug() << "VoiceCallManagerPrivate::SetProperty" << name << value.variant();
-    mProperties[name] = value.variant();
-    Q_EMIT PropertyChanged(name, value);
+    if (mProperties[name] != value.variant()) {
+        mProperties[name] = value.variant();
+        Q_EMIT PropertyChanged(name, value);
+    }
 }
 
 void VoiceCallManagerPrivate::MockFailNextDtmf()
@@ -104,6 +106,49 @@ void VoiceCallManagerPrivate::SwapCalls()
             iface.call("SetProperty", "State", QVariant::fromValue(QDBusVariant("active")));;
         }
     }
+}
+
+QList<QDBusObjectPath> VoiceCallManagerPrivate::CreateMultiparty()
+{
+    QList<QDBusObjectPath> calls;
+
+    if (mVoiceCalls.size() < 2) {
+        return QList<QDBusObjectPath>();
+    }
+    // set everything as active
+    Q_FOREACH(const QString &objPath, mVoiceCalls.keys()) {
+        QDBusInterface iface("org.ofono", objPath, "org.ofono.VoiceCall");
+        iface.call("SetProperty", "State", QVariant::fromValue(QDBusVariant("active")));;
+        iface.call("SetProperty", "Multiparty", QVariant::fromValue(QDBusVariant(true)));;
+        calls << QDBusObjectPath(objPath);
+    }
+    return calls;
+}
+
+QList<QDBusObjectPath> VoiceCallManagerPrivate::PrivateChat(const QDBusObjectPath &objPath)
+{
+    QList<QDBusObjectPath> remainingCalls;
+    Q_FOREACH(const QString &path, mVoiceCalls.keys()) {
+        QDBusInterface iface("org.ofono", objPath.path(), "org.ofono.VoiceCall");
+        if (objPath.path() == path) {
+            iface.call("SetProperty", "State", QVariant::fromValue(QDBusVariant("active")));
+        } else {
+            iface.call("SetProperty", "State", QVariant::fromValue(QDBusVariant("held")));
+            remainingCalls << objPath;
+        }
+    }
+
+    // remove the multiparty call if there are only 2 calls
+    if (mVoiceCalls.size() == 2) {
+        Q_FOREACH(const QString &objPath, mVoiceCalls.keys()) {
+            QDBusInterface iface("org.ofono", objPath, "org.ofono.VoiceCall");
+            iface.call("SetProperty", "Multiparty", QVariant::fromValue(QDBusVariant(false)));;
+        }
+    }
+    if (remainingCalls.size() < 2) {
+        return QList<QDBusObjectPath>();
+    }
+    return remainingCalls;
 }
 
 void VoiceCallManagerPrivate::SendTones(const QString &tones)
