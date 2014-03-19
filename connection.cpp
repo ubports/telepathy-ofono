@@ -137,17 +137,23 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
                             const QVariantMap &parameters) :
     Tp::BaseConnection(dbusConnection, cmName, protocolName, parameters),
     mOfonoModemManager(new OfonoModemManager(this)),
-    mOfonoMessageManager(new OfonoMessageManager(OfonoModem::AutomaticSelect,"")),
-    mOfonoVoiceCallManager(new OfonoVoiceCallManager(OfonoModem::AutomaticSelect,"")),
-    mOfonoCallVolume(new OfonoCallVolume(OfonoModem::AutomaticSelect,"")),
-    mOfonoNetworkRegistration(new OfonoNetworkRegistration(OfonoModem::AutomaticSelect, "")),
-    mOfonoMessageWaiting(new OfonoMessageWaiting(OfonoModem::AutomaticSelect, "")),
     mHandleCount(0),
     mRegisterTimer(new QTimer(this)),
     mMmsdManager(new MMSDManager(this)),
     mSpeakerMode(false),
     mConferenceCall(NULL)
 {
+    OfonoModem::SelectionSetting setting = OfonoModem::AutomaticSelect;
+    QString modemPath = parameters["modem-objpath"].toString();
+    if (!modemPath.isEmpty()) {
+        setting = OfonoModem::ManualSelect;
+    }
+    mOfonoMessageManager = new OfonoMessageManager(setting, modemPath);
+    mOfonoVoiceCallManager = new OfonoVoiceCallManager(setting, modemPath);
+    mOfonoCallVolume = new OfonoCallVolume(setting, modemPath);
+    mOfonoNetworkRegistration = new OfonoNetworkRegistration(setting, modemPath);
+    mOfonoMessageWaiting = new OfonoMessageWaiting(setting, modemPath);
+
     setSelfHandle(newHandle("<SelfHandle>"));
 
     setConnectCallback(Tp::memFun(this,&oFonoConnection::connect));
