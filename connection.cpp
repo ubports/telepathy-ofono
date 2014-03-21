@@ -199,6 +199,8 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     supplementaryServicesIface->setInitiateCallback(Tp::memFun(this,&oFonoConnection::USSDInitiate));
     supplementaryServicesIface->setRespondCallback(Tp::memFun(this,&oFonoConnection::USSDRespond));
     supplementaryServicesIface->setCancelCallback(Tp::memFun(this,&oFonoConnection::USSDCancel));
+    supplementaryServicesIface->StateChanged(mOfonoSupplementaryServices->state());
+    plugInterface(Tp::AbstractConnectionInterfacePtr::dynamicCast(supplementaryServicesIface));
 
     // Set Presence
     Tp::SimpleStatusSpec presenceOnline;

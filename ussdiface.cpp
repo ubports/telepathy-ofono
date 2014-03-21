@@ -174,6 +174,17 @@ void BaseConnectionUSSDInterface::InitiateFailed()
     Q_EMIT mPriv->adaptee->initiateFailed();
 }
 
+void BaseConnectionUSSDInterface::NotificationReceived(const QString &message)
+{
+    Q_EMIT mPriv->adaptee->notificationReceived(message);
+}
+
+void BaseConnectionUSSDInterface::RequestReceived(const QString &message)
+{
+    Q_EMIT mPriv->adaptee->requestReceived(message);
+}
+
+
 QVariantMap BaseConnectionUSSDInterface::immutableProperties() const
 {
     QVariantMap map;

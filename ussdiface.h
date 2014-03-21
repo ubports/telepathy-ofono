@@ -58,6 +58,12 @@ public:
     typedef Tp::Callback1<void, Tp::DBusError*> CancelCallback;
     void setCancelCallback(const CancelCallback &cb);
 
+    QString state() const;
+
+public Q_SLOTS:
+    void NotificationReceived(const QString &message);
+    void RequestReceived(const QString &message);
+
     void InitiateUSSDComplete(const QString &ussdResp);
     void BarringComplete(const QString &ssOp, const QString &cbService, const QVariantMap &cbMap);
     void ForwardingComplete(const QString &ssOp, const QString &cfService, const QVariantMap &cfMap);
@@ -68,8 +74,6 @@ public:
     void ConnectedLineRestrictionComplete(const QString &ssOp, const QString &status);
     void InitiateFailed();
     void StateChanged(const QString &state);
-
-    QString state() const;
 
 protected:
     BaseConnectionUSSDInterface();
@@ -93,11 +97,12 @@ class TP_QT_EXPORT ConnectionInterfaceUSSDAdaptor : public Tp::AbstractAdaptor
 "  <interface name=\"com.canonical.Telephony.USSD\">\n"
 "    <property access=\"read\" type=\"s\" name=\"State\"/>\n"
 "    <method name=\"Initiate\">\n"
+"      <arg direction=\"in\" type=\"s\" name=\"command\"/>\n"
 "    </method>\n"
 "    <method name=\"Respond\">\n"
+"      <arg direction=\"in\" type=\"s\" name=\"reply\"/>\n"
 "    </method>\n"
-"    <method name=\"Cancel\">\n"
-"    </method>\n"
+"    <method name=\"Cancel\" />\n"
 "    <signal name=\"NotificationReceived\">\n"
 "      <arg type=\"s\" name=\"message\"/>\n"
 "    </signal>\n"
@@ -111,6 +116,7 @@ class TP_QT_EXPORT ConnectionInterfaceUSSDAdaptor : public Tp::AbstractAdaptor
 "      <arg type=\"s\" name=\"ssOp\"/>\n"
 "      <arg type=\"s\" name=\"cbService\"/>\n"
 "      <arg type=\"a{sv}\" name=\"cbMap\"/>\n"
+"    </signal>\n"
 "    <signal name=\"ForwardingComplete\">\n"
 "      <arg type=\"s\" name=\"ssOp\"/>\n"
 "      <arg type=\"s\" name=\"cfService\"/>\n"
@@ -136,8 +142,7 @@ class TP_QT_EXPORT ConnectionInterfaceUSSDAdaptor : public Tp::AbstractAdaptor
 "      <arg type=\"s\" name=\"ssOp\"/>\n"
 "      <arg type=\"s\" name=\"status\"/>\n"
 "    </signal>\n"
-"    <signal name=\"InitiateFailed\">\n"
-"    </signal>\n"
+"    <signal name=\"InitiateFailed\" />\n"
 "    <signal name=\"StateChanged\">\n"
 "      <arg type=\"s\" name=\"state\"/>\n"
 "    </signal>\n"
