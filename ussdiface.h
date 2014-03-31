@@ -65,6 +65,7 @@ public Q_SLOTS:
     void RequestReceived(const QString &message);
 
     void InitiateUSSDComplete(const QString &ussdResp);
+    void RespondComplete(bool success, const QString &ussdResp);
     void BarringComplete(const QString &ssOp, const QString &cbService, const QVariantMap &cbMap);
     void ForwardingComplete(const QString &ssOp, const QString &cfService, const QVariantMap &cfMap);
     void WaitingComplete(const QString &ssOp, const QVariantMap &cwMap);
@@ -110,6 +111,10 @@ class TP_QT_EXPORT ConnectionInterfaceUSSDAdaptor : public Tp::AbstractAdaptor
 "      <arg type=\"s\" name=\"message\"/>\n"
 "    </signal>\n"
 "    <signal name=\"InitiateUSSDComplete\">\n"
+"      <arg type=\"s\" name=\"response\"/>\n"
+"    </signal>\n"
+"    <signal name=\"RespondComplete\">\n"
+"      <arg type=\"b\" name=\"success\"/>\n"
 "      <arg type=\"s\" name=\"response\"/>\n"
 "    </signal>\n"
 "    <signal name=\"BarringComplete\">\n"
@@ -170,6 +175,7 @@ Q_SIGNALS: // SIGNALS
     void RequestReceived(const QString &message);
 
     void InitiateUSSDComplete(const QString &ussdResp);
+    void RespondComplete(bool success, const QString &ussdResp);
     void BarringComplete(const QString &ssOp, const QString &cbService, const QVariantMap &cbMap);
     void ForwardingComplete(const QString &ssOp, const QString &cfService, const QVariantMap &cfMap);
     void WaitingComplete(const QString &ssOp, const QVariantMap &cwMap);
@@ -214,6 +220,7 @@ Q_SIGNALS:
     void callingLineRestrictionComplete(const QString &ssOp, const QString &status);
     void connectedLineRestrictionComplete(const QString &ssOp, const QString &status);
     void initiateFailed();
+    void respondComplete(bool success, const QString &response);
 
     void stateChanged(const QString &state);
 

@@ -134,6 +134,11 @@ void BaseConnectionUSSDInterface::InitiateUSSDComplete(const QString &ussdResp)
     Q_EMIT mPriv->adaptee->initiateUSSDComplete(ussdResp);
 }
 
+void BaseConnectionUSSDInterface::RespondComplete(bool success, const QString &ussdResp)
+{
+    Q_EMIT mPriv->adaptee->respondComplete(success, ussdResp);
+}
+
 void BaseConnectionUSSDInterface::BarringComplete(const QString &ssOp, const QString &cbService, const QVariantMap &cbMap)
 {
     Q_EMIT mPriv->adaptee->barringComplete(ssOp, cbService, cbMap);
@@ -230,6 +235,8 @@ ConnectionInterfaceUSSDAdaptor::ConnectionInterfaceUSSDAdaptor(const QDBusConnec
     connect(adaptee, SIGNAL(initiateFailed()), SIGNAL(InitiateFailed()));
 
     connect(adaptee, SIGNAL(stateChanged(const QString&)), SIGNAL(StateChanged(const QString&)));
+
+    connect(adaptee, SIGNAL(respondComplete(bool, const QString &)), SIGNAL(RespondComplete(bool, const QString &)));
 }
 
 ConnectionInterfaceUSSDAdaptor::~ConnectionInterfaceUSSDAdaptor()

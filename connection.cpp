@@ -285,6 +285,8 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
 
     QObject::connect(mOfonoSupplementaryServices, SIGNAL(stateChanged(const QString&)), supplementaryServicesIface.data(), SLOT(StateChanged(const QString&)));
 
+    QObject::connect(mOfonoSupplementaryServices, SIGNAL(respondComplete(bool, const QString &)), supplementaryServicesIface.data(), SLOT(RespondComplete(bool, const QString &)));
+
     // workaround: we can't add services here as tp-ofono interfaces are not exposed on dbus
     // todo: use QDBusServiceWatcher
     QTimer::singleShot(1000, this, SLOT(onCheckMMSServices()));
