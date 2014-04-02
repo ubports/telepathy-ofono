@@ -58,7 +58,10 @@ public:
     typedef Tp::Callback1<void, Tp::DBusError*> CancelCallback;
     void setCancelCallback(const CancelCallback &cb);
 
+
     QString state() const;
+    QString serial() const;
+    void setSerial(const QString& serial) const;
 
 public Q_SLOTS:
     void NotificationReceived(const QString &message);
@@ -97,6 +100,7 @@ class TP_QT_EXPORT ConnectionInterfaceUSSDAdaptor : public Tp::AbstractAdaptor
     Q_CLASSINFO("D-Bus Introspection", ""
 "  <interface name=\"com.canonical.Telephony.USSD\">\n"
 "    <property access=\"read\" type=\"s\" name=\"State\"/>\n"
+"    <property access=\"read\" type=\"s\" name=\"Serial\"/>\n"
 "    <method name=\"Initiate\">\n"
 "      <arg direction=\"in\" type=\"s\" name=\"command\"/>\n"
 "    </method>\n"
@@ -154,6 +158,7 @@ class TP_QT_EXPORT ConnectionInterfaceUSSDAdaptor : public Tp::AbstractAdaptor
 "  </interface>\n"
 "")
     Q_PROPERTY(QString State READ State)
+    Q_PROPERTY(QString Serial READ Serial)
 
 public:
     ConnectionInterfaceUSSDAdaptor(const QDBusConnection& dbusConnection, QObject* adaptee, QObject* parent);
@@ -169,6 +174,7 @@ public Q_SLOTS: // METHODS
     void Cancel(const QDBusMessage& dbusMessage);
 
     QString State() const;
+    QString Serial() const;
 
 Q_SIGNALS: // SIGNALS
     void NotificationReceived(const QString &message);
@@ -193,6 +199,7 @@ class TP_QT_NO_EXPORT BaseConnectionUSSDInterface::Adaptee : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QString state READ state)
+    Q_PROPERTY(QString serial READ serial)
 
 public:
     Adaptee(BaseConnectionUSSDInterface *interface);
@@ -201,6 +208,11 @@ public:
     {
         return mInterface->state();
     }
+    QString serial() const
+    {
+        return mInterface->serial();
+    }
+
 
 private Q_SLOTS:
     void initiate(const QString &command, const ConnectionInterfaceUSSDAdaptor::InitiateContextPtr &context);

@@ -36,6 +36,7 @@ struct TP_QT_NO_EXPORT BaseConnectionUSSDInterface::Private {
         : adaptee(new BaseConnectionUSSDInterface::Adaptee(parent)) {
     }
     QString state;
+    QString serial;
     InitiateCallback initiateCB;
     RespondCallback respondCB;
     CancelCallback cancelCB;
@@ -91,7 +92,6 @@ void BaseConnectionUSSDInterface::Adaptee::cancel(const ConnectionInterfaceUSSDA
     context->setFinished();
 }
 
-
 BaseConnectionUSSDInterface::BaseConnectionUSSDInterface()
     : AbstractConnectionInterface(TP_QT_IFACE_CONNECTION_USSD),
       mPriv(new Private(this))
@@ -121,6 +121,17 @@ void BaseConnectionUSSDInterface::setCancelCallback(const CancelCallback &cb)
 QString BaseConnectionUSSDInterface::state() const
 {
     return mPriv->state;
+}
+
+void BaseConnectionUSSDInterface::setSerial(const QString &serial) const
+{
+    mPriv->serial = serial;
+}
+
+
+QString BaseConnectionUSSDInterface::serial() const
+{
+    return mPriv->serial;
 }
 
 void BaseConnectionUSSDInterface::StateChanged(const QString &state)
@@ -286,6 +297,12 @@ void ConnectionInterfaceUSSDAdaptor::Cancel(const QDBusMessage& dbusMessage)
         Q_ARG(ConnectionInterfaceUSSDAdaptor::CancelContextPtr, ctx));
     return;
 }
+
+QString ConnectionInterfaceUSSDAdaptor::Serial() const
+{
+    return qvariant_cast< QString >(adaptee()->property("serial"));
+}
+
 
 QString ConnectionInterfaceUSSDAdaptor::State() const
 {

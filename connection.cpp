@@ -209,6 +209,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     supplementaryServicesIface->setRespondCallback(Tp::memFun(this,&oFonoConnection::USSDRespond));
     supplementaryServicesIface->setCancelCallback(Tp::memFun(this,&oFonoConnection::USSDCancel));
     supplementaryServicesIface->StateChanged(mOfonoSupplementaryServices->state());
+    supplementaryServicesIface->setSerial(mOfonoSupplementaryServices->modem()->serial());
     plugInterface(Tp::AbstractConnectionInterfacePtr::dynamicCast(supplementaryServicesIface));
 
     // Set Presence
@@ -234,6 +235,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     if (mOfonoVoiceCallManager->modem()) {
         validModem = mOfonoVoiceCallManager->modem()->isValid();
         if (validModem) {
+            supplementaryServicesIface->setSerial(mOfonoSupplementaryServices->modem()->serial());
             QObject::connect(mOfonoVoiceCallManager->modem(), SIGNAL(onlineChanged(bool)), SLOT(onValidityChanged(bool)));
         }
     }
@@ -533,6 +535,7 @@ void oFonoConnection::onValidityChanged(bool valid)
     qDebug() << "validityChanged" << valid << "is network registered: " << isNetworkRegistered() << mRequestedSelfPresence.type;
     QObject::disconnect(mOfonoVoiceCallManager->modem(), 0,0,0);
     QObject::connect(mOfonoVoiceCallManager->modem(), SIGNAL(onlineChanged(bool)), SLOT(onValidityChanged(bool)));
+    supplementaryServicesIface->setSerial(mOfonoSupplementaryServices->modem()->serial());
     if (!isNetworkRegistered() && mRequestedSelfPresence.type == Tp::ConnectionPresenceTypeAvailable) {
         setOnline(false);
         onTryRegister();
