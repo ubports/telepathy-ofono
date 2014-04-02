@@ -153,6 +153,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     mOfonoCallVolume = new OfonoCallVolume(setting, modemPath);
     mOfonoNetworkRegistration = new OfonoNetworkRegistration(setting, modemPath);
     mOfonoMessageWaiting = new OfonoMessageWaiting(setting, modemPath);
+    mOfonoSupplementaryServices = new OfonoSupplementaryServices(setting, modemPath);
 
     setSelfHandle(newHandle("<SelfHandle>"));
 
