@@ -88,6 +88,7 @@ set(TELEPATHY_OFONO_SRC
    connection.cpp
    ofonotextchannel.cpp
    ofonocallchannel.cpp
+   ofonoconferencecallchannel.cpp
    voicemailiface.cpp
    speakeriface.cpp
    mmsdmanager.cpp

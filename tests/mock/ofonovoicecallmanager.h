@@ -73,7 +73,7 @@ public Q_SLOTS:
     void releaseAndAnswer();
     void holdAndAnswer();
     void privateChat(const QString &path);
-    void createMultiparty();
+    QList<QDBusObjectPath> createMultiparty();
     void hangupMultiparty();
 
 Q_SIGNALS:

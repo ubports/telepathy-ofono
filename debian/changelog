@@ -1,3 +1,17 @@
+telepathy-ofono (0.2+14.04.20140319-0ubuntu1) trusty; urgency=low
+
+  [ Tiago Salem Herrmann ]
+  * Add support for conference calls. .
+  * Add support for multiple modems.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Wed, 19 Mar 2014 02:36:43 +0000
+
+telepathy-ofono (0.2+14.04.20140307-0ubuntu1) trusty; urgency=low
+
+  * New rebuild forced
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Fri, 07 Mar 2014 10:44:28 +0000
+
 telepathy-ofono (0.2+14.04.20140228-0ubuntu1) trusty; urgency=low
 
   [ Tiago Salem Herrmann ]

@@ -47,6 +47,8 @@ public Q_SLOTS:
     QMap<QDBusObjectPath, QVariantMap> GetCalls();
     void SwapCalls();
     void SendTones(const QString &tones);
+    QList<QDBusObjectPath> CreateMultiparty();
+    QList<QDBusObjectPath> PrivateChat(const QDBusObjectPath &path);
 private:
     QVariantMap mProperties;
     QMap<QString, OfonoVoiceCall*> mVoiceCalls;

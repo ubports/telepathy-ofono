@@ -29,6 +29,7 @@
 #include "connection.h"
 #include "phoneutils_p.h"
 #include "protocol.h"
+#include "ofonoconferencecallchannel.h"
 
 #include "mmsdmessage.h"
 #include "mmsdservice.h"
@@ -136,17 +137,23 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
                             const QVariantMap &parameters) :
     Tp::BaseConnection(dbusConnection, cmName, protocolName, parameters),
     mOfonoModemManager(new OfonoModemManager(this)),
-    mOfonoMessageManager(new OfonoMessageManager(OfonoModem::AutomaticSelect,"")),
-    mOfonoVoiceCallManager(new OfonoVoiceCallManager(OfonoModem::AutomaticSelect,"")),
-    mOfonoCallVolume(new OfonoCallVolume(OfonoModem::AutomaticSelect,"")),
-    mOfonoNetworkRegistration(new OfonoNetworkRegistration(OfonoModem::AutomaticSelect, "")),
-    mOfonoMessageWaiting(new OfonoMessageWaiting(OfonoModem::AutomaticSelect, "")),
-    mOfonoSupplementaryServices(new OfonoSupplementaryServices(OfonoModem::AutomaticSelect, "")),
     mHandleCount(0),
     mRegisterTimer(new QTimer(this)),
     mMmsdManager(new MMSDManager(this)),
-    mSpeakerMode(false)
+    mSpeakerMode(false),
+    mConferenceCall(NULL)
 {
+    OfonoModem::SelectionSetting setting = OfonoModem::AutomaticSelect;
+    QString modemPath = parameters["modem-objpath"].toString();
+    if (!modemPath.isEmpty()) {
+        setting = OfonoModem::ManualSelect;
+    }
+    mOfonoMessageManager = new OfonoMessageManager(setting, modemPath);
+    mOfonoVoiceCallManager = new OfonoVoiceCallManager(setting, modemPath);
+    mOfonoCallVolume = new OfonoCallVolume(setting, modemPath);
+    mOfonoNetworkRegistration = new OfonoNetworkRegistration(setting, modemPath);
+    mOfonoMessageWaiting = new OfonoMessageWaiting(setting, modemPath);
+
     setSelfHandle(newHandle("<SelfHandle>"));
 
     setConnectCallback(Tp::memFun(this,&oFonoConnection::connect));
@@ -178,6 +185,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     call.allowedProperties.append(TP_QT_IFACE_CHANNEL_TYPE_CALL+".InitialVideoName");
     call.allowedProperties.append(TP_QT_IFACE_CHANNEL_TYPE_CALL+".InitialTransport");
     call.allowedProperties.append(TP_QT_IFACE_CHANNEL_TYPE_CALL+".HardwareStreaming");
+    call.allowedProperties.append(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialChannels"));
 
     requestsIface->requestableChannelClasses << text << call;
 
@@ -290,6 +298,11 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     // workaround: we can't add services here as tp-ofono interfaces are not exposed on dbus
     // todo: use QDBusServiceWatcher
     QTimer::singleShot(1000, this, SLOT(onCheckMMSServices()));
+}
+
+QMap<QString, oFonoCallChannel*> oFonoConnection::callChannels()
+{
+    return mCallChannels;
 }
 
 void oFonoConnection::onCheckMMSServices()
@@ -633,6 +646,13 @@ void oFonoConnection::onMessageRead(const QString &id)
     }
 }
 
+void oFonoConnection::onConferenceCallChannelClosed()
+{
+    if (mConferenceCall) {
+        mConferenceCall = NULL;
+    }
+}
+
 Tp::BaseChannelPtr oFonoConnection::createCallChannel(uint targetHandleType,
                                                uint targetHandle, const QVariantMap &hints, Tp::DBusError *error)
 {
@@ -640,6 +660,24 @@ Tp::BaseChannelPtr oFonoConnection::createCallChannel(uint targetHandleType,
 
     bool success = true;
     QString newPhoneNumber = mHandles.value(targetHandle);
+
+    if (hints.contains(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialChannels")) &&
+        targetHandleType == Tp::HandleTypeNone && targetHandle == 0) {
+        // conference call request
+        if (mConferenceCall) {
+            error->set(TP_QT_ERROR_NOT_AVAILABLE, "Conference call already exists");
+            return Tp::BaseChannelPtr();
+        }
+         
+        QList<QDBusObjectPath> channels = mOfonoVoiceCallManager->createMultiparty();
+        if (!channels.isEmpty()) {
+            mConferenceCall = new oFonoConferenceCallChannel(this);
+            QObject::connect(mConferenceCall, SIGNAL(destroyed()), SLOT(onConferenceCallChannelClosed()));
+            return mConferenceCall->baseChannel();
+        }
+        error->set(TP_QT_ERROR_NOT_AVAILABLE, "Impossible to merge calls");
+        return Tp::BaseChannelPtr();
+    }
 
     Q_FOREACH(const QString &phoneNumber, mCallChannels.keys()) {
         if (PhoneUtils::comparePhoneNumbers(phoneNumber, newPhoneNumber)) {
@@ -677,12 +715,54 @@ Tp::BaseChannelPtr oFonoConnection::createCallChannel(uint targetHandleType,
         return Tp::BaseChannelPtr();
     }
 
-    mCallChannels[newPhoneNumber] = new oFonoCallChannel(this, newPhoneNumber, targetHandle,objpath.path());
-    QObject::connect(mCallChannels[newPhoneNumber], SIGNAL(destroyed()), SLOT(onCallChannelClosed()));
-    qDebug() << mCallChannels[newPhoneNumber];
-    return mCallChannels[newPhoneNumber]->baseChannel();
-
+    oFonoCallChannel *channel = new oFonoCallChannel(this, newPhoneNumber, targetHandle,objpath.path());
+    mCallChannels[newPhoneNumber] = channel;
+    QObject::connect(channel, SIGNAL(destroyed()), SLOT(onCallChannelDestroyed()));
+    QObject::connect(channel, SIGNAL(closed()), SLOT(onCallChannelClosed()));
+    QObject::connect(channel, SIGNAL(merged()), SLOT(onCallChannelMerged()));
+    QObject::connect(channel, SIGNAL(splitted()), SLOT(onCallChannelSplitted()));
+    QObject::connect(channel, SIGNAL(multipartyCallHeld()), SLOT(onMultipartyCallHeld()));
+    QObject::connect(channel, SIGNAL(multipartyCallActive()), SLOT(onMultipartyCallActive()));
+    qDebug() << channel;
+    return channel->baseChannel();
 }
+
+void oFonoConnection::onMultipartyCallHeld()
+{
+    if (!mConferenceCall) {
+        return;
+    }
+
+    mConferenceCall->setConferenceActive(false);
+}
+
+void oFonoConnection::onMultipartyCallActive()
+{
+    if (!mConferenceCall) {
+        return;
+    }
+
+    mConferenceCall->setConferenceActive(true);
+}
+
+void oFonoConnection::onCallChannelMerged()
+{
+    if (!mConferenceCall) {
+        return;
+    }
+    oFonoCallChannel *channel = static_cast<oFonoCallChannel*>(sender());
+    Q_EMIT channelMerged(QDBusObjectPath(channel->baseChannel()->objectPath()));
+}
+
+void oFonoConnection::onCallChannelSplitted()
+{
+    if (!mConferenceCall) {
+        return;
+    }
+    oFonoCallChannel *channel = static_cast<oFonoCallChannel*>(sender());
+    Q_EMIT channelSplitted(QDBusObjectPath(channel->baseChannel()->objectPath()));
+}
+
 
 Tp::BaseChannelPtr oFonoConnection::createChannel(const QString& channelType, uint targetHandleType,
                                                uint targetHandle, const QVariantMap &hints, Tp::DBusError *error)
@@ -786,6 +866,16 @@ void oFonoConnection::onTextChannelClosed()
 void oFonoConnection::onCallChannelClosed()
 {
     qDebug() << "onCallChannelClosed()";
+    oFonoCallChannel *channel = static_cast<oFonoCallChannel*>(sender());
+    if (channel) {
+        Q_EMIT channelHangup(QDBusObjectPath(channel->baseChannel()->objectPath()));
+    }
+}
+
+
+void oFonoConnection::onCallChannelDestroyed()
+{
+    qDebug() << "onCallChannelDestroyed()";
     oFonoCallChannel *channel = static_cast<oFonoCallChannel*>(sender());
     if (channel) {
         QString key = mCallChannels.key(channel);
