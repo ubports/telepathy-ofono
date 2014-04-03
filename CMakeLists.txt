@@ -97,6 +97,7 @@ set(TELEPATHY_OFONO_SRC
    pendingmessagesmanager.cpp
    phoneutils.cpp
    sqlitedatabase.cpp
+   ussdiface.cpp
    ${telepathyfono_RES})
 
 if(USE_PULSEAUDIO)

@@ -37,6 +37,7 @@
 #include <ofonocallvolume.h>
 #include <ofononetworkregistration.h>
 #include <ofonomessagewaiting.h>
+#include <ofonosupplementaryservices.h>
 
 // telepathy-ofono
 #include "ofonotextchannel.h"
@@ -46,6 +47,7 @@
 #include "mmsdmessage.h"
 #include "dbustypes.h"
 #include "speakeriface.h"
+#include "ussdiface.h"
 
 class oFonoConnection;
 class oFonoTextChannel;
@@ -76,11 +78,15 @@ public:
     bool voicemailIndicator(Tp::DBusError *error);
     QString voicemailNumber(Tp::DBusError *error);
     uint voicemailCount(Tp::DBusError *error);
+    void USSDInitiate(const QString &command, Tp::DBusError *error);
+    void USSDRespond(const QString &reply, Tp::DBusError *error);
+    void USSDCancel(Tp::DBusError *error);
 
     Tp::BaseConnectionRequestsInterfacePtr requestsIface;
     Tp::BaseConnectionSimplePresenceInterfacePtr simplePresenceIface;
     Tp::BaseConnectionContactsInterfacePtr contactsIface;
     BaseConnectionVoicemailInterfacePtr voicemailIface;
+    BaseConnectionUSSDInterfacePtr supplementaryServicesIface;
     uint newHandle(const QString &identifier);
 
     OfonoMessageManager *messageManager();
@@ -152,6 +158,7 @@ private:
     OfonoCallVolume *mOfonoCallVolume;
     OfonoNetworkRegistration *mOfonoNetworkRegistration;
     OfonoMessageWaiting *mOfonoMessageWaiting;
+    OfonoSupplementaryServices *mOfonoSupplementaryServices;
     uint mHandleCount;
     Tp::SimplePresence mSelfPresence;
     Tp::SimplePresence mRequestedSelfPresence;
