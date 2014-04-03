@@ -1,3 +1,41 @@
+telepathy-ofono (0.2+14.04.20140319-0ubuntu1) trusty; urgency=low
+
+  [ Tiago Salem Herrmann ]
+  * Add support for conference calls. .
+  * Add support for multiple modems.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Wed, 19 Mar 2014 02:36:43 +0000
+
+telepathy-ofono (0.2+14.04.20140307-0ubuntu1) trusty; urgency=low
+
+  * New rebuild forced
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Fri, 07 Mar 2014 10:44:28 +0000
+
+telepathy-ofono (0.2+14.04.20140228-0ubuntu1) trusty; urgency=low
+
+  [ Tiago Salem Herrmann ]
+  * Update audio route asynchronously when enabling/disabling speaker
+    mode. (LP: #1277765)
+  * Mark messages as failed when recipients are invalid or when no
+    messages to a group chat could be sent. (LP: #1277761)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Fri, 28 Feb 2014 14:51:17 +0000
+
+telepathy-ofono (0.2+14.04.20140217-0ubuntu1) trusty; urgency=low
+
+  [ Tiago Salem Herrmann ]
+  * Implement multi recipient sms support.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Mon, 17 Feb 2014 13:37:36 +0000
+
+telepathy-ofono (0.2+14.04.20140130-0ubuntu1) trusty; urgency=low
+
+  [ Tiago Salem Herrmann ]
+  * set Tp::CallStateChangeReasonNoAnswer also for waiting calls.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Thu, 30 Jan 2014 17:01:56 +0000
+
 telepathy-ofono (0.2+14.04.20140117-0ubuntu1) trusty; urgency=low
 
   [ Tiago Salem Herrmann ]

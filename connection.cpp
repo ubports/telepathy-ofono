@@ -137,17 +137,23 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
                             const QVariantMap &parameters) :
     Tp::BaseConnection(dbusConnection, cmName, protocolName, parameters),
     mOfonoModemManager(new OfonoModemManager(this)),
-    mOfonoMessageManager(new OfonoMessageManager(OfonoModem::AutomaticSelect,"")),
-    mOfonoVoiceCallManager(new OfonoVoiceCallManager(OfonoModem::AutomaticSelect,"")),
-    mOfonoCallVolume(new OfonoCallVolume(OfonoModem::AutomaticSelect,"")),
-    mOfonoNetworkRegistration(new OfonoNetworkRegistration(OfonoModem::AutomaticSelect, "")),
-    mOfonoMessageWaiting(new OfonoMessageWaiting(OfonoModem::AutomaticSelect, "")),
     mHandleCount(0),
     mRegisterTimer(new QTimer(this)),
     mMmsdManager(new MMSDManager(this)),
     mSpeakerMode(false),
     mConferenceCall(NULL)
 {
+    OfonoModem::SelectionSetting setting = OfonoModem::AutomaticSelect;
+    QString modemPath = parameters["modem-objpath"].toString();
+    if (!modemPath.isEmpty()) {
+        setting = OfonoModem::ManualSelect;
+    }
+    mOfonoMessageManager = new OfonoMessageManager(setting, modemPath);
+    mOfonoVoiceCallManager = new OfonoVoiceCallManager(setting, modemPath);
+    mOfonoCallVolume = new OfonoCallVolume(setting, modemPath);
+    mOfonoNetworkRegistration = new OfonoNetworkRegistration(setting, modemPath);
+    mOfonoMessageWaiting = new OfonoMessageWaiting(setting, modemPath);
+
     setSelfHandle(newHandle("<SelfHandle>"));
 
     setConnectCallback(Tp::memFun(this,&oFonoConnection::connect));
@@ -313,15 +319,17 @@ oFonoTextChannel* oFonoConnection::textChannelForMembers(const QStringList &memb
 {
     Q_FOREACH(oFonoTextChannel* channel, mTextChannels) {
         int count = 0;
+        Tp::DBusError error;
         if (members.size() != channel->members().size()) {
             continue;
         }
+        QStringList phoneNumbersOld = inspectHandles(Tp::HandleTypeContact, channel->members(), &error);
+        if (error.isValid()) {
+            continue;
+        }
+
         Q_FOREACH(const QString &phoneNumberNew, members) {
-            Tp::DBusError error;
-            Q_FOREACH(const QString &phoneNumberOld, inspectHandles(Tp::HandleTypeContact, channel->members(), &error)) {
-                if (error.isValid()) {
-                    continue;
-                }
+            Q_FOREACH(const QString &phoneNumberOld, phoneNumbersOld) {
                 if (PhoneUtils::comparePhoneNumbers(PhoneUtils::normalizePhoneNumber(phoneNumberOld), PhoneUtils::normalizePhoneNumber(phoneNumberNew))) {
                     count++;
                 }
@@ -940,13 +948,18 @@ void oFonoConnection::setSpeakerMode(bool active)
 {
     if (mSpeakerMode != active) {
         mSpeakerMode = active;
-        updateAudioRoute();
+        QMetaObject::invokeMethod(this, "updateAudioRoute", Qt::QueuedConnection);
         Q_EMIT speakerModeChanged(active);
     }
 }
 
 void oFonoConnection::updateAudioRoute()
 {
+    QByteArray pulseAudioDisabled = qgetenv("PA_DISABLED");
+    if (!pulseAudioDisabled.isEmpty()) {
+        return;
+    }
+
     int currentCalls = mOfonoVoiceCallManager->getCalls().size();
     if (currentCalls != 0) {
         if (currentCalls == 1) {

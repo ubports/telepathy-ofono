@@ -108,6 +108,9 @@ void oFonoConferenceCallChannel::onChannelSplitted(const QDBusObjectPath &path)
         mConferenceIface->removeChannel(path, QVariantMap());
     }
     if (mCallChannels.size() == 1) {
+        // remove the call channel from the conference before closing it.
+        mConferenceIface->removeChannel(mCallChannels.takeFirst(), QVariantMap());
+
         Tp::CallStateReason reason;
         QVariantMap stateDetails;
         reason.actor =  0;
@@ -180,7 +183,12 @@ void oFonoConferenceCallChannel::setConferenceActive(bool active)
 
 void oFonoConferenceCallChannel::onHoldStateChanged(const Tp::LocalHoldState &state, const Tp::LocalHoldStateReason &reason, Tp::DBusError *error)
 {
-    mConnection->voiceCallManager()->swapCalls();
+    if (state == Tp::LocalHoldStateHeld && mHoldIface->getHoldState() == Tp::LocalHoldStateUnheld) {
+        mConnection->voiceCallManager()->swapCalls();
+    } else if (state == Tp::LocalHoldStateUnheld && mHoldIface->getHoldState() == Tp::LocalHoldStateHeld) {
+        mConnection->voiceCallManager()->swapCalls();
+    }
+
 }
 
 void oFonoConferenceCallChannel::onMuteStateChanged(const Tp::LocalMuteState &state, Tp::DBusError *error)

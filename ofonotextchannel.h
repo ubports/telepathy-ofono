@@ -48,6 +48,7 @@ public:
 
 private Q_SLOTS:
     void onOfonoMessageStateChanged(QString status);
+    void onProcessPendingDeliveryReport();
 
 Q_SIGNALS:
     void messageRead(const QString &id);
@@ -63,6 +64,8 @@ private:
     Tp::BaseChannelSMSInterfacePtr mSMSIface;
     Tp::BaseChannelTextTypePtr mTextChannel;
     uint mMessageCounter;
+    QMap<QString, uint> mPendingDeliveryReportFailed;
+    QMap<QString, uint> mPendingDeliveryReportDelivered;
     Tp::UIntList mMembers;
     bool mFlash;
 };
