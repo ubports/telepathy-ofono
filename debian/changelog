@@ -1,3 +1,13 @@
+telepathy-ofono (0.2+14.04.20140407-0ubuntu1) trusty; urgency=low
+
+  [ CI bot ]
+  * Add initial USSD support (LP: #1195398)
+
+  [ Tiago Salem Herrmann ]
+  * Add class 0 SMS support
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Mon, 07 Apr 2014 22:59:17 +0000
+
 telepathy-ofono (0.2+14.04.20140319-0ubuntu1) trusty; urgency=low
 
   [ Tiago Salem Herrmann ]
