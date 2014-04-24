@@ -39,10 +39,11 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, AttachmentStruct 
     return argument;
 }
 
-oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, QStringList phoneNumbers, QObject *parent):
+oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, QStringList phoneNumbers, bool flash, QObject *parent):
     QObject(parent),
     mConnection(conn),
     mPhoneNumbers(phoneNumbers),
+    mFlash(flash),
     mMessageCounter(1)
 {
     qDBusRegisterMetaType<AttachmentStruct>();
@@ -86,6 +87,9 @@ oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, QStringList phoneNumbe
 
     baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mGroupIface));
     addMembers(phoneNumbers);
+
+    mSMSIface = Tp::BaseChannelSMSInterface::create(flash, true);
+    baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mSMSIface));
 
     mBaseChannel = baseChannel;
     mTextChannel = Tp::BaseChannelTextTypePtr::dynamicCast(mBaseChannel->interface(TP_QT_IFACE_CHANNEL_TYPE_TEXT));

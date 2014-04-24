@@ -30,6 +30,7 @@
 #include "approvercall.h"
 
 Q_DECLARE_METATYPE(Tp::CallChannelPtr);
+Q_DECLARE_METATYPE(Tp::ChannelPtr);
 Q_DECLARE_METATYPE(Tp::CallState);
 Q_DECLARE_METATYPE(QList<Tp::ContactPtr>);
 
@@ -51,6 +52,7 @@ private Q_SLOTS:
     void testCallHold();
     void testCallDTMF();
     void testCallMute();
+    void testCallConference();
 
     // helper slots
     void onPendingContactsFinished(Tp::PendingOperation*);
@@ -65,6 +67,8 @@ void CallTest::initTestCase()
     qRegisterMetaType<Tp::Presence>();
     qRegisterMetaType<Tp::CallState>();
     qRegisterMetaType<Tp::CallChannelPtr>();
+    qRegisterMetaType<Tp::Channel::GroupMemberChangeDetails>();
+    qRegisterMetaType<Tp::ChannelPtr>();
     qRegisterMetaType<Tp::PendingOperation*>();
     qRegisterMetaType<QList<Tp::ContactPtr> >();
     TelepathyHelper::instance();
@@ -347,6 +351,149 @@ void CallTest::testCallMute()
     QTRY_COMPARE(channel->callState(), Tp::CallStateEnded);
 }
 
+void CallTest::testCallConference()
+{
+    // Request the contact to start chatting to
+    Tp::AccountPtr account = TelepathyHelper::instance()->account();
+    QSignalSpy spy(this, SIGNAL(contactsReceived(QList<Tp::ContactPtr>)));
+    QSignalSpy spyOfonoCallAdded(OfonoMockController::instance(), SIGNAL(CallAdded(QDBusObjectPath, QVariantMap)));
+    QSignalSpy spyCallChannel(mHandler, SIGNAL(callChannelAvailable(Tp::CallChannelPtr)));
+
+    // Call #1
+    connect(account->connection()->contactManager()->contactsForIdentifiers(QStringList() << "333"),
+            SIGNAL(finished(Tp::PendingOperation*)),
+            SLOT(onPendingContactsFinished(Tp::PendingOperation*)));
+
+    QTRY_COMPARE(spy.count(), 1);
+
+    QList<Tp::ContactPtr> contacts = spy.first().first().value<QList<Tp::ContactPtr> >();
+    QCOMPARE(contacts.count(), 1);
+    QCOMPARE(contacts.first()->id(), QString("333"));
+
+    Q_FOREACH(Tp::ContactPtr contact, contacts) {
+        account->ensureAudioCall(contact, "audio", QDateTime::currentDateTime(), TP_QT_IFACE_CLIENT + ".TpOfonoTestHandler");
+    }
+    QTRY_COMPARE(spyOfonoCallAdded.count(), 1);
+    QTRY_COMPARE(spyCallChannel.count(), 1);
+    QDBusObjectPath path1 = spyOfonoCallAdded.first().first().value<QDBusObjectPath>();
+
+    Tp::CallChannelPtr channel1 = spyCallChannel.first().first().value<Tp::CallChannelPtr>();
+    QVERIFY(channel1);
+
+    OfonoMockController::instance()->VoiceCallSetAlerting(path1.path());
+    QTRY_COMPARE(channel1->callState(), Tp::CallStateInitialised);
+
+    OfonoMockController::instance()->VoiceCallAnswer(path1.path());
+    QTRY_COMPARE(channel1->callState(), Tp::CallStateActive);
+
+    spy.clear();
+    spyOfonoCallAdded.clear();
+    spyCallChannel.clear();
+
+    // Call #2
+
+    connect(account->connection()->contactManager()->contactsForIdentifiers(QStringList() << "444"),
+            SIGNAL(finished(Tp::PendingOperation*)),
+            SLOT(onPendingContactsFinished(Tp::PendingOperation*)));
+
+    QTRY_COMPARE(spy.count(), 1);
+
+    contacts = spy.first().first().value<QList<Tp::ContactPtr> >();
+    QCOMPARE(contacts.count(), 1);
+    QCOMPARE(contacts.first()->id(), QString("444"));
+
+    Q_FOREACH(Tp::ContactPtr contact, contacts) {
+        account->ensureAudioCall(contact, "audio", QDateTime::currentDateTime(), TP_QT_IFACE_CLIENT + ".TpOfonoTestHandler");
+    }
+    QTRY_COMPARE(spyOfonoCallAdded.count(), 1);
+    QTRY_COMPARE(spyCallChannel.count(), 1);
+    QDBusObjectPath path2 = spyOfonoCallAdded.first().first().value<QDBusObjectPath>();
+
+    Tp::CallChannelPtr channel2 = spyCallChannel.first().first().value<Tp::CallChannelPtr>();
+    QVERIFY(channel2);
+
+    OfonoMockController::instance()->VoiceCallSetAlerting(path2.path());
+    QTRY_COMPARE(channel2->callState(), Tp::CallStateInitialised);
+
+    OfonoMockController::instance()->VoiceCallAnswer(path2.path());
+    QTRY_COMPARE(channel2->callState(), Tp::CallStateActive);
+
+    spy.clear();
+    spyOfonoCallAdded.clear();
+    spyCallChannel.clear();
+
+    // create conference
+    QList<Tp::ChannelPtr> calls;
+    calls << channel1 << channel2;
+    TelepathyHelper::instance()->account()->createConferenceCall(calls, QStringList(), QDateTime::currentDateTime(), TP_QT_IFACE_CLIENT + ".TpOfonoTestHandler");
+    QTRY_COMPARE(spyCallChannel.count(), 1);
+
+    Tp::CallChannelPtr conferenceChannel = spyCallChannel.first().first().value<Tp::CallChannelPtr>();
+    QVERIFY(conferenceChannel);
+    
+    QSignalSpy spyConferenceChannelMerged(conferenceChannel.data(), SIGNAL(conferenceChannelMerged(const Tp::ChannelPtr &)));
+    QSignalSpy spyConferenceChannelRemoved(conferenceChannel.data(), SIGNAL(conferenceChannelRemoved(const Tp::ChannelPtr &, const Tp::Channel::GroupMemberChangeDetails &)));
+
+    spy.clear();
+    spyOfonoCallAdded.clear();
+    spyCallChannel.clear();
+
+    // Call #3
+
+    connect(account->connection()->contactManager()->contactsForIdentifiers(QStringList() << "555"),
+            SIGNAL(finished(Tp::PendingOperation*)),
+            SLOT(onPendingContactsFinished(Tp::PendingOperation*)));
+
+    QTRY_COMPARE(spy.count(), 1);
+
+    contacts = spy.first().first().value<QList<Tp::ContactPtr> >();
+    QCOMPARE(contacts.count(), 1);
+    QCOMPARE(contacts.first()->id(), QString("555"));
+
+    Q_FOREACH(Tp::ContactPtr contact, contacts) {
+        account->ensureAudioCall(contact, "audio", QDateTime::currentDateTime(), TP_QT_IFACE_CLIENT + ".TpOfonoTestHandler");
+    }
+    QTRY_COMPARE(spyOfonoCallAdded.count(), 1);
+    QTRY_COMPARE(spyCallChannel.count(), 1);
+    QDBusObjectPath path3 = spyOfonoCallAdded.first().first().value<QDBusObjectPath>();
+
+    Tp::CallChannelPtr channel3 = spyCallChannel.first().first().value<Tp::CallChannelPtr>();
+    QVERIFY(channel3);
+
+    OfonoMockController::instance()->VoiceCallSetAlerting(path3.path());
+    QTRY_COMPARE(channel3->callState(), Tp::CallStateInitialised);
+
+    OfonoMockController::instance()->VoiceCallAnswer(path3.path());
+    QTRY_COMPARE(channel3->callState(), Tp::CallStateActive);
+
+    spy.clear();
+    spyOfonoCallAdded.clear();
+    spyCallChannel.clear();
+
+    // merge channel 3 into the conference
+    conferenceChannel->conferenceMergeChannel(channel3);
+    QTRY_COMPARE(spyConferenceChannelMerged.count(), 1);
+
+    // hangup first call so we end up with 2 calls in a conference
+    OfonoMockController::instance()->VoiceCallHangup(path1.path());
+    QTRY_COMPARE(channel1->callState(), Tp::CallStateEnded);
+    QTRY_COMPARE(spyConferenceChannelRemoved.count(), 1);
+
+    // split conference so we end up with 2 individual calls
+    channel2->conferenceSplitChannel();
+    QTRY_COMPARE(channel2->callState(), Tp::CallStateActive);
+
+    // check if the conference was finished
+    QTRY_COMPARE(conferenceChannel->callState(), Tp::CallStateEnded);
+
+    OfonoMockController::instance()->VoiceCallHangup(path2.path());
+    QTRY_COMPARE(channel2->callState(), Tp::CallStateEnded);
+
+    OfonoMockController::instance()->VoiceCallHangup(path3.path());
+    QTRY_COMPARE(channel3->callState(), Tp::CallStateEnded);
+    
+
+}
 
 void CallTest::onPendingContactsFinished(Tp::PendingOperation *op)
 {

@@ -34,6 +34,7 @@
 #include <ofonocallvolume.h>
 #include <ofononetworkregistration.h>
 #include <ofonomessagewaiting.h>
+#include <ofonosupplementaryservices.h>
 
 // telepathy-ofono
 #include "ofonotextchannel.h"
@@ -43,10 +44,12 @@
 #include "mmsdmessage.h"
 #include "dbustypes.h"
 #include "speakeriface.h"
+#include "ussdiface.h"
 
 class oFonoConnection;
 class oFonoTextChannel;
 class oFonoCallChannel;
+class oFonoConferenceCallChannel;
 class MMSDService;
 
 class oFonoConnection : public Tp::BaseConnection
@@ -62,7 +65,7 @@ public:
     QStringList inspectHandles(uint handleType, const Tp::UIntList& handles, Tp::DBusError *error);
     Tp::UIntList requestHandles(uint handleType, const QStringList& identifiers, Tp::DBusError* error);
     Tp::BaseChannelPtr createChannel(const QString& channelType, uint targetHandleType,
-                                     uint targetHandle,  const QVariantMap &hints, Tp::DBusError *error);
+                                     uint targetHandle, const QVariantMap &hints, Tp::DBusError *error);
     Tp::ContactAttributesMap getContactAttributes(const Tp::UIntList &handles, const QStringList &ifaces, Tp::DBusError *error);
     uint setPresence(const QString& status, const QString& statusMessage, Tp::DBusError *error);
     void connect(Tp::DBusError *error);
@@ -72,38 +75,54 @@ public:
     bool voicemailIndicator(Tp::DBusError *error);
     QString voicemailNumber(Tp::DBusError *error);
     uint voicemailCount(Tp::DBusError *error);
+    void USSDInitiate(const QString &command, Tp::DBusError *error);
+    void USSDRespond(const QString &reply, Tp::DBusError *error);
+    void USSDCancel(Tp::DBusError *error);
 
     Tp::BaseConnectionRequestsInterfacePtr requestsIface;
     Tp::BaseConnectionSimplePresenceInterfacePtr simplePresenceIface;
     Tp::BaseConnectionContactsInterfacePtr contactsIface;
     BaseConnectionVoicemailInterfacePtr voicemailIface;
+    BaseConnectionUSSDInterfacePtr supplementaryServicesIface;
     uint newHandle(const QString &identifier);
 
     OfonoMessageManager *messageManager();
     OfonoVoiceCallManager *voiceCallManager();
     OfonoCallVolume *callVolume();
+    QMap<QString, oFonoCallChannel*> callChannels();
 
     uint ensureHandle(const QString &phoneNumber);
     oFonoTextChannel* textChannelForMembers(const QStringList &members);
     Tp::BaseChannelPtr createTextChannel(uint targetHandleType,
-                                         uint targetHandle,  const QVariantMap &hints, Tp::DBusError *error);
+                                         uint targetHandle, const QVariantMap &hints, Tp::DBusError *error);
     Tp::BaseChannelPtr createCallChannel(uint targetHandleType,
-                                         uint targetHandle,  const QVariantMap &hints, Tp::DBusError *error);
+                                         uint targetHandle, const QVariantMap &hints, Tp::DBusError *error);
+    Tp::BaseChannelPtr ensureChannel(const QString &channelType, uint targetHandleType,
+        uint targetHandle, bool &yours, uint initiatorHandle,
+        bool suppressHandler,
+        const QVariantMap &hints,
+        Tp::DBusError* error);
+
 
     ~oFonoConnection();
 
 Q_SIGNALS:
     void speakerModeChanged(bool active);
+    void channelMerged(const QDBusObjectPath &objPath);
+    void channelSplitted(const QDBusObjectPath &objPath);
+    void channelHangup(const QDBusObjectPath &objPath);
 
 public Q_SLOTS:
     void updateAudioRoute();
 
 private Q_SLOTS:
     void onOfonoIncomingMessage(const QString &message, const QVariantMap &info);
+    void onOfonoImmediateMessage(const QString &message, const QVariantMap &info);
     void onOfonoCallAdded(const QString &call, const QVariantMap &properties);
     void onOfonoNetworkRegistrationChanged(const QString &status);
     void onTextChannelClosed();
     void onCallChannelClosed();
+    void onCallChannelDestroyed();
     void onValidityChanged(bool valid);
     void onMMSDServiceAdded(const QString&);
     void onMMSDServiceRemoved(const QString&);
@@ -113,10 +132,16 @@ private Q_SLOTS:
     void onCheckMMSServices();
     void onMessageRead(const QString &id);
     void onDeliveryReportReceived(const QString &messageId, const QVariantMap &info);
+    void onConferenceCallChannelClosed();
+    void onCallChannelMerged();
+    void onCallChannelSplitted();
+    void onMultipartyCallHeld();
+    void onMultipartyCallActive();
 
 private:
     bool isNetworkRegistered();
     void addMMSToService(const QString &path, const QVariantMap &properties, const QString &servicePath);
+    void ensureTextChannel(const QString &message, const QVariantMap &info, bool flash);
     QMap<uint, QString> mHandles;
 
     QList<oFonoTextChannel*> mTextChannels;
@@ -129,12 +154,14 @@ private:
     OfonoCallVolume *mOfonoCallVolume;
     OfonoNetworkRegistration *mOfonoNetworkRegistration;
     OfonoMessageWaiting *mOfonoMessageWaiting;
+    OfonoSupplementaryServices *mOfonoSupplementaryServices;
     uint mHandleCount;
     Tp::SimplePresence mSelfPresence;
     Tp::SimplePresence mRequestedSelfPresence;
     MMSDManager *mMmsdManager;
     QMap<QString, MMSDService*> mMmsdServices;
     QMap<QString, QList<MMSDMessage*> > mServiceMMSList;
+    oFonoConferenceCallChannel *mConferenceCall;
     bool mSpeakerMode;
 };
 

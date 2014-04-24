@@ -24,6 +24,9 @@
 #include <TelepathyQt/ClientRegistrar>
 #include <TelepathyQt/PendingReady>
 #include <TelepathyQt/PendingAccount>
+#include <TelepathyQt/CallChannel>
+#include <TelepathyQt/ChannelClassSpec>
+
 
 TelepathyHelper::TelepathyHelper(QObject *parent)
     : QObject(parent),
@@ -46,6 +49,10 @@ TelepathyHelper::TelepathyHelper(QObject *parent)
 
     Tp::ChannelFactoryPtr channelFactory = Tp::ChannelFactory::create(QDBusConnection::sessionBus());
     channelFactory->addCommonFeatures(Tp::Channel::FeatureCore);
+    Tp::ChannelClassSpec audioConferenceSpec(TP_QT_IFACE_CHANNEL_TYPE_CALL, Tp::HandleTypeNone);
+    audioConferenceSpec.setCallInitialAudioFlag();
+
+    channelFactory->setSubclassFor<Tp::CallChannel>(audioConferenceSpec);
 
     mAccountManager = Tp::AccountManager::create(
             Tp::AccountFactory::create(QDBusConnection::sessionBus(), mAccountFeatures),

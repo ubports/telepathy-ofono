@@ -88,6 +88,7 @@ set(TELEPATHY_OFONO_SRC
    connection.cpp
    ofonotextchannel.cpp
    ofonocallchannel.cpp
+   ofonoconferencecallchannel.cpp
    voicemailiface.cpp
    speakeriface.cpp
    mmsdmanager.cpp
@@ -96,6 +97,7 @@ set(TELEPATHY_OFONO_SRC
    pendingmessagesmanager.cpp
    phoneutils.cpp
    sqlitedatabase.cpp
+   ussdiface.cpp
    ${telepathyfono_RES})
 
 if(USE_PULSEAUDIO)
