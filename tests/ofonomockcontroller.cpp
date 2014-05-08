@@ -25,7 +25,8 @@ OfonoMockController::OfonoMockController(QObject *parent) :
     QObject(parent),
     mNetworkRegistrationInterface("org.ofono", OFONO_MOCK_NETWORK_REGISTRATION_OBJECT, "org.ofono.NetworkRegistration"),
     mMessageManagerInterface("org.ofono", OFONO_MOCK_MESSAGE_MANAGER_OBJECT, "org.ofono.MessageManager"),
-    mVoiceCallManagerInterface("org.ofono", OFONO_MOCK_VOICECALL_MANAGER_OBJECT, "org.ofono.VoiceCallManager")
+    mVoiceCallManagerInterface("org.ofono", OFONO_MOCK_VOICECALL_MANAGER_OBJECT, "org.ofono.VoiceCallManager"),
+    mModemInterface("org.ofono", OFONO_MOCK_MODEM_OBJECT, "org.ofono.Modem")
 {
     QDBusConnection::sessionBus().connect("org.ofono", OFONO_MOCK_MESSAGE_MANAGER_OBJECT, "org.ofono.MessageManager", "MessageAdded", this, SIGNAL(MessageAdded(QDBusObjectPath, QVariantMap)));
     QDBusConnection::sessionBus().connect("org.ofono", OFONO_MOCK_VOICECALL_MANAGER_OBJECT, "org.ofono.VoiceCallManager", "CallAdded", this, SIGNAL(CallAdded(QDBusObjectPath, QVariantMap)));
@@ -107,5 +108,10 @@ void OfonoMockController::VoiceCallHangup(const QString &objPath)
 {
     QDBusInterface iface("org.ofono", objPath, "org.ofono.VoiceCall");
     iface.call("Hangup");
+}
+
+void OfonoMockController::ModemSetOnline()
+{
+    mModemInterface.call("SetProperty", "Online", QVariant::fromValue(QDBusVariant(true)));
 }
 

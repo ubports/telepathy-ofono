@@ -48,6 +48,7 @@ public Q_SLOTS:
     void VoiceCallHangup(const QString &objPath);
     void VoiceCallAnswer(const QString &objPath);
     void VoiceCallSetAlerting(const QString &objPath);
+    void ModemSetOnline();
 
 private Q_SLOTS:
     void onCallVolumePropertyChanged(const QString &name, const QDBusVariant &value);
@@ -57,6 +58,7 @@ private:
     QDBusInterface mNetworkRegistrationInterface;
     QDBusInterface mMessageManagerInterface;
     QDBusInterface mVoiceCallManagerInterface;
+    QDBusInterface mModemInterface;
 };
 
 #endif // OFONOMOCKCONTROLLER_H

@@ -40,6 +40,7 @@ void ConnectionTest::initTestCase()
                    SIGNAL(accountReady()));
     QTRY_COMPARE(spy.count(), 1);
 
+    OfonoMockController::instance()->ModemSetOnline();
     OfonoMockController::instance()->NetworkRegistrationSetStatus("registered");
 
     qRegisterMetaType<Tp::Presence>();
