@@ -142,8 +142,14 @@ void oFonoCallChannel::init()
     QObject::connect(mConnection, SIGNAL(speakerModeChanged(bool)), mSpeakerIface.data(), SLOT(setSpeakerMode(bool)));
     QObject::connect(mConnection->voiceCallManager(), SIGNAL(sendTonesComplete(bool)), SLOT(onDtmfComplete(bool)));
     QObject::connect(this, SIGNAL(multipartyChanged(bool)), this, SLOT(onMultipartyChanged(bool)));
+    
+    QObject::connect(this, SIGNAL(disconnectReason(const QString &)), this, SLOT(onDisconnectReason(const QString &)));
 
     mSpeakerIface->setSpeakerMode(mConnection->speakerMode());
+}
+
+void oFonoCallChannel::onDisconnectReason(const QString &reason) {
+    mRequestedHangup = reason == "local";
 }
 
 void oFonoCallChannel::onMultipartyChanged(bool multiparty)
