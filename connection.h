@@ -19,9 +19,6 @@
 #ifndef OFONOCONNECTION_H
 #define OFONOCONNECTION_H
 
-// qt
-#include <QTimer>
-
 // telepathy-qt
 #include <TelepathyQt/BaseConnection>
 #include <TelepathyQt/BaseChannel>
@@ -116,7 +113,6 @@ Q_SIGNALS:
     void channelHangup(const QDBusObjectPath &objPath);
 
 public Q_SLOTS:
-    void Q_DBUS_EXPORT onTryRegister();
     void updateAudioRoute();
 
 private Q_SLOTS:
@@ -162,7 +158,6 @@ private:
     uint mHandleCount;
     Tp::SimplePresence mSelfPresence;
     Tp::SimplePresence mRequestedSelfPresence;
-    QTimer *mRegisterTimer;
     MMSDManager *mMmsdManager;
     QMap<QString, MMSDService*> mMmsdServices;
     QMap<QString, QList<MMSDMessage*> > mServiceMMSList;

@@ -65,6 +65,7 @@ void MessagesTest::initTestCase()
     QSignalSpy spy(TelepathyHelper::instance(), SIGNAL(accountReady()));
     QTRY_COMPARE(spy.count(), 1);
 
+    OfonoMockController::instance()->ModemSetOnline();
     OfonoMockController::instance()->NetworkRegistrationSetStatus("registered");
     // the account should be connected
     QTRY_VERIFY(TelepathyHelper::instance()->connected());
