@@ -38,6 +38,22 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, MessageStruct &me
     return argument;
 }
 
+QDBusArgument &operator<<(QDBusArgument&argument, const OutgoingAttachmentStruct &attachment)
+{
+    argument.beginStructure();
+    argument << attachment.id << attachment.contentType << attachment.filePath;
+    argument.endStructure();
+    return argument;
+}
+
+const QDBusArgument &operator>>(const QDBusArgument &argument, OutgoingAttachmentStruct &attachment)
+{
+    argument.beginStructure();
+    argument >> attachment.id >> attachment.contentType >> attachment.filePath;
+    argument.endStructure();
+    return argument;
+}
+
 MMSDService::MMSDService(QString objectPath, oFonoConnection* connection, QObject *parent)
     : QObject(parent), 
       m_servicePath(objectPath)
@@ -49,6 +65,8 @@ MMSDService::MMSDService(QString objectPath, oFonoConnection* connection, QObjec
 
     qDBusRegisterMetaType<MessageStruct>();
     qDBusRegisterMetaType<MessageList>();
+    qDBusRegisterMetaType<OutgoingAttachmentList>();
+    qDBusRegisterMetaType<OutgoingAttachmentStruct>();
 
     request = QDBusMessage::createMethodCall("org.ofono.mms",
                                              m_servicePath, "org.ofono.mms.Service",
@@ -102,13 +120,12 @@ void MMSDService::onMessageRemoved(const QDBusObjectPath& path)
     Q_EMIT messageRemoved(path.path());
 }
 
-QDBusObjectPath MMSDService::sendMessage(QStringList recipients, QString smil, AttachmentList attachments)
+QDBusObjectPath MMSDService::sendMessage(QStringList recipients, OutgoingAttachmentList attachments)
 {
     QDBusMessage request;
     QList<QVariant> arguments;
     QDBusReply<QDBusObjectPath> reply;
     arguments.append(recipients);
-    arguments.append(smil);
     arguments.append(QVariant::fromValue(attachments));
     request = QDBusMessage::createMethodCall("org.ofono.mms",
                                              m_servicePath, "org.ofono.mms.Service",

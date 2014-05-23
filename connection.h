@@ -102,6 +102,7 @@ public:
         bool suppressHandler,
         const QVariantMap &hints,
         Tp::DBusError* error);
+    QDBusObjectPath sendMMS(const QStringList &numbers, const OutgoingAttachmentList& attachments);
 
 
     ~oFonoConnection();

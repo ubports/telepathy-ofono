@@ -23,7 +23,7 @@
 #include "ofonotextchannel.h"
 #include "pendingmessagesmanager.h"
 
-QDBusArgument &operator<<(QDBusArgument &argument, const AttachmentStruct &attachment)
+QDBusArgument &operator<<(QDBusArgument&argument, const IncomingAttachmentStruct &attachment)
 {
     argument.beginStructure();
     argument << attachment.id << attachment.contentType << attachment.filePath << attachment.offset << attachment.length;
@@ -31,13 +31,14 @@ QDBusArgument &operator<<(QDBusArgument &argument, const AttachmentStruct &attac
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, AttachmentStruct &attachment)
+const QDBusArgument &operator>>(const QDBusArgument &argument, IncomingAttachmentStruct &attachment)
 {
     argument.beginStructure();
     argument >> attachment.id >> attachment.contentType >> attachment.filePath >> attachment.offset >> attachment.length;
     argument.endStructure();
     return argument;
 }
+
 
 oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, QStringList phoneNumbers, bool flash, QObject *parent):
     QObject(parent),
@@ -46,8 +47,8 @@ oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, QStringList phoneNumbe
     mFlash(flash),
     mMessageCounter(1)
 {
-    qDBusRegisterMetaType<AttachmentStruct>();
-    qDBusRegisterMetaType<AttachmentList>();
+    qDBusRegisterMetaType<IncomingAttachmentStruct>();
+    qDBusRegisterMetaType<IncomingAttachmentList>();
 
     Tp::BaseChannelPtr baseChannel;
     if (phoneNumbers.size() == 1) {
@@ -166,12 +167,36 @@ void oFonoTextChannel::messageAcknowledged(const QString &id)
     Q_EMIT messageRead(id);
 }
 
-QString oFonoTextChannel::sendMessage(const Tp::MessagePartList& message, uint flags, Tp::DBusError* error)
+QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, Tp::DBusError* error)
 {
     bool success = true;
     Tp::MessagePart header = message.at(0);
     Tp::MessagePart body = message.at(1);
     QString objpath;
+
+    // FIXME
+    if (message.size() > 2) {
+        // pop header out
+        message.removeFirst();
+        OutgoingAttachmentList attachments;
+        Q_FOREACH(const Tp::MessagePart &part, message) {
+            OutgoingAttachmentStruct attachment;
+            attachment.id = part["identifier"].variant().toString();
+            attachment.contentType = part["content-type"].variant().toString();
+            //QTemporaryFile file(QDir::tempPath() + "/XXXXXX");
+            QTemporaryFile file("/tmp/XXXXXX");
+            file.setAutoRemove(false);
+            if (!file.open()) {
+                return objpath;
+            }
+            file.write(part["content"].variant().toByteArray());
+            file.close();
+            attachment.filePath = file.fileName();
+            attachments << attachment;
+        }
+        objpath = QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + "-" + QString::number(mMessageCounter++);
+        return mConnection->sendMMS(mPhoneNumbers, attachments).path();
+    }
 
     if (mPhoneNumbers.size() == 1) {
         QString phoneNumber = mPhoneNumbers[0];
@@ -316,8 +341,8 @@ void oFonoTextChannel::mmsReceived(const QString &id, uint handle, const QVarian
         header["subject"] = QDBusVariant(subject);
     }
     message << header;
-    AttachmentList mmsdAttachments = qdbus_cast<AttachmentList>(properties["Attachments"]);
-    Q_FOREACH(const AttachmentStruct &attachment, mmsdAttachments) {
+    IncomingAttachmentList mmsdAttachments = qdbus_cast<IncomingAttachmentList>(properties["Attachments"]);
+    Q_FOREACH(const IncomingAttachmentStruct &attachment, mmsdAttachments) {
         QFile attachmentFile(attachment.filePath);
         if (!attachmentFile.open(QIODevice::ReadOnly)) {
             qWarning() << "fail to load attachment" << attachmentFile.errorString() << attachment.filePath;
