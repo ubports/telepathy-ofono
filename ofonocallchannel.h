@@ -66,6 +66,7 @@ private Q_SLOTS:
 
     void onOfonoMuteChanged(bool mute);
     void onMultipartyChanged(bool multiparty);
+    void onDisconnectReason(const QString &reason);
 
 private:
     QString mObjPath;
