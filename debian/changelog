@@ -1,3 +1,24 @@
+telepathy-ofono (0.2+14.10.20140603-0ubuntu1) utopic; urgency=low
+
+  [ Ubuntu daily release ]
+  * New rebuild forced
+
+  [ Tiago Salem Herrmann ]
+  * Add modem-objpath as a protocol parameter.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 03 Jun 2014 17:19:36 +0000
+
+telepathy-ofono (0.2+14.10.20140526-0ubuntu1) utopic; urgency=low
+
+  [ Ubuntu daily release ]
+  * New rebuild forced
+
+  [ Tiago Salem Herrmann ]
+  * Use DisconnectReason() from ofono to decide if the call was missed
+    (LP: #1317685)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Mon, 26 May 2014 15:24:16 +0000
+
 telepathy-ofono (0.2+14.10.20140512-0ubuntu1) utopic; urgency=low
 
   [ Tiago Salem Herrmann ]
