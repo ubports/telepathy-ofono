@@ -179,23 +179,41 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
         // pop header out
         message.removeFirst();
         OutgoingAttachmentList attachments;
+        // FIXME group chat
+        QString phoneNumber = mPhoneNumbers[0];
+        uint handle = mConnection->ensureHandle(phoneNumber);
+
         Q_FOREACH(const Tp::MessagePart &part, message) {
             OutgoingAttachmentStruct attachment;
             attachment.id = part["identifier"].variant().toString();
             attachment.contentType = part["content-type"].variant().toString();
             //QTemporaryFile file(QDir::tempPath() + "/XXXXXX");
-            QTemporaryFile file("/tmp/XXXXXX");
-            file.setAutoRemove(false);
-            if (!file.open()) {
+            QTemporaryFile *file = new QTemporaryFile("/tmp/XXXXXX");
+            file->setAutoRemove(false);
+            if (!file->open()) {
+                objpath = QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + "-" + QString::number(mMessageCounter++);
+                error->set(TP_QT_ERROR_INVALID_ARGUMENT, "Failed to create attachments to disk");
+                mPendingDeliveryReportFailed[objpath] = handle;
+                QTimer::singleShot(0, this, SLOT(onProcessPendingDeliveryReport()));
+                file->deleteLater();
                 return objpath;
             }
-            file.write(part["content"].variant().toByteArray());
-            file.close();
-            attachment.filePath = file.fileName();
+            file->write(part["content"].variant().toByteArray());
+            file->close();
+            attachment.filePath = file->fileName();
+            file->deleteLater();
             attachments << attachment;
         }
-        objpath = QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + "-" + QString::number(mMessageCounter++);
-        return mConnection->sendMMS(mPhoneNumbers, attachments).path();
+        objpath = mConnection->sendMMS(mPhoneNumbers, attachments).path();
+        if (objpath.isEmpty()) {
+            // give a temporary id for this message
+            objpath = QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + "-" + QString::number(mMessageCounter++);
+            // TODO: get error message from nuntium
+            error->set(TP_QT_ERROR_INVALID_ARGUMENT, "Failed to send MMS");
+            mPendingDeliveryReportFailed[objpath] = handle;
+        }
+        QTimer::singleShot(0, this, SLOT(onProcessPendingDeliveryReport()));
+        return objpath;
     }
 
     if (mPhoneNumbers.size() == 1) {
@@ -277,7 +295,7 @@ void oFonoTextChannel::onProcessPendingDeliveryReport()
     iterator = mPendingDeliveryReportDelivered;
     while(iterator.hasNext()) {
         iterator.next();
-        sendDeliveryReport(iterator.key(), iterator.value(), Tp::DeliveryStatusPermanentlyFailed);
+        sendDeliveryReport(iterator.key(), iterator.value(), Tp::DeliveryStatusDelivered);
     }
 
     mPendingDeliveryReportFailed.clear();
