@@ -1,3 +1,20 @@
+telepathy-ofono (0.2+14.10.20140623-0ubuntu2) utopic; urgency=medium
+
+  * Temporarily restoring routes settings to use Alsa devices
+
+ -- Ricardo Salveti de Araujo <ricardo.salveti@canonical.com>  Wed, 25 Jun 2014 02:23:08 -0300
+
+telepathy-ofono (0.2+14.10.20140623-0ubuntu1) utopic; urgency=low
+
+  [ Ubuntu daily release ]
+  * New rebuild forced
+
+  [ Ricardo Salveti de Araujo ]
+  * Porting pulseaudio logic to use the pulse-droid element (Android
+    Audio HAL)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Mon, 23 Jun 2014 03:07:44 +0000
+
 telepathy-ofono (0.2+14.10.20140603-0ubuntu1) utopic; urgency=low
 
   [ Ubuntu daily release ]
