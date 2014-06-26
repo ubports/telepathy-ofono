@@ -189,11 +189,13 @@ void QPulseAudioEngine::sinkInfoCallback(const pa_sink_info *info)
             if (info->ports[i]->available != PA_PORT_AVAILABLE_NO)
                 highest = info->ports[i];
         }
-        if (!strcmp(info->ports[i]->name, "[Out] Earpiece"))
+        if (!strcmp(info->ports[i]->name, "output-earpiece"))
             earpiece = info->ports[i];
-        if (!strcmp(info->ports[i]->name, "[Out] Speaker"))
+        if (!strcmp(info->ports[i]->name, "output-speaker"))
             speaker = info->ports[i];
-        if (!strcmp(info->ports[i]->name, "[Out] Headphones") && info->ports[i]->available != PA_PORT_AVAILABLE_NO)
+        if (!strcmp(info->ports[i]->name, "output-wired_headset") && info->ports[i]->available != PA_PORT_AVAILABLE_NO)
+            headphones = info->ports[i];
+        if (!strcmp(info->ports[i]->name, "output-wired_headphone") && info->ports[i]->available != PA_PORT_AVAILABLE_NO)
             headphones = info->ports[i];
     }
 
@@ -223,7 +225,7 @@ void QPulseAudioEngine::cardInfoCallback(const pa_card_info *info)
     for (int i = 0; i < info->n_profiles; i++) {
         if (!highest || info->profiles[i].priority > highest->priority)
             highest = &info->profiles[i];
-        if (!strcmp(info->profiles[i].name, "Voice Call"))
+        if (!strcmp(info->profiles[i].name, "voicecall"))
             voice_call = &info->profiles[i];
     }
 
@@ -242,18 +244,28 @@ void QPulseAudioEngine::cardInfoCallback(const pa_card_info *info)
 
 void QPulseAudioEngine::sourceInfoCallback(const pa_source_info *info)
 {
-    pa_source_port_info *handset = NULL;
+    pa_source_port_info *builtin_mic = NULL, *headset = NULL;
+    pa_source_port_info *preferred = NULL;
 
     if (info->monitor_of_sink != PA_INVALID_INDEX)
         return;  /* Not the right source */
 
     for (int i = 0; i < info->n_ports; i++) {
-        if (!strcmp(info->ports[i]->name, "[In] Handset"))
-            handset = info->ports[i];
+        if (!strcmp(info->ports[i]->name, "input-builtin_mic"))
+            builtin_mic = info->ports[i];
+        if (!strcmp(info->ports[i]->name, "input-wired_headset") && info->ports[i]->available != PA_PORT_AVAILABLE_NO)
+            headset = info->ports[i];
     }
 
-    if (!handset)
+    if (!builtin_mic)
         return; /* Not the right source */
+
+    preferred = headset ? headset : builtin_mic;
+
+    if (preferred && preferred != info->active_port) {
+        m_nametoset = info->name;
+        m_valuetoset = preferred->name;
+    }
 
     if (!!info->mute != !!m_micmute) {
         m_nametoset = info->name;
@@ -337,6 +349,19 @@ void QPulseAudioEngine::setCallMode(bool inCall, bool speakerMode)
         o = pa_context_set_sink_port_by_name(m_context, 
             m_nametoset.c_str(), m_valuetoset.c_str(), success_cb, this);
         if (!handleOperation(o, "pa_context_set_sink_port_by_name"))
+            return;
+    }
+
+    m_nametoset = "";
+    o = pa_context_get_source_info_list(m_context, sourceinfo_cb, this);
+    if (!handleOperation(o, "pa_context_get_source_info_list"))
+        return;
+
+    if (m_nametoset != "") {
+        qDebug("Setting PulseAudio source '%s' port '%s'", m_nametoset.c_str(), m_valuetoset.c_str());
+        o = pa_context_set_source_port_by_name(m_context, 
+            m_nametoset.c_str(), m_valuetoset.c_str(), success_cb, this);
+        if (!handleOperation(o, "pa_context_set_source_port_by_name"))
             return;
     }
 
