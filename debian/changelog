@@ -1,4 +1,4 @@
-telepathy-ofono (0.2+14.10.20140623-0ubuntu3) UNRELEASED; urgency=medium
+telepathy-ofono (0.2+14.10.20140623-0ubuntu3) utopic; urgency=medium
 
   * Enabling routing settings to use the pulse-droid element again
 
