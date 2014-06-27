@@ -143,6 +143,7 @@ private Q_SLOTS:
 
 private:
     bool isNetworkRegistered();
+    bool isEmergencyNumber(const QString &number);
     void addMMSToService(const QString &path, const QVariantMap &properties, const QString &servicePath);
     void ensureTextChannel(const QString &message, const QVariantMap &info, bool flash);
     QMap<uint, QString> mHandles;

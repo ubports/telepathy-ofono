@@ -14,6 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors: Tiago Salem Herrmann <tiago.herrmann@canonical.com>
+ *          Gustavo Pichorim Boiko <gustavo.boiko@canonical.com>
  */
 
 #include <QDebug>
@@ -474,6 +475,17 @@ bool oFonoConnection::isNetworkRegistered()
               status.isEmpty());
 }
 
+bool oFonoConnection::isEmergencyNumber(const QString &number)
+{
+    Q_FOREACH (const QString &emergencyNumber, mOfonoVoiceCallManager->emergencyNumbers()) {
+        if (PhoneUtils::comparePhoneNumbers(emergencyNumber, number)) {
+            return true;
+            break;
+        }
+    }
+    return false;
+}
+
 void oFonoConnection::onOfonoNetworkRegistrationChanged(const QString &status)
 {
     qDebug() << "onOfonoNetworkRegistrationChanged" << status << "is network registered: " << isNetworkRegistered();
@@ -603,6 +615,11 @@ Tp::BaseChannelPtr oFonoConnection::createTextChannel(uint targetHandleType,
 {
     Q_UNUSED(targetHandleType);
 
+    if (mSelfPresence.type != Tp::ConnectionPresenceTypeAvailable) {
+        error->set(TP_QT_ERROR_NETWORK_ERROR, "No network available");
+        return Tp::BaseChannelPtr();
+    }
+
     QStringList phoneNumbers;
     bool flash = false;
     if (hints.contains(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeHandles"))) {
@@ -649,15 +666,22 @@ Tp::BaseChannelPtr oFonoConnection::createCallChannel(uint targetHandleType,
 
     bool success = true;
     QString newPhoneNumber = mHandles.value(targetHandle);
+    bool available = (mSelfPresence.type != Tp::ConnectionPresenceTypeAvailable);
+    bool isConference = (hints.contains(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialChannels")) &&
+                         targetHandleType == Tp::HandleTypeNone && targetHandle == 0);
 
-    if (hints.contains(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialChannels")) &&
-        targetHandleType == Tp::HandleTypeNone && targetHandle == 0) {
+    if (!available && (isConference || !isEmergencyNumber(newPhoneNumber))) {
+        error->set(TP_QT_ERROR_NETWORK_ERROR, "No network available");
+        return Tp::BaseChannelPtr();
+    }
+
+    if (isConference) {
         // conference call request
         if (mConferenceCall) {
             error->set(TP_QT_ERROR_NOT_AVAILABLE, "Conference call already exists");
             return Tp::BaseChannelPtr();
         }
-         
+
         QList<QDBusObjectPath> channels = mOfonoVoiceCallManager->createMultiparty();
         if (!channels.isEmpty()) {
             mConferenceCall = new oFonoConferenceCallChannel(this);
@@ -736,11 +760,6 @@ void oFonoConnection::onCallChannelSplitted()
 Tp::BaseChannelPtr oFonoConnection::createChannel(const QString& channelType, uint targetHandleType,
                                                uint targetHandle, const QVariantMap &hints, Tp::DBusError *error)
 {
-    if (mSelfPresence.type != Tp::ConnectionPresenceTypeAvailable) {
-        error->set(TP_QT_ERROR_NETWORK_ERROR, "No network available");
-        return Tp::BaseChannelPtr();
-    }
-
     if (channelType == TP_QT_IFACE_CHANNEL_TYPE_TEXT) {
         return createTextChannel(targetHandleType, targetHandle, hints, error);
     } else if (channelType == TP_QT_IFACE_CHANNEL_TYPE_CALL) {
