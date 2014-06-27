@@ -39,6 +39,7 @@
 // telepathy-ofono
 #include "ofonotextchannel.h"
 #include "ofonocallchannel.h"
+#include "emergencymodeiface.h"
 #include "voicemailiface.h"
 #include "mmsdmanager.h"
 #include "mmsdmessage.h"
@@ -72,6 +73,7 @@ public:
     void setOnline(bool online);
     void setSpeakerMode(bool active);
     bool speakerMode();
+    QStringList emergencyNumbers(Tp::DBusError *error);
     bool voicemailIndicator(Tp::DBusError *error);
     QString voicemailNumber(Tp::DBusError *error);
     uint voicemailCount(Tp::DBusError *error);
@@ -82,6 +84,7 @@ public:
     Tp::BaseConnectionRequestsInterfacePtr requestsIface;
     Tp::BaseConnectionSimplePresenceInterfacePtr simplePresenceIface;
     Tp::BaseConnectionContactsInterfacePtr contactsIface;
+    BaseConnectionEmergencyModeInterfacePtr emergencyModeIface;
     BaseConnectionVoicemailInterfacePtr voicemailIface;
     BaseConnectionUSSDInterfacePtr supplementaryServicesIface;
     uint newHandle(const QString &identifier);

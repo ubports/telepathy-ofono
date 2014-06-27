@@ -196,6 +196,13 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     simplePresenceIface->setSetPresenceCallback(Tp::memFun(this,&oFonoConnection::setPresence));
     plugInterface(Tp::AbstractConnectionInterfacePtr::dynamicCast(simplePresenceIface));
 
+    // init custom emergency mode interface (not provided by telepathy
+    emergencyModeIface = BaseConnectionEmergencyModeInterface::create();
+    emergencyModeIface->setEmergencyNumbersCallback(Tp::memFun(this,&oFonoConnection::emergencyNumbers));
+    QObject::connect(mOfonoVoiceCallManager, SIGNAL(emergencyNumbersChanged(QStringList)),
+                     emergencyModeIface.data(), SLOT(setEmergencyNumbers(QStringList)));
+    plugInterface(Tp::AbstractConnectionInterfacePtr::dynamicCast(emergencyModeIface));
+
     // init custom voicemail interface (not provided by telepathy)
     voicemailIface = BaseConnectionVoicemailInterface::create();
     voicemailIface->setVoicemailCountCallback(Tp::memFun(this,&oFonoConnection::voicemailCount));
@@ -957,6 +964,11 @@ bool oFonoConnection::voicemailIndicator(Tp::DBusError *error)
 bool oFonoConnection::speakerMode()
 {
     return mSpeakerMode;
+}
+
+QStringList oFonoConnection::emergencyNumbers(Tp::DBusError *error)
+{
+    return mOfonoVoiceCallManager->emergencyNumbers();
 }
 
 void oFonoConnection::setSpeakerMode(bool active)
