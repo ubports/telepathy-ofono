@@ -666,7 +666,7 @@ Tp::BaseChannelPtr oFonoConnection::createCallChannel(uint targetHandleType,
 
     bool success = true;
     QString newPhoneNumber = mHandles.value(targetHandle);
-    bool available = (mSelfPresence.type != Tp::ConnectionPresenceTypeAvailable);
+    bool available = (mSelfPresence.type == Tp::ConnectionPresenceTypeAvailable);
     bool isConference = (hints.contains(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialChannels")) &&
                          targetHandleType == Tp::HandleTypeNone && targetHandle == 0);
 
