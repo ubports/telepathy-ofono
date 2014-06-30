@@ -187,21 +187,27 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
             OutgoingAttachmentStruct attachment;
             attachment.id = part["identifier"].variant().toString();
             attachment.contentType = part["content-type"].variant().toString();
-            //QTemporaryFile file(QDir::tempPath() + "/XXXXXX");
-            QTemporaryFile *file = new QTemporaryFile("/tmp/XXXXXX");
-            file->setAutoRemove(false);
-            if (!file->open()) {
+            QString mDatabasePath = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/telepathy-ofono/attachments";
+            if (!QDir().exists(mDatabasePath) && !QDir().mkpath(mDatabasePath)) {
+                qCritical() << "Failed to create attachments directory";
                 objpath = QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + "-" + QString::number(mMessageCounter++);
                 error->set(TP_QT_ERROR_INVALID_ARGUMENT, "Failed to create attachments to disk");
                 mPendingDeliveryReportFailed[objpath] = handle;
                 QTimer::singleShot(0, this, SLOT(onProcessPendingDeliveryReport()));
-                file->deleteLater();
                 return objpath;
             }
-            file->write(part["content"].variant().toByteArray());
-            file->close();
-            attachment.filePath = file->fileName();
-            file->deleteLater();
+            QTemporaryFile file(mDatabasePath + "/attachmentXXXXXX");
+            file.setAutoRemove(false);
+            if (!file.open()) {
+                objpath = QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + "-" + QString::number(mMessageCounter++);
+                error->set(TP_QT_ERROR_INVALID_ARGUMENT, "Failed to create attachments to disk");
+                mPendingDeliveryReportFailed[objpath] = handle;
+                QTimer::singleShot(0, this, SLOT(onProcessPendingDeliveryReport()));
+                return objpath;
+            }
+            file.write(part["content"].variant().toByteArray());
+            file.close();
+            attachment.filePath = file.fileName();
             attachments << attachment;
         }
         objpath = mConnection->sendMMS(mPhoneNumbers, attachments).path();

@@ -327,7 +327,8 @@ void oFonoConnection::onMMSDServiceAdded(const QString &path)
 
 QDBusObjectPath oFonoConnection::sendMMS(const QStringList &numbers, const OutgoingAttachmentList& attachments)
 {
-    if (mMmsdServices.first()) {
+    // FIXME: dualsim: mms's for now will only be sent using the first modem
+    if (mMmsdServices.count() > 0) {
         return mMmsdServices.first()->sendMessage(numbers, attachments);
     }
     qDebug() << "No mms service available";
