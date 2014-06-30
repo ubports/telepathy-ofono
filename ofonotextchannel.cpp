@@ -187,8 +187,8 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
             OutgoingAttachmentStruct attachment;
             attachment.id = part["identifier"].variant().toString();
             attachment.contentType = part["content-type"].variant().toString();
-            QString mDatabasePath = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/telepathy-ofono/attachments";
-            if (!QDir().exists(mDatabasePath) && !QDir().mkpath(mDatabasePath)) {
+            QString attachmentsPath = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/telepathy-ofono/attachments";
+            if (!QDir().exists(attachmentsPath) && !QDir().mkpath(attachmentsPath)) {
                 qCritical() << "Failed to create attachments directory";
                 objpath = QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + "-" + QString::number(mMessageCounter++);
                 error->set(TP_QT_ERROR_INVALID_ARGUMENT, "Failed to create attachments to disk");
@@ -196,7 +196,7 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
                 QTimer::singleShot(0, this, SLOT(onProcessPendingDeliveryReport()));
                 return objpath;
             }
-            QTemporaryFile file(mDatabasePath + "/attachmentXXXXXX");
+            QTemporaryFile file(attachmentsPath + "/attachmentXXXXXX");
             file.setAutoRemove(false);
             if (!file.open()) {
                 objpath = QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + "-" + QString::number(mMessageCounter++);
