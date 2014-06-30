@@ -1,3 +1,9 @@
+telepathy-ofono (0.2+14.10.20140623-0ubuntu3) utopic; urgency=medium
+
+  * Enabling routing settings to use the pulse-droid element again
+
+ -- Ricardo Salveti de Araujo <ricardo.salveti@canonical.com>  Wed, 25 Jun 2014 14:53:36 -0300
+
 telepathy-ofono (0.2+14.10.20140623-0ubuntu2) utopic; urgency=medium
 
   * Temporarily restoring routes settings to use Alsa devices
