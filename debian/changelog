@@ -1,3 +1,15 @@
+telepathy-ofono (0.2+14.10.20140701-0ubuntu1) utopic; urgency=low
+
+  [ Gustavo Pichorim Boiko ]
+  * Expose the emergency numbers via DBus so that clients can query it.
+
+  [ Tiago Salem Herrmann ]
+  * Ignore received timestamp and use system date/time instead (LP:
+    #1331570)
+  * Implement MMS sending support.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 01 Jul 2014 16:16:18 +0000
+
 telepathy-ofono (0.2+14.10.20140623-0ubuntu3) utopic; urgency=medium
 
   * Enabling routing settings to use the pulse-droid element again
