@@ -309,7 +309,7 @@ void oFonoTextChannel::mmsReceived(const QString &id, uint handle, const QVarian
     Tp::MessagePart header;
     header["message-token"] = QDBusVariant(id);
     header["message-sender"] = QDBusVariant(handle);
-    header["message-received"] = QDBusVariant(QDateTime::fromString(properties["Date"].toString(), Qt::ISODate).toTime_t());
+    header["message-received"] = QDBusVariant(QDateTime::currentDateTimeUtc().toTime_t());
     header["message-type"] = QDBusVariant(Tp::DeliveryStatusDelivered);
     if (!subject.isEmpty())
     {
