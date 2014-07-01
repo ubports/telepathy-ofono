@@ -24,7 +24,7 @@ struct MessageStruct {
     QVariantMap properties;
 };
 
-struct AttachmentStruct {
+struct IncomingAttachmentStruct {
     QString id;
     QString contentType;
     QString filePath;
@@ -32,13 +32,23 @@ struct AttachmentStruct {
     quint64 length;
 };
 
-typedef QList<AttachmentStruct> AttachmentList;
-Q_DECLARE_METATYPE(AttachmentStruct)
-Q_DECLARE_METATYPE(AttachmentList)
+struct OutgoingAttachmentStruct {
+    QString id;
+    QString contentType;
+    QString filePath;
+};
 
+
+typedef QList<IncomingAttachmentStruct> IncomingAttachmentList;
+typedef QList<OutgoingAttachmentStruct> OutgoingAttachmentList;
+Q_DECLARE_METATYPE(IncomingAttachmentStruct)
+Q_DECLARE_METATYPE(OutgoingAttachmentStruct)
+Q_DECLARE_METATYPE(IncomingAttachmentList)
+Q_DECLARE_METATYPE(OutgoingAttachmentList)
 
 typedef QList<MessageStruct> MessageList;
 Q_DECLARE_METATYPE(MessageStruct)
 Q_DECLARE_METATYPE(MessageList)
+
 
 #endif

@@ -39,7 +39,7 @@ public:
     MessageList messages() const;
     QString path() const;
 
-    QDBusObjectPath sendMessage(QStringList recipients, QString smil, AttachmentList attachments);
+    QDBusObjectPath sendMessage(QStringList recipients, OutgoingAttachmentList attachments);
 
 Q_SIGNALS:
     void messageAdded(const QString &messagePath, const QVariantMap &properties);

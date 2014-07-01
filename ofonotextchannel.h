@@ -35,7 +35,7 @@ class oFonoTextChannel : public QObject
     Q_OBJECT
 public:
     oFonoTextChannel(oFonoConnection *conn, QStringList phoneNumbers, bool flash = false, QObject *parent = 0);
-    QString sendMessage(const Tp::MessagePartList& message, uint flags, Tp::DBusError* error);
+    QString sendMessage(Tp::MessagePartList message, uint flags, Tp::DBusError* error);
     void messageReceived(const QString & message, uint handle, const QVariantMap &info);
     Tp::BaseChannelPtr baseChannel();
     void messageAcknowledged(const QString &id);

@@ -23,7 +23,7 @@
 #include "ofonotextchannel.h"
 #include "pendingmessagesmanager.h"
 
-QDBusArgument &operator<<(QDBusArgument &argument, const AttachmentStruct &attachment)
+QDBusArgument &operator<<(QDBusArgument&argument, const IncomingAttachmentStruct &attachment)
 {
     argument.beginStructure();
     argument << attachment.id << attachment.contentType << attachment.filePath << attachment.offset << attachment.length;
@@ -31,13 +31,14 @@ QDBusArgument &operator<<(QDBusArgument &argument, const AttachmentStruct &attac
     return argument;
 }
 
-const QDBusArgument &operator>>(const QDBusArgument &argument, AttachmentStruct &attachment)
+const QDBusArgument &operator>>(const QDBusArgument &argument, IncomingAttachmentStruct &attachment)
 {
     argument.beginStructure();
     argument >> attachment.id >> attachment.contentType >> attachment.filePath >> attachment.offset >> attachment.length;
     argument.endStructure();
     return argument;
 }
+
 
 oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, QStringList phoneNumbers, bool flash, QObject *parent):
     QObject(parent),
@@ -46,8 +47,8 @@ oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, QStringList phoneNumbe
     mFlash(flash),
     mMessageCounter(1)
 {
-    qDBusRegisterMetaType<AttachmentStruct>();
-    qDBusRegisterMetaType<AttachmentList>();
+    qDBusRegisterMetaType<IncomingAttachmentStruct>();
+    qDBusRegisterMetaType<IncomingAttachmentList>();
 
     Tp::BaseChannelPtr baseChannel;
     if (phoneNumbers.size() == 1) {
@@ -166,12 +167,60 @@ void oFonoTextChannel::messageAcknowledged(const QString &id)
     Q_EMIT messageRead(id);
 }
 
-QString oFonoTextChannel::sendMessage(const Tp::MessagePartList& message, uint flags, Tp::DBusError* error)
+QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, Tp::DBusError* error)
 {
     bool success = true;
     Tp::MessagePart header = message.at(0);
     Tp::MessagePart body = message.at(1);
     QString objpath;
+
+    // if message contains more than header and one body, it is an mms.
+    if (message.size() > 2) {
+        // pop header out
+        message.removeFirst();
+        OutgoingAttachmentList attachments;
+        // FIXME group chat
+        QString phoneNumber = mPhoneNumbers[0];
+        uint handle = mConnection->ensureHandle(phoneNumber);
+
+        Q_FOREACH(const Tp::MessagePart &part, message) {
+            OutgoingAttachmentStruct attachment;
+            attachment.id = part["identifier"].variant().toString();
+            attachment.contentType = part["content-type"].variant().toString();
+            QString attachmentsPath = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/telepathy-ofono/attachments";
+            if (!QDir().exists(attachmentsPath) && !QDir().mkpath(attachmentsPath)) {
+                qCritical() << "Failed to create attachments directory";
+                objpath = QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + "-" + QString::number(mMessageCounter++);
+                error->set(TP_QT_ERROR_INVALID_ARGUMENT, "Failed to create attachments to disk");
+                mPendingDeliveryReportFailed[objpath] = handle;
+                QTimer::singleShot(0, this, SLOT(onProcessPendingDeliveryReport()));
+                return objpath;
+            }
+            QTemporaryFile file(attachmentsPath + "/attachmentXXXXXX");
+            file.setAutoRemove(false);
+            if (!file.open()) {
+                objpath = QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + "-" + QString::number(mMessageCounter++);
+                error->set(TP_QT_ERROR_INVALID_ARGUMENT, "Failed to create attachments to disk");
+                mPendingDeliveryReportFailed[objpath] = handle;
+                QTimer::singleShot(0, this, SLOT(onProcessPendingDeliveryReport()));
+                return objpath;
+            }
+            file.write(part["content"].variant().toByteArray());
+            file.close();
+            attachment.filePath = file.fileName();
+            attachments << attachment;
+        }
+        objpath = mConnection->sendMMS(mPhoneNumbers, attachments).path();
+        if (objpath.isEmpty()) {
+            // give a temporary id for this message
+            objpath = QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + "-" + QString::number(mMessageCounter++);
+            // TODO: get error message from nuntium
+            error->set(TP_QT_ERROR_INVALID_ARGUMENT, "Failed to send MMS");
+            mPendingDeliveryReportFailed[objpath] = handle;
+        }
+        QTimer::singleShot(0, this, SLOT(onProcessPendingDeliveryReport()));
+        return objpath;
+    }
 
     if (mPhoneNumbers.size() == 1) {
         QString phoneNumber = mPhoneNumbers[0];
@@ -252,7 +301,7 @@ void oFonoTextChannel::onProcessPendingDeliveryReport()
     iterator = mPendingDeliveryReportDelivered;
     while(iterator.hasNext()) {
         iterator.next();
-        sendDeliveryReport(iterator.key(), iterator.value(), Tp::DeliveryStatusPermanentlyFailed);
+        sendDeliveryReport(iterator.key(), iterator.value(), Tp::DeliveryStatusDelivered);
     }
 
     mPendingDeliveryReportFailed.clear();
@@ -316,8 +365,8 @@ void oFonoTextChannel::mmsReceived(const QString &id, uint handle, const QVarian
         header["subject"] = QDBusVariant(subject);
     }
     message << header;
-    AttachmentList mmsdAttachments = qdbus_cast<AttachmentList>(properties["Attachments"]);
-    Q_FOREACH(const AttachmentStruct &attachment, mmsdAttachments) {
+    IncomingAttachmentList mmsdAttachments = qdbus_cast<IncomingAttachmentList>(properties["Attachments"]);
+    Q_FOREACH(const IncomingAttachmentStruct &attachment, mmsdAttachments) {
         QFile attachmentFile(attachment.filePath);
         if (!attachmentFile.open(QIODevice::ReadOnly)) {
             qWarning() << "fail to load attachment" << attachmentFile.errorString() << attachment.filePath;
