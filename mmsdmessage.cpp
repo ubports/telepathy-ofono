@@ -26,9 +26,20 @@ MMSDMessage::MMSDMessage(QString objectPath, QVariantMap properties, QObject *pa
       m_messagePath(objectPath),
       m_properties(properties)
 {
-    QDBusConnection::sessionBus().connect("org.ofono.mms", m_messagePath, "org.ofono.mms.Message",
+    qDebug() << "MMSDMessage::MMSDMessage created" << m_messagePath;
+    qDebug() << QDBusConnection::sessionBus().connect("org.ofono.mms", m_messagePath, "org.ofono.mms.Message",
                                           "PropertyChanged", this,
-                                          SLOT(onPropertyChanged(const QString&, const QVariant&)));
+                                          SLOT(onPropertyChanged(QString,QVariant)));
+    /*if (m_properties.isEmpty()) {
+        QDBusMessage request;
+        request = QDBusMessage::createMethodCall("org.ofono.mms",
+                                       m_messagePath, "org.ofono.mms.Message",
+                                       "GetProperties");
+        QDBusReply<QVariantMap> reply = QDBusConnection::sessionBus().call(request);
+        if (reply.isValid()) {
+            m_properties = reply;
+        }
+    }*/
 }
 
 MMSDMessage::~MMSDMessage()

@@ -343,16 +343,6 @@ QDBusObjectPath oFonoConnection::sendMMS(const QStringList &numbers, const Outgo
     return QDBusObjectPath();
 }
 
-void oFonoConnection::onMMSPropertyChanged(QString property, QVariant value)
-{
-    qDebug() << "oFonoConnection::onMMSPropertyChanged" << property << value;
-    if (property == "Status") {
-        if (value == "sent") {
-            // FIXME send delivery report
-        }
-    }
-}
-
 void oFonoConnection::onMMSDServiceRemoved(const QString &path)
 {
     MMSDService *service = mMmsdServices.take(path);
@@ -403,7 +393,6 @@ void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &pr
 {
     qDebug() << "addMMSToService " << path << properties << servicePath;
     MMSDMessage *msg = new MMSDMessage(path, properties);
-    QObject::connect(msg, SIGNAL(propertyChanged(QString,QVariant)), SLOT(onMMSPropertyChanged(QString,QVariant)));
     mServiceMMSList[servicePath].append(msg);
     if (properties["Status"] ==  "received") {
         const QString normalizedNumber = PhoneUtils::normalizePhoneNumber(properties["Sender"].toString());

@@ -192,7 +192,7 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
                 qCritical() << "Failed to create attachments directory";
                 objpath = QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + "-" + QString::number(mMessageCounter++);
                 error->set(TP_QT_ERROR_INVALID_ARGUMENT, "Failed to create attachments to disk");
-                mPendingDeliveryReportFailed[objpath] = handle;
+                mPendingDeliveryReportPermanentlyFailed[objpath] = handle;
                 QTimer::singleShot(0, this, SLOT(onProcessPendingDeliveryReport()));
                 return objpath;
             }
@@ -201,7 +201,7 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
             if (!file.open()) {
                 objpath = QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + "-" + QString::number(mMessageCounter++);
                 error->set(TP_QT_ERROR_INVALID_ARGUMENT, "Failed to create attachments to disk");
-                mPendingDeliveryReportFailed[objpath] = handle;
+                mPendingDeliveryReportPermanentlyFailed[objpath] = handle;
                 QTimer::singleShot(0, this, SLOT(onProcessPendingDeliveryReport()));
                 return objpath;
             }
@@ -216,8 +216,13 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
             objpath = QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + "-" + QString::number(mMessageCounter++);
             // TODO: get error message from nuntium
             error->set(TP_QT_ERROR_INVALID_ARGUMENT, "Failed to send MMS");
-            mPendingDeliveryReportFailed[objpath] = handle;
+            mPendingDeliveryReportPermanentlyFailed[objpath] = handle;
+            QTimer::singleShot(0, this, SLOT(onProcessPendingDeliveryReport()));
+            return objpath;
         }
+        MMSDMessage *msg = new MMSDMessage(objpath, QVariantMap());
+        QObject::connect(msg, SIGNAL(propertyChanged(QString,QVariant)), SLOT(onMMSPropertyChanged(QString,QVariant)));
+        mPendingDeliveryReportUnknown[objpath] = handle;
         QTimer::singleShot(0, this, SLOT(onProcessPendingDeliveryReport()));
         return objpath;
     }
@@ -234,7 +239,7 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
             }
             // create an unique id for this message that ofono failed to send
             objpath = QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + "-" + QString::number(mMessageCounter++);
-            mPendingDeliveryReportFailed[objpath] = handle;
+            mPendingDeliveryReportPermanentlyFailed[objpath] = handle;
             QTimer::singleShot(0, this, SLOT(onProcessPendingDeliveryReport()));
             return objpath;
         }
@@ -242,7 +247,7 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
         if (msg->state() == "") {
             // message was already sent or failed too fast (this case is only reproducible with the emulator)
             msg->deleteLater();
-            mPendingDeliveryReportDelivered[objpath] = handle;
+            mPendingDeliveryReportUnknown[objpath] = handle;
             QTimer::singleShot(0, this, SLOT(onProcessPendingDeliveryReport()));
             return objpath;
         }
@@ -272,7 +277,7 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
             // for group chat we only fail if all the messages failed to send
             objpath = QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + "-" + QString::number(mMessageCounter++);
             uint handle = mConnection->ensureHandle(lastPhoneNumber);
-            mPendingDeliveryReportFailed[objpath] = handle;
+            mPendingDeliveryReportPermanentlyFailed[objpath] = handle;
             QTimer::singleShot(0, this, SLOT(onProcessPendingDeliveryReport()));
             return objpath;
         }
@@ -281,7 +286,7 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
             // message was already sent or failed too fast (this case is only reproducible with the emulator)
             msg->deleteLater();
             uint handle = mConnection->ensureHandle(lastPhoneNumber);
-            mPendingDeliveryReportDelivered[objpath] = handle;
+            mPendingDeliveryReportUnknown[objpath] = handle;
             QTimer::singleShot(0, this, SLOT(onProcessPendingDeliveryReport()));
             // return only the last one in case of group chat for history purposes
             return objpath;
@@ -291,9 +296,29 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
     }
 }
 
+void oFonoTextChannel::onMMSPropertyChanged(QString property, QVariant value)
+{
+    qDebug() << "oFonoTextChannel::onMMSPropertyChanged" << property << value;
+    MMSDMessage *msg = qobject_cast<MMSDMessage*>(sender());
+    // FIXME - mms groupchat
+    uint handle = mConnection->ensureHandle(mPhoneNumbers[0]);
+    if (!msg) {
+        return;
+    }
+    if (property == "Status") {
+        Tp::DeliveryStatus status = Tp::DeliveryStatusUnknown;
+        if (value == "sent") {
+            status = Tp::DeliveryStatusAccepted;
+        } else if (value == "TransientError" || value == "PermanentError") {
+            status = Tp::DeliveryStatusPermanentlyFailed;
+        }
+        sendDeliveryReport(msg->path(), handle, status);
+    }
+}
+
 void oFonoTextChannel::onProcessPendingDeliveryReport()
 {
-    QMapIterator<QString, uint> iterator(mPendingDeliveryReportFailed);
+    QMapIterator<QString, uint> iterator(mPendingDeliveryReportPermanentlyFailed);
     while(iterator.hasNext()) {
         iterator.next();
         sendDeliveryReport(iterator.key(), iterator.value(), Tp::DeliveryStatusPermanentlyFailed);
@@ -303,9 +328,27 @@ void oFonoTextChannel::onProcessPendingDeliveryReport()
         iterator.next();
         sendDeliveryReport(iterator.key(), iterator.value(), Tp::DeliveryStatusDelivered);
     }
+    iterator = mPendingDeliveryReportAccepted;
+    while(iterator.hasNext()) {
+        iterator.next();
+        sendDeliveryReport(iterator.key(), iterator.value(), Tp::DeliveryStatusAccepted);
+    }
+    iterator = mPendingDeliveryReportTemporarilyFailed;
+    while(iterator.hasNext()) {
+        iterator.next();
+        sendDeliveryReport(iterator.key(), iterator.value(), Tp::DeliveryStatusTemporarilyFailed);
+    }
+    iterator = mPendingDeliveryReportUnknown;
+    while(iterator.hasNext()) {
+        iterator.next();
+        sendDeliveryReport(iterator.key(), iterator.value(), Tp::DeliveryStatusUnknown);
+    }
 
-    mPendingDeliveryReportFailed.clear();
+    mPendingDeliveryReportTemporarilyFailed.clear();
+    mPendingDeliveryReportPermanentlyFailed.clear();
     mPendingDeliveryReportDelivered.clear();
+    mPendingDeliveryReportAccepted.clear();
+    mPendingDeliveryReportUnknown.clear();
 }
 
 void oFonoTextChannel::onOfonoMessageStateChanged(QString status)
