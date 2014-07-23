@@ -61,6 +61,7 @@ public:
 public Q_SLOTS:
     void setVoicemailCount(int count);
     void setVoicemailIndicator(bool active);
+    void setVoicemailNumber(const QString &voicemailNumber);
 
 protected:
     BaseConnectionVoicemailInterface();
@@ -97,6 +98,9 @@ class TP_QT_EXPORT ConnectionInterfaceVoicemailAdaptor : public Tp::AbstractAdap
 "    <signal name=\"VoicemailIndicatorChanged\">\n"
 "      <arg type=\"b\" name=\"active\"/>\n"
 "    </signal>\n"
+"    <signal name=\"VoicemailNumberChanged\">\n"
+"      <arg type=\"s\" name=\"voicemailNumber\"/>\n"
+"    </signal>\n"
 "  </interface>\n"
 "")
 
@@ -116,6 +120,7 @@ public Q_SLOTS: // METHODS
 Q_SIGNALS: // SIGNALS
     void VoicemailCountChanged(uint count);
     void VoicemailIndicatorChanged(bool active);
+    void VoicemailNumberChanged(const QString &voicemailNumber);
 };
 
 
@@ -135,6 +140,7 @@ private Q_SLOTS:
 Q_SIGNALS:
     void voicemailCountChanged(uint count);
     void voicemailIndicatorChanged(bool active);
+    void voicemailNumberChanged(const QString &voicemailNumber);
 
 public:
     BaseConnectionVoicemailInterface *mInterface;
