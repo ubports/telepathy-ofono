@@ -220,7 +220,7 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
             QTimer::singleShot(0, this, SLOT(onProcessPendingDeliveryReport()));
             return objpath;
         }
-        MMSDMessage *msg = new MMSDMessage(objpath, QVariantMap());
+        MMSDMessage *msg = new MMSDMessage(objpath, QVariantMap(), this);
         QObject::connect(msg, SIGNAL(propertyChanged(QString,QVariant)), SLOT(onMMSPropertyChanged(QString,QVariant)));
         mPendingDeliveryReportUnknown[objpath] = handle;
         QTimer::singleShot(0, this, SLOT(onProcessPendingDeliveryReport()));

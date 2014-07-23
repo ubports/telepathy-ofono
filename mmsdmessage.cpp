@@ -26,20 +26,9 @@ MMSDMessage::MMSDMessage(QString objectPath, QVariantMap properties, QObject *pa
       m_messagePath(objectPath),
       m_properties(properties)
 {
-    qDebug() << "MMSDMessage::MMSDMessage created" << m_messagePath;
-    qDebug() << QDBusConnection::sessionBus().connect("org.ofono.mms", m_messagePath, "org.ofono.mms.Message",
+    QDBusConnection::sessionBus().connect("org.ofono.mms", m_messagePath, "org.ofono.mms.Message",
                                           "PropertyChanged", this,
-                                          SLOT(onPropertyChanged(QString,QVariant)));
-    /*if (m_properties.isEmpty()) {
-        QDBusMessage request;
-        request = QDBusMessage::createMethodCall("org.ofono.mms",
-                                       m_messagePath, "org.ofono.mms.Message",
-                                       "GetProperties");
-        QDBusReply<QVariantMap> reply = QDBusConnection::sessionBus().call(request);
-        if (reply.isValid()) {
-            m_properties = reply;
-        }
-    }*/
+                                          SLOT(onPropertyChanged(QString,QDBusVariant)));
 }
 
 MMSDMessage::~MMSDMessage()
@@ -56,11 +45,11 @@ QVariantMap MMSDMessage::properties() const
     return m_properties;
 }
 
-void MMSDMessage::onPropertyChanged(const QString &property, const QVariant &value)
+void MMSDMessage::onPropertyChanged(const QString &property, const QDBusVariant &value)
 {
-    qDebug() << "property changed" << property << value;
-    m_properties[property] = value;
-    Q_EMIT propertyChanged(property, value);
+    QVariant variantValue = value.variant();
+    m_properties[property] = variantValue;
+    Q_EMIT propertyChanged(property, variantValue);
 }
 
 void MMSDMessage::markRead() const
