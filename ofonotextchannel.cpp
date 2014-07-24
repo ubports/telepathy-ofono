@@ -137,6 +137,11 @@ Tp::UIntList oFonoTextChannel::members()
 
 oFonoTextChannel::~oFonoTextChannel()
 {
+    Q_FOREACH(const QStringList &fileList, mFilesToRemove) {
+        Q_FOREACH(const QString& file, fileList) {
+            QFile::remove(file);
+        }
+    }
 }
 
 Tp::BaseChannelPtr oFonoTextChannel::baseChannel()
@@ -182,7 +187,7 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
         // FIXME group chat
         QString phoneNumber = mPhoneNumbers[0];
         uint handle = mConnection->ensureHandle(phoneNumber);
-
+        QStringList temporaryFiles;
         Q_FOREACH(const Tp::MessagePart &part, message) {
             OutgoingAttachmentStruct attachment;
             attachment.id = part["identifier"].variant().toString();
@@ -199,12 +204,16 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
             QTemporaryFile file(attachmentsPath + "/attachmentXXXXXX");
             file.setAutoRemove(false);
             if (!file.open()) {
+                Q_FOREACH(const QString& file, temporaryFiles) {
+                    QFile::remove(file);
+                }
                 objpath = QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + "-" + QString::number(mMessageCounter++);
                 error->set(TP_QT_ERROR_INVALID_ARGUMENT, "Failed to create attachments to disk");
                 mPendingDeliveryReportPermanentlyFailed[objpath] = handle;
                 QTimer::singleShot(0, this, SLOT(onProcessPendingDeliveryReport()));
                 return objpath;
             }
+            temporaryFiles << file.fileName();
             file.write(part["content"].variant().toByteArray());
             file.close();
             attachment.filePath = file.fileName();
@@ -212,6 +221,9 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
         }
         objpath = mConnection->sendMMS(mPhoneNumbers, attachments).path();
         if (objpath.isEmpty()) {
+            Q_FOREACH(const QString& file, temporaryFiles) {
+                QFile::remove(file);
+            }
             // give a temporary id for this message
             objpath = QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + "-" + QString::number(mMessageCounter++);
             // TODO: get error message from nuntium
@@ -224,6 +236,9 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
         QObject::connect(msg, SIGNAL(propertyChanged(QString,QVariant)), SLOT(onMMSPropertyChanged(QString,QVariant)));
         mPendingDeliveryReportUnknown[objpath] = handle;
         QTimer::singleShot(0, this, SLOT(onProcessPendingDeliveryReport()));
+        if (temporaryFiles.size() > 0) {
+            mFilesToRemove[objpath] = temporaryFiles;
+        }
         return objpath;
     }
 
@@ -307,11 +322,20 @@ void oFonoTextChannel::onMMSPropertyChanged(QString property, QVariant value)
     }
     if (property == "Status") {
         Tp::DeliveryStatus status = Tp::DeliveryStatusUnknown;
-        if (value == "sent") {
+        if (value == "Sent") {
             status = Tp::DeliveryStatusAccepted;
         } else if (value == "TransientError" || value == "PermanentError") {
+            // transient error in telepathy means it is still trying, so we need to
+            // set a permanent error here so the user can retry
             status = Tp::DeliveryStatusPermanentlyFailed;
+        } else if (value == "draft") {
+            // while it is draft we dont actually send a delivery report
+            return;
         }
+        Q_FOREACH(const QString& file, mFilesToRemove[msg->path()]) {
+            QFile::remove(file);
+        }
+        mFilesToRemove.remove(msg->path());
         sendDeliveryReport(msg->path(), handle, status);
     }
 }
