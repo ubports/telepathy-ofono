@@ -1,3 +1,15 @@
+telepathy-ofono (0.2+14.10.20140725.2-0ubuntu1) utopic; urgency=low
+
+  [ Ubuntu daily release ]
+  * New rebuild forced
+
+  [ Tiago Salem Herrmann ]
+  * Add VoicemailNumberChanged() signal (LP: #1347085)
+  * Fix PropertyChanged signal connection. Improve delivery report (LP:
+    #1337597)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Fri, 25 Jul 2014 21:29:36 +0000
+
 telepathy-ofono (0.2+14.10.20140701-0ubuntu1) utopic; urgency=low
 
   [ Gustavo Pichorim Boiko ]
