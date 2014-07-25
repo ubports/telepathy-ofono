@@ -41,7 +41,7 @@ Q_SIGNALS:
     void propertyChanged(const QString&, const QVariant&);
 
 private Q_SLOTS:
-    void onPropertyChanged(const QString&, const QVariant&);
+    void onPropertyChanged(const QString&, const QDBusVariant&);
 
 private:
     QVariantMap m_properties;

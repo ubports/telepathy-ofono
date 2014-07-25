@@ -28,7 +28,7 @@ MMSDMessage::MMSDMessage(QString objectPath, QVariantMap properties, QObject *pa
 {
     QDBusConnection::sessionBus().connect("org.ofono.mms", m_messagePath, "org.ofono.mms.Message",
                                           "PropertyChanged", this,
-                                          SLOT(onPropertyChanged(const QString&, const QVariant&)));
+                                          SLOT(onPropertyChanged(QString,QDBusVariant)));
 }
 
 MMSDMessage::~MMSDMessage()
@@ -45,11 +45,11 @@ QVariantMap MMSDMessage::properties() const
     return m_properties;
 }
 
-void MMSDMessage::onPropertyChanged(const QString &property, const QVariant &value)
+void MMSDMessage::onPropertyChanged(const QString &property, const QDBusVariant &value)
 {
-    qDebug() << "property changed" << property << value;
-    m_properties[property] = value;
-    Q_EMIT propertyChanged(property, value);
+    QVariant variantValue = value.variant();
+    m_properties[property] = variantValue;
+    Q_EMIT propertyChanged(property, variantValue);
 }
 
 void MMSDMessage::markRead() const

@@ -41,12 +41,14 @@ public:
     void messageAcknowledged(const QString &id);
     void mmsReceived(const QString &id, uint handle, const QVariantMap &properties);
     void deliveryReportReceived(const QString& messageId, uint handle, bool success);
+    void sendDeliveryReport(const QString &messageId, uint handle, Tp::DeliveryStatus status);
     void addMembers(QStringList phoneNumbers);
     Tp::UIntList members();
     void onAddMembers(const Tp::UIntList& handles, const QString& message, Tp::DBusError* error);
     void onRemoveMembers(const Tp::UIntList& handles, const QString& message, Tp::DBusError* error);
 
 private Q_SLOTS:
+    void onMMSPropertyChanged(QString property, QVariant value);
     void onOfonoMessageStateChanged(QString status);
     void onProcessPendingDeliveryReport();
 
@@ -54,7 +56,6 @@ Q_SIGNALS:
     void messageRead(const QString &id);
 
 private:
-    void sendDeliveryReport(const QString &messageId, uint handle, Tp::DeliveryStatus status);
     ~oFonoTextChannel();
     Tp::BaseChannelPtr mBaseChannel;
     QStringList mPhoneNumbers;
@@ -64,9 +65,13 @@ private:
     Tp::BaseChannelSMSInterfacePtr mSMSIface;
     Tp::BaseChannelTextTypePtr mTextChannel;
     uint mMessageCounter;
-    QMap<QString, uint> mPendingDeliveryReportFailed;
+    QMap<QString, uint> mPendingDeliveryReportTemporarilyFailed;
+    QMap<QString, uint> mPendingDeliveryReportPermanentlyFailed;
+    QMap<QString, uint> mPendingDeliveryReportAccepted;
     QMap<QString, uint> mPendingDeliveryReportDelivered;
+    QMap<QString, uint> mPendingDeliveryReportUnknown;
     Tp::UIntList mMembers;
+    QMap<QString, QStringList> mFilesToRemove;
     bool mFlash;
 };
 
