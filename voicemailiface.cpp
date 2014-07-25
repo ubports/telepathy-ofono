@@ -122,6 +122,11 @@ void BaseConnectionVoicemailInterface::setVoicemailCount(int count)
     Q_EMIT mPriv->adaptee->voicemailCountChanged(uint(count));
 }
 
+void BaseConnectionVoicemailInterface::setVoicemailNumber(const QString &voicemailNumber)
+{
+    Q_EMIT mPriv->adaptee->voicemailNumberChanged(voicemailNumber);
+}
+
 void BaseConnectionVoicemailInterface::setVoicemailIndicator(bool active)
 {
     Q_EMIT mPriv->adaptee->voicemailIndicatorChanged(active);
@@ -145,6 +150,7 @@ ConnectionInterfaceVoicemailAdaptor::ConnectionInterfaceVoicemailAdaptor(const Q
 {
     connect(adaptee, SIGNAL(voicemailCountChanged(uint)), SIGNAL(VoicemailCountChanged(uint)));
     connect(adaptee, SIGNAL(voicemailIndicatorChanged(bool)), SIGNAL(VoicemailIndicatorChanged(bool)));
+    connect(adaptee, SIGNAL(voicemailNumberChanged(QString)), SIGNAL(VoicemailNumberChanged(QString)));
 }
 
 ConnectionInterfaceVoicemailAdaptor::~ConnectionInterfaceVoicemailAdaptor()
