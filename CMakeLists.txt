@@ -33,12 +33,6 @@ find_package(Qt5Core)
 find_package(Qt5DBus)
 add_definitions(-DQT_NO_KEYWORDS)
 
-check_include_file_cxx("waudio.h" USE_AUDIOFLINGER)
-if (USE_AUDIOFLINGER)
-    add_definitions(-DUSE_AUDIOFLINGER)
-    set(WAUDIO_LIBRARIES -lwaudio)
-endif (USE_AUDIOFLINGER)
-
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(TP_QT5 REQUIRED TelepathyQt5)
 pkg_check_modules(SQLITE3 REQUIRED sqlite3)
