@@ -515,7 +515,12 @@ Tp::ContactAttributesMap oFonoConnection::getContactAttributes(const Tp::UIntLis
     Tp::ContactAttributesMap attributesMap;
     QVariantMap attributes;
     Q_FOREACH(uint handle, handles) {
-        attributes[TP_QT_IFACE_CONNECTION+"/contact-id"] = inspectHandles(Tp::HandleTypeContact, Tp::UIntList() << handle, error).at(0);
+        QStringList inspectedHandles = inspectHandles(Tp::HandleTypeContact, Tp::UIntList() << handle, error);
+        if (inspectedHandles.size() > 0) {
+            attributes[TP_QT_IFACE_CONNECTION+"/contact-id"] = inspectedHandles.at(0);
+        } else {
+            continue;
+        }
         if (ifaces.contains(TP_QT_IFACE_CONNECTION_INTERFACE_SIMPLE_PRESENCE)) {
             attributes[TP_QT_IFACE_CONNECTION_INTERFACE_SIMPLE_PRESENCE+"/presence"] = QVariant::fromValue(mSelfPresence);
         }
