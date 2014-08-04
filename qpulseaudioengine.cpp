@@ -151,9 +151,7 @@ QPulseAudioEngine::QPulseAudioEngine(QObject *parent)
     if (ok) {
         pa_context_set_state_callback(m_context, contextStateCallback, this);
         pa_context_set_subscribe_callback(m_context, subscribeCallback, this);
-        pa_context_subscribe(m_context,
-                static_cast<pa_subscription_mask_t>(PA_SUBSCRIPTION_MASK_CARD | PA_SUBSCRIPTION_MASK_SERVER),
-                NULL, this);
+        pa_context_subscribe(m_context, PA_SUBSCRIPTION_MASK_CARD, NULL, this);
     } else {
         if (m_context) {
             pa_context_unref(m_context);
