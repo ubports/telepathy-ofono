@@ -53,9 +53,9 @@ static void subscribeCallback(pa_context *context, pa_subscription_event_type_t 
     if ((t & PA_SUBSCRIPTION_EVENT_FACILITY_MASK) == PA_SUBSCRIPTION_EVENT_CARD) {
         if ((t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) == PA_SUBSCRIPTION_EVENT_CHANGE)
             QMetaObject::invokeMethod((QPulseAudioEngine *) userdata, "plugUnplugSlot", Qt::QueuedConnection);
-        if ((t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) == PA_SUBSCRIPTION_EVENT_NEW)
+        else if ((t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) == PA_SUBSCRIPTION_EVENT_NEW)
             QMetaObject::invokeMethod((QPulseAudioEngine *) userdata, "plugUnplugCard", Qt::QueuedConnection);
-        if ((t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) == PA_SUBSCRIPTION_EVENT_REMOVE) {
+        else if ((t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) == PA_SUBSCRIPTION_EVENT_REMOVE) {
             /* unplug slot is needed because remove gets called after event change */
             QMetaObject::invokeMethod((QPulseAudioEngine *) userdata, "plugUnplugCard", Qt::QueuedConnection);
             QMetaObject::invokeMethod((QPulseAudioEngine *) userdata, "plugUnplugSlot", Qt::QueuedConnection);
@@ -194,9 +194,9 @@ void QPulseAudioEngine::cardInfoCallback(const pa_card_info *info)
             highest = &info->profiles[i];
         if (!strcmp(info->profiles[i].name, "voicecall"))
             voice_call = &info->profiles[i];
-        if (!strcmp(info->profiles[i].name, PULSEAUDIO_PROFILE_HSP))
+        else if (!strcmp(info->profiles[i].name, PULSEAUDIO_PROFILE_HSP))
             hsp = &info->profiles[i];
-        if (!strcmp(info->profiles[i].name, PULSEAUDIO_PROFILE_A2DP))
+        else if (!strcmp(info->profiles[i].name, PULSEAUDIO_PROFILE_A2DP))
             a2dp = &info->profiles[i];
     }
 
@@ -231,9 +231,9 @@ void QPulseAudioEngine::sinkInfoCallback(const pa_sink_info *info)
                 highest = info->ports[i];
         if (!strcmp(info->ports[i]->name, "output-earpiece"))
             earpiece = info->ports[i];
-        if (!strcmp(info->ports[i]->name, "output-speaker"))
+        else if (!strcmp(info->ports[i]->name, "output-speaker"))
             speaker = info->ports[i];
-        if (!strcmp(info->ports[i]->name, "output-bluetooth_sco"))
+        else if (!strcmp(info->ports[i]->name, "output-bluetooth_sco"))
             bluetooth_sco = info->ports[i];
     }
 
