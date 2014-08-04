@@ -23,14 +23,14 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#define PULSEAUDIO_PROFILE_HSP "hsp"
+#define PULSEAUDIO_PROFILE_A2DP "a2dp"
+
 QT_BEGIN_NAMESPACE
 
 static void contextStateCallbackInit(pa_context *context, void *userdata)
 {
     Q_UNUSED(context);
-#ifdef DEBUG_PULSE
-    qDebug() << QPulseAudioInternal::stateToQString(pa_context_get_state(context));
-#endif
     QPulseAudioEngine *pulseEngine = reinterpret_cast<QPulseAudioEngine*>(userdata);
     pa_threaded_mainloop_signal(pulseEngine->mainloop(), 0);
 }
@@ -39,11 +39,6 @@ static void contextStateCallback(pa_context *context, void *userdata)
 {
     Q_UNUSED(userdata);
     Q_UNUSED(context);
-
-#ifdef DEBUG_PULSE
-    pa_context_state_t state = pa_context_get_state(context);
-    qDebug() << QPulseAudioInternal::stateToQString(state);
-#endif
 }
 
 static void success_cb(pa_context *context, int success, void *userdata)
@@ -54,14 +49,18 @@ static void success_cb(pa_context *context, int success, void *userdata)
 
 static void subscribeCallback(pa_context *context, pa_subscription_event_type_t t, uint32_t idx, void *userdata)
 {
-    /* We're interested in plug/unplug stuff only, i e, card changes */
-    if ((t & PA_SUBSCRIPTION_EVENT_FACILITY_MASK) != PA_SUBSCRIPTION_EVENT_CARD)
-        return;
-    if ((t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) != PA_SUBSCRIPTION_EVENT_CHANGE)
-        return;
-
-    /* Handle it later, and in the right thread */
-    QMetaObject::invokeMethod((QPulseAudioEngine *) userdata, "plugUnplugSlot", Qt::QueuedConnection);
+    /* For card change events (slot plug/unplug and add/remove card) */
+    if ((t & PA_SUBSCRIPTION_EVENT_FACILITY_MASK) == PA_SUBSCRIPTION_EVENT_CARD) {
+        if ((t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) == PA_SUBSCRIPTION_EVENT_CHANGE)
+            QMetaObject::invokeMethod((QPulseAudioEngine *) userdata, "plugUnplugSlot", Qt::QueuedConnection);
+        else if ((t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) == PA_SUBSCRIPTION_EVENT_NEW)
+            QMetaObject::invokeMethod((QPulseAudioEngine *) userdata, "plugUnplugCard", Qt::QueuedConnection);
+        else if ((t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) == PA_SUBSCRIPTION_EVENT_REMOVE) {
+            /* unplug slot is needed because remove gets called after event change */
+            QMetaObject::invokeMethod((QPulseAudioEngine *) userdata, "plugUnplugCard", Qt::QueuedConnection);
+            QMetaObject::invokeMethod((QPulseAudioEngine *) userdata, "plugUnplugSlot", Qt::QueuedConnection);
+        }
+    }
 }
 
 Q_GLOBAL_STATIC(QPulseAudioEngine, pulseEngine);
@@ -70,9 +69,16 @@ QPulseAudioEngine::QPulseAudioEngine(QObject *parent)
     : QObject(parent)
     , m_mainLoopApi(0)
     , m_context(0)
-    , m_incall(false)
-    , m_speakermode(false)
+    , m_callstatus(CallEnded)
+    , m_callmode(CallNormal)
     , m_micmute(false)
+    , m_defaultsink("sink.primary")
+    , m_defaultsource("source.primary")
+    , m_voicecallcard("")
+    , m_voicecallhighest("")
+    , m_voicecallprofile("")
+    , m_bt_hsp("")
+    , m_bt_hsp_a2dp("")
 
 {
     bool keepGoing = true;
@@ -120,21 +126,19 @@ QPulseAudioEngine::QPulseAudioEngine(QObject *parent)
                 break;
 
             case PA_CONTEXT_READY:
-#ifdef DEBUG_PULSE
-                qDebug("Connection established.");
-#endif
+                qDebug("Pulseaudio connection established.");
                 keepGoing = false;
                 break;
 
             case PA_CONTEXT_TERMINATED:
-                qCritical("Context terminated.");
+                qCritical("Pulseaudio context terminated.");
                 keepGoing = false;
                 ok = false;
                 break;
 
             case PA_CONTEXT_FAILED:
             default:
-                qCritical() << QString("Connection failure: %1").arg(pa_strerror(pa_context_errno(m_context)));
+                qCritical() << QString("Pulseaudio connection failure: %1").arg(pa_strerror(pa_context_errno(m_context)));
                 keepGoing = false;
                 ok = false;
         }
@@ -179,103 +183,125 @@ QPulseAudioEngine *QPulseAudioEngine::instance()
     return pulseEngine();
 }
 
-void QPulseAudioEngine::sinkInfoCallback(const pa_sink_info *info)
-{
-    pa_sink_port_info *earpiece = NULL, *speaker = NULL, *headphones = NULL;
-    pa_sink_port_info *highest = NULL, *preferred = NULL;
-
-    for (int i = 0; i < info->n_ports; i++) {
-        if (!highest || info->ports[i]->priority > highest->priority) {
-            if (info->ports[i]->available != PA_PORT_AVAILABLE_NO)
-                highest = info->ports[i];
-        }
-        if (!strcmp(info->ports[i]->name, "output-earpiece"))
-            earpiece = info->ports[i];
-        if (!strcmp(info->ports[i]->name, "output-speaker"))
-            speaker = info->ports[i];
-        if (!strcmp(info->ports[i]->name, "output-wired_headset") && info->ports[i]->available != PA_PORT_AVAILABLE_NO)
-            headphones = info->ports[i];
-        if (!strcmp(info->ports[i]->name, "output-wired_headphone") && info->ports[i]->available != PA_PORT_AVAILABLE_NO)
-            headphones = info->ports[i];
-    }
-
-    if (!earpiece)
-        return; /* Not the right sink */
-
-    /* TODO: When on ringtone and headphones are plugged in, people want output
-       through *both* headphones and speaker, but when on call with speaker mode,
-       people want *just* speaker, not including headphones. */
-    if (m_speakermode)
-        preferred = speaker;
-    else if (m_incall)
-        preferred = headphones ? headphones : earpiece;
-    if (!preferred)
-        preferred = highest;
-
-    if (preferred && preferred != info->active_port) {
-        m_nametoset = info->name;
-        m_valuetoset = preferred->name; 
-    }
-}
-
 void QPulseAudioEngine::cardInfoCallback(const pa_card_info *info)
 {
     pa_card_profile_info *voice_call = NULL, *highest = NULL;
+    pa_card_profile_info *hsp = NULL, *a2dp = NULL;
 
+    /* For now we only support one card with the voicecall feature */
     for (int i = 0; i < info->n_profiles; i++) {
         if (!highest || info->profiles[i].priority > highest->priority)
             highest = &info->profiles[i];
         if (!strcmp(info->profiles[i].name, "voicecall"))
             voice_call = &info->profiles[i];
+        else if (!strcmp(info->profiles[i].name, PULSEAUDIO_PROFILE_HSP))
+            hsp = &info->profiles[i];
+        else if (!strcmp(info->profiles[i].name, PULSEAUDIO_PROFILE_A2DP))
+            a2dp = &info->profiles[i];
     }
 
-    if (!voice_call)
-        return; /* Not the right card */
+    /* Record the card that supports voicecall (default one to be used) */
+    if (voice_call) {
+        qDebug("Found card that supports voicecall: '%s'", info->name);
+        m_voicecallcard = info->name;
+        m_voicecallhighest = highest->name;
+        m_voicecallprofile = voice_call->name;
+    }
 
-    if (m_incall && (voice_call != info->active_profile)) {
-        m_nametoset = info->name;
-        m_valuetoset = voice_call->name;
+    /* Handle the use cases needed for bluetooth */
+    if (hsp && a2dp) {
+        qDebug("Found card that supports hsp and a2dp: '%s'", info->name);
+        m_bt_hsp_a2dp = info->name;
+    } else if (hsp && (a2dp == NULL)) {
+        /* This card only provides the hsp profile */
+        qDebug("Found card that supports only hsp: '%s'", info->name);
+        m_bt_hsp = info->name;
     }
-    else if (!m_incall && (voice_call == info->active_profile)) {
-        m_nametoset = info->name;
-        m_valuetoset = highest->name;
+}
+
+void QPulseAudioEngine::sinkInfoCallback(const pa_sink_info *info)
+{
+    pa_sink_port_info *earpiece = NULL, *speaker = NULL;
+    pa_sink_port_info *highest = NULL, *preferred = NULL;
+    pa_sink_port_info *bluetooth_sco = NULL;
+
+    for (int i = 0; i < info->n_ports; i++) {
+        if (!highest || info->ports[i]->priority > highest->priority)
+            if (info->ports[i]->available != PA_PORT_AVAILABLE_NO)
+                highest = info->ports[i];
+        if (!strcmp(info->ports[i]->name, "output-earpiece"))
+            earpiece = info->ports[i];
+        else if (!strcmp(info->ports[i]->name, "output-speaker"))
+            speaker = info->ports[i];
+        else if (!strcmp(info->ports[i]->name, "output-bluetooth_sco"))
+            bluetooth_sco = info->ports[i];
     }
+
+    if (!earpiece)
+        return; /* Not the right sink */
+
+    if (m_callmode == CallSpeaker)
+        preferred = speaker;
+    else if (m_callstatus == CallActive) {
+        if (bluetooth_sco && ((m_bt_hsp != "") || (m_bt_hsp_a2dp != "")))
+            preferred = bluetooth_sco;
+        else if (highest == speaker)
+            preferred = earpiece;
+        else
+            preferred = highest;
+    }
+
+    if (!preferred)
+        preferred = highest;
+
+    m_nametoset = info->name;
+    if (info->active_port != preferred)
+        m_valuetoset = preferred->name;
 }
 
 void QPulseAudioEngine::sourceInfoCallback(const pa_source_info *info)
 {
-    pa_source_port_info *builtin_mic = NULL, *headset = NULL;
+    pa_source_port_info *builtin_mic = NULL, *highest = NULL;
     pa_source_port_info *preferred = NULL;
 
     if (info->monitor_of_sink != PA_INVALID_INDEX)
         return;  /* Not the right source */
 
     for (int i = 0; i < info->n_ports; i++) {
+        if (!highest || info->ports[i]->priority > highest->priority)
+            if (info->ports[i]->available != PA_PORT_AVAILABLE_NO)
+                highest = info->ports[i];
         if (!strcmp(info->ports[i]->name, "input-builtin_mic"))
             builtin_mic = info->ports[i];
-        if (!strcmp(info->ports[i]->name, "input-wired_headset") && info->ports[i]->available != PA_PORT_AVAILABLE_NO)
-            headset = info->ports[i];
     }
 
     if (!builtin_mic)
         return; /* Not the right source */
 
-    preferred = headset ? headset : builtin_mic;
+    if (m_callmode == CallSpeaker)
+        preferred = builtin_mic;
 
-    if (preferred && preferred != info->active_port) {
-        m_nametoset = info->name;
+    if (!preferred)
+        preferred = highest;
+
+    m_nametoset = info->name;
+    if (info->active_port != preferred)
         m_valuetoset = preferred->name;
-    }
+}
 
-    if (!!info->mute != !!m_micmute) {
-        m_nametoset = info->name;
-    }
+void QPulseAudioEngine::serverInfoCallback(const pa_server_info *info)
+{
+    /* Saving default sink/source to restore after call hangup */
+    m_defaultsink = info->default_sink_name;
+    m_defaultsource = info->default_source_name;
+
+    /* In the case of a server callback we need to signal the mainloop */
+    pa_threaded_mainloop_signal(pulseEngine->mainloop(), 0);
 }
 
 static void cardinfo_cb(pa_context *context, const pa_card_info *info, int isLast, void *userdata)
 {
     QPulseAudioEngine *pulseEngine = static_cast<QPulseAudioEngine*>(userdata);
-/*    qDebug("cardinfo_cb: pulseengine = %p, info = %p, isLast = %d", pulseEngine, info, isLast); */
     if (isLast != 0 || !pulseEngine || !info) {
         pa_threaded_mainloop_signal(pulseEngine->mainloop(), 0);
         return;
@@ -303,10 +329,20 @@ static void sourceinfo_cb(pa_context *context, const pa_source_info *info, int i
     pulseEngine->sourceInfoCallback(info);
 }
 
+static void serverinfo_cb(pa_context *context, const pa_server_info *info, void *userdata)
+{
+    QPulseAudioEngine *pulseEngine = static_cast<QPulseAudioEngine*>(userdata);
+    if (!pulseEngine || !info) {
+        pa_threaded_mainloop_signal(pulseEngine->mainloop(), 0);
+        return;
+    }
+    pulseEngine->serverInfoCallback(info);
+}
+
 bool QPulseAudioEngine::handleOperation(pa_operation *operation, const char *func_name)
 {
     if (!operation) {
-        qDebug("'%s' failed (lost PulseAudio connection?)", func_name);
+        qCritical("'%s' failed (lost PulseAudio connection?)", func_name);
         pa_threaded_mainloop_unlock(m_mainLoop);
         return false;
     }
@@ -317,70 +353,178 @@ bool QPulseAudioEngine::handleOperation(pa_operation *operation, const char *fun
     return true;
 }
 
-void QPulseAudioEngine::setCallMode(bool inCall, bool speakerMode)
+void QPulseAudioEngine::setupVoiceCall()
 {
-    pa_operation *operation;
+    pa_operation *o;
 
-    m_incall = inCall;
-    m_speakermode = speakerMode;
+    qDebug("Setting up pulseaudio for voice call");
 
     pa_threaded_mainloop_lock(m_mainLoop);
 
-    m_nametoset = "";
-    pa_operation *o = pa_context_get_card_info_list(m_context, cardinfo_cb, this);
-    if (!handleOperation(o, "pa_context_get_card_info_list"))
+    /* Get and set the default sink/source to be restored later */
+    o = pa_context_get_server_info(m_context, serverinfo_cb, this);
+    if (!handleOperation(o, "pa_context_get_server_info"))
         return;
 
-    if (m_nametoset != "") {
-        qDebug("Setting PulseAudio card '%s' profile '%s'", m_nametoset.c_str(), m_valuetoset.c_str());
-        o = pa_context_set_card_profile_by_name(m_context, 
-            m_nametoset.c_str(), m_valuetoset.c_str(), success_cb, this);
+    qDebug("Recorded default sink: %s default source: %s",
+            m_defaultsink.c_str(), m_defaultsource.c_str());
+
+    /* Walk through the list of devices, find the voice call capable card and
+     * identify if we have bluetooth capable devices (hsp and a2dp) */
+    m_voicecallcard = m_voicecallhighest = m_voicecallprofile = "";
+    m_bt_hsp = m_bt_hsp_a2dp = "";
+    o = pa_context_get_card_info_list(m_context, cardinfo_cb, this);
+    if (!handleOperation(o, "pa_context_get_card_info_list"))
+        return;
+    /* In case we have only one bt device that provides hsp and a2dp, we need
+     * to make sure we switch the default profile for that card (to hsp) */
+    if ((m_bt_hsp_a2dp != "") && (m_bt_hsp == "")) {
+        qDebug("Setting PulseAudio card '%s' profile '%s'",
+                m_bt_hsp_a2dp.c_str(), PULSEAUDIO_PROFILE_HSP);
+        o = pa_context_set_card_profile_by_name(m_context,
+            m_bt_hsp_a2dp.c_str(), PULSEAUDIO_PROFILE_HSP, success_cb, this);
         if (!handleOperation(o, "pa_context_set_card_profile_by_name"))
             return;
     }
 
-    m_nametoset = "";
+    pa_threaded_mainloop_unlock(m_mainLoop);
+}
+
+void QPulseAudioEngine::restoreVoiceCall()
+{
+    pa_operation *o;
+
+    qDebug("Restoring pulseaudio previous state");
+
+    /* Then restore previous settings */
+    pa_threaded_mainloop_lock(m_mainLoop);
+
+    /* See if we need to restore any HSP+AD2P device state */
+    if ((m_bt_hsp_a2dp != "") && (m_bt_hsp == "")) {
+        qDebug("Restoring PulseAudio card '%s' to profile '%s'",
+                m_bt_hsp_a2dp.c_str(), PULSEAUDIO_PROFILE_A2DP);
+        o = pa_context_set_card_profile_by_name(m_context,
+            m_bt_hsp_a2dp.c_str(), PULSEAUDIO_PROFILE_A2DP, success_cb, this);
+        if (!handleOperation(o, "pa_context_set_card_profile_by_name"))
+            return;
+    }
+
+    /* Restore default sink/source */
+    if (m_defaultsink != "") {
+        qDebug("Restoring PulseAudio default sink to '%s'", m_defaultsink.c_str());
+        o = pa_context_set_default_sink(m_context, m_defaultsink.c_str(), success_cb, this);
+        if (!handleOperation(o, "pa_context_set_default_sink"))
+            return;
+    }
+    if (m_defaultsource != "") {
+        qDebug("Restoring PulseAudio default source to '%s'", m_defaultsource.c_str());
+        o = pa_context_set_default_source(m_context, m_defaultsource.c_str(), success_cb, this);
+        if (!handleOperation(o, "pa_context_set_default_source"))
+            return;
+    }
+
+    pa_threaded_mainloop_unlock(m_mainLoop);
+}
+
+void QPulseAudioEngine::setCallMode(QPulseAudioEngine::CallStatus callstatus, QPulseAudioEngine::CallMode callmode)
+{
+    pa_operation *o;
+
+    /* Check if we need to save the current pulseaudio state (e.g. when starting a call) */
+    if ((callstatus != CallEnded) && (m_callstatus == CallEnded)) {
+        setupVoiceCall();
+    }
+
+    /* If we have an active call, update internal state (used later when updating sink/source ports */
+    m_callstatus = callstatus;
+    m_callmode = callmode;
+
+    /* Switch the virtual card mode when call is active and not active
+     * This needs to be done before sink/source gets updated, because after changing mode
+     * it will automatically move to input/output-parking */
+    if ((m_callstatus == CallActive) && (m_voicecallcard != "") && (m_voicecallprofile != "")) {
+        qDebug("Setting PulseAudio card '%s' profile '%s'",
+                m_voicecallcard.c_str(), m_voicecallprofile.c_str());
+        o = pa_context_set_card_profile_by_name(m_context,
+                m_voicecallcard.c_str(), m_voicecallprofile.c_str(), success_cb, this);
+        if (!handleOperation(o, "pa_context_set_card_profile_by_name"))
+            return;
+    } else if ((m_callstatus == CallEnded) && (m_voicecallcard != "") && (m_voicecallhighest != "")) {
+        /* If using droid, make sure to restore to the profile that has the highest score */
+        qDebug("Restoring PulseAudio card '%s' to profile '%s'",
+                m_voicecallcard.c_str(), m_voicecallhighest.c_str());
+        o = pa_context_set_card_profile_by_name(m_context,
+            m_voicecallcard.c_str(), m_voicecallhighest.c_str(), success_cb, this);
+        if (!handleOperation(o, "pa_context_set_card_profile_by_name"))
+            return;
+    }
+
+    /* Update sink/source ports */
+    pa_threaded_mainloop_lock(m_mainLoop);
+
+    /* Find highest compatible sink/source elements from the voicecall
+       compatible card (on touch this means the pulse droid element) */
+    m_nametoset = m_valuetoset = "";
     o = pa_context_get_sink_info_list(m_context, sinkinfo_cb, this);
     if (!handleOperation(o, "pa_context_get_sink_info_list"))
         return;
-
-    if (m_nametoset != "") {
-        qDebug("Setting PulseAudio sink '%s' port '%s'", m_nametoset.c_str(), m_valuetoset.c_str());
-        o = pa_context_set_sink_port_by_name(m_context, 
-            m_nametoset.c_str(), m_valuetoset.c_str(), success_cb, this);
+    if ((m_nametoset != "") && (m_nametoset != m_defaultsink)) {
+        qDebug("Setting PulseAudio default sink to '%s'", m_nametoset.c_str());
+        o = pa_context_set_default_sink(m_context, m_nametoset.c_str(), success_cb, this);
+        if (!handleOperation(o, "pa_context_set_default_sink"))
+            return;
+    }
+    if (m_valuetoset != "") {
+        qDebug("Setting PulseAudio sink '%s' port '%s'",
+                m_nametoset.c_str(), m_valuetoset.c_str());
+        o = pa_context_set_sink_port_by_name(m_context, m_nametoset.c_str(),
+                                             m_valuetoset.c_str(), success_cb, this);
         if (!handleOperation(o, "pa_context_set_sink_port_by_name"))
             return;
     }
 
-    m_nametoset = "";
+    /* Same for source */
+    m_nametoset = m_valuetoset = "";
     o = pa_context_get_source_info_list(m_context, sourceinfo_cb, this);
     if (!handleOperation(o, "pa_context_get_source_info_list"))
         return;
-
-    if (m_nametoset != "") {
-        qDebug("Setting PulseAudio source '%s' port '%s'", m_nametoset.c_str(), m_valuetoset.c_str());
-        o = pa_context_set_source_port_by_name(m_context, 
-            m_nametoset.c_str(), m_valuetoset.c_str(), success_cb, this);
+    if ((m_nametoset != "") && (m_nametoset != m_defaultsource)) {
+        qDebug("Setting PulseAudio default source to '%s'", m_nametoset.c_str());
+        o = pa_context_set_default_source(m_context, m_nametoset.c_str(), success_cb, this);
+        if (!handleOperation(o, "pa_context_set_default_source"))
+            return;
+    }
+    if (m_valuetoset != "") {
+        qDebug("Setting PulseAudio source '%s' port '%s'",
+                m_nametoset.c_str(), m_valuetoset.c_str());
+        o = pa_context_set_source_port_by_name(m_context, m_nametoset.c_str(),
+                                               m_valuetoset.c_str(), success_cb, this);
         if (!handleOperation(o, "pa_context_set_source_port_by_name"))
             return;
     }
 
     pa_threaded_mainloop_unlock(m_mainLoop);
 
-    if (inCall)
+    /* If no more active voicecall, restore previous saved pulseaudio state */
+    if (callstatus == CallEnded) {
+        restoreVoiceCall();
+    }
+
+    /* In case the app had set mute when the call wasn't active, make sure we reflect it here */
+    if (m_callstatus != CallEnded)
         setMicMute(m_micmute);
 }
 
 void QPulseAudioEngine::setMicMute(bool muted)
 {
-    m_nametoset = "";
     m_micmute = muted;
 
-    if (!m_incall)
+    if (m_callstatus == CallEnded)
         return;
 
     pa_threaded_mainloop_lock(m_mainLoop);
 
+    m_nametoset = "";
     pa_operation *o = pa_context_get_source_info_list(m_context, sourceinfo_cb, this);
     if (!handleOperation(o, "pa_context_get_source_info_list"))
         return;
@@ -397,11 +541,20 @@ void QPulseAudioEngine::setMicMute(bool muted)
     pa_threaded_mainloop_unlock(m_mainLoop);
 }
 
+void QPulseAudioEngine::plugUnplugCard()
+{
+    qDebug("Notified about card add/removed event from PulseAudio");
+
+    if (m_callstatus != CallEnded)
+        setupVoiceCall();
+}
+
 void QPulseAudioEngine::plugUnplugSlot()
 {
-    qDebug("Notified about card event from PulseAudio");
-    if (m_incall)
-        setCallMode(m_incall, m_speakermode);
+    qDebug("Notified about card changes (port) event from PulseAudio");
+
+    if (m_callstatus == CallActive)
+        setCallMode(m_callstatus, m_callmode);
 }
 
 QT_END_NAMESPACE

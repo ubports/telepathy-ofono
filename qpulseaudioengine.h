@@ -31,6 +31,18 @@ class QPulseAudioEngine : public QObject
     Q_OBJECT
 
 public:
+    enum CallStatus {
+        CallRinging,
+        CallActive,
+        CallEnded
+    };
+
+    enum CallMode {
+        CallNormal,
+        CallSpeaker,
+        CallBluetooth
+    };
+
     QPulseAudioEngine(QObject *parent = 0);
     ~QPulseAudioEngine();
 
@@ -38,22 +50,31 @@ public:
     pa_threaded_mainloop *mainloop() { return m_mainLoop; }
     pa_context *context() { return m_context; }
 
-    void setCallMode(bool inCall, bool speakerMode);
+    void setupVoiceCall(void);
+    void restoreVoiceCall(void);
+    void setCallMode(CallStatus callstatus, CallMode callmode);
     void setMicMute(bool muted); /* True if muted, false if unmuted */
 
     /* These four are only used internally */
     void cardInfoCallback(const pa_card_info *card);
     void sinkInfoCallback(const pa_sink_info *sink);
     void sourceInfoCallback(const pa_source_info *source);
+    void serverInfoCallback(const pa_server_info *server);
 public Q_SLOTS:
+    void plugUnplugCard();
     void plugUnplugSlot();
 private:
     pa_mainloop_api *m_mainLoopApi;
     pa_threaded_mainloop *m_mainLoop;
     pa_context *m_context;
 
-    bool m_incall, m_speakermode, m_micmute;
+    CallStatus m_callstatus;
+    CallMode m_callmode;
+    bool m_micmute;
     std::string m_nametoset, m_valuetoset;
+    std::string m_defaultsink, m_defaultsource;
+    std::string m_bt_hsp, m_bt_hsp_a2dp;
+    std::string m_voicecallcard, m_voicecallhighest, m_voicecallprofile;
 
     bool handleOperation(pa_operation *operation, const char *func_name);
  };

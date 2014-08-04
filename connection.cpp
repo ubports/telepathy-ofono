@@ -34,10 +34,6 @@
 
 #include "mmsdmessage.h"
 #include "mmsdservice.h"
-// audioflinger
-#ifdef USE_AUDIOFLINGER
-#include <waudio.h>
-#endif
 
 #ifdef USE_PULSEAUDIO
 #include "qpulseaudioengine.h"
@@ -48,84 +44,30 @@
 
 static void enable_earpiece()
 {
-#ifdef USE_AUDIOFLINGER
-    char parameter[20];
-    int i;
-    /* Set the call mode in AudioFlinger */
-    AudioSystem_setMode(AUDIO_MODE_IN_CALL);
-    sprintf(parameter, "routing=%d", AUDIO_DEVICE_OUT_EARPIECE);
-    /* Try the first 3 threads, as this is not fixed and there's no easy
-     * way to retrieve the default thread/output from Android */
-    for (i = 1; i <= 3; i++) {
-        if (AudioSystem_setParameters(i, parameter) >= 0)
-            break;
-    }
-#endif
 #ifdef USE_PULSEAUDIO
-    QPulseAudioEngine::instance()->setCallMode(true, false);
+    QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallActive, QPulseAudioEngine::CallNormal);
 #endif
 }
 
 static void enable_normal()
 {
-#ifdef USE_AUDIOFLINGER
-    char parameter[20];
-    int i;
-    /* Set normal mode in AudioFlinger */
-    AudioSystem_setMode(AUDIO_MODE_NORMAL);
-    /* Get device back to speaker mode, as by default in_call
-     * mode sets up device out to earpiece */
-    sprintf(parameter, "routing=%d", AUDIO_DEVICE_OUT_SPEAKER);
-    /* Try the first 3 threads, as this is not fixed and there's no easy
-     * way to retrieve the default thread/output from Android */
-    for (i = 1; i <= 3; i++) {
-        if (AudioSystem_setParameters(i, parameter) >= 0)
-            break;
-    }
-#endif
 #ifdef USE_PULSEAUDIO
-    QPulseAudioEngine::instance()->setCallMode(false, false);
+    QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallEnded, QPulseAudioEngine::CallNormal);
     QPulseAudioEngine::instance()->setMicMute(false);
 #endif
 }
 
 static void enable_speaker()
 {
-#ifdef USE_AUDIOFLINGER
-    char parameter[20];
-    int i;
-    /* Set the call mode in AudioFlinger */
-    AudioSystem_setMode(AUDIO_MODE_IN_CALL);
-    sprintf(parameter, "routing=%d", AUDIO_DEVICE_OUT_SPEAKER);
-    /* Try the first 3 threads, as this is not fixed and there's no easy
-     * way to retrieve the default thread/output from Android */
-    for (i = 1; i <= 3; i++) {
-        if (AudioSystem_setParameters(i, parameter) >= 0)
-            break;
-    }
-#endif
 #ifdef USE_PULSEAUDIO
-    QPulseAudioEngine::instance()->setCallMode(true, true);
+    QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallActive, QPulseAudioEngine::CallSpeaker);
 #endif
 }
 
 static void enable_ringtone()
 {
-#ifdef USE_AUDIOFLINGER
-    char parameter[20];
-    int i;
-    /* Set the call mode in AudioFlinger */
-    AudioSystem_setMode(AUDIO_MODE_IN_CALL);
-    sprintf(parameter, "routing=%d", AUDIO_DEVICE_OUT_SPEAKER);
-    /* Try the first 3 threads, as this is not fixed and there's no easy
-     * way to retrieve the default thread/output from Android */
-    for (i = 1; i <= 3; i++) {
-        if (AudioSystem_setParameters(i, parameter) >= 0)
-            break;
-    }
-#endif
 #ifdef USE_PULSEAUDIO
-    QPulseAudioEngine::instance()->setCallMode(false, true);
+    QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallRinging, QPulseAudioEngine::CallNormal);
 #endif
 }
 
