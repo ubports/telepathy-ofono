@@ -60,11 +60,9 @@ public:
     void sinkInfoCallback(const pa_sink_info *sink);
     void sourceInfoCallback(const pa_source_info *source);
     void serverInfoCallback(const pa_server_info *server);
-
 public Q_SLOTS:
     void plugUnplugCard();
     void plugUnplugSlot();
-
 private:
     pa_mainloop_api *m_mainLoopApi;
     pa_threaded_mainloop *m_mainLoop;

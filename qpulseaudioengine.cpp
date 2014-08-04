@@ -212,7 +212,7 @@ void QPulseAudioEngine::cardInfoCallback(const pa_card_info *info)
     if (hsp && a2dp) {
         qDebug("Found card that supports hsp and a2dp: '%s'", info->name);
         m_bt_hsp_a2dp = info->name;
-    } else if (hsp && a2dp == NULL) {
+    } else if (hsp && (a2dp == NULL)) {
         /* This card only provides the hsp profile */
         qDebug("Found card that supports only hsp: '%s'", info->name);
         m_bt_hsp = info->name;
@@ -295,7 +295,7 @@ void QPulseAudioEngine::serverInfoCallback(const pa_server_info *info)
     m_defaultsink = info->default_sink_name;
     m_defaultsource = info->default_source_name;
 
-    /* In the case of a server call back we need to signal the mainloop */
+    /* In the case of a server callback we need to signal the mainloop */
     pa_threaded_mainloop_signal(pulseEngine->mainloop(), 0);
 }
 
@@ -366,10 +366,11 @@ void QPulseAudioEngine::setupVoiceCall()
     if (!handleOperation(o, "pa_context_get_server_info"))
         return;
 
-    qDebug("Recorded default sink: %s default source: %s", m_defaultsink.c_str(), m_defaultsource.c_str());
+    qDebug("Recorded default sink: %s default source: %s",
+            m_defaultsink.c_str(), m_defaultsource.c_str());
 
     /* Walk through the list of devices, find the voice call capable card and
-       identify if we have bluetooth capable devices (hsp and a2dp) */
+     * identify if we have bluetooth capable devices (hsp and a2dp) */
     m_voicecallcard = m_voicecallhighest = m_voicecallprofile = "";
     m_bt_hsp = m_bt_hsp_a2dp = "";
     o = pa_context_get_card_info_list(m_context, cardinfo_cb, this);
@@ -378,7 +379,8 @@ void QPulseAudioEngine::setupVoiceCall()
     /* In case we have only one bt device that provides hsp and a2dp, we need
      * to make sure we switch the default profile for that card (to hsp) */
     if ((m_bt_hsp_a2dp != "") && (m_bt_hsp == "")) {
-        qDebug("Setting PulseAudio card '%s' profile '%s'", m_bt_hsp_a2dp.c_str(), PULSEAUDIO_PROFILE_HSP);
+        qDebug("Setting PulseAudio card '%s' profile '%s'",
+                m_bt_hsp_a2dp.c_str(), PULSEAUDIO_PROFILE_HSP);
         o = pa_context_set_card_profile_by_name(m_context,
             m_bt_hsp_a2dp.c_str(), PULSEAUDIO_PROFILE_HSP, success_cb, this);
         if (!handleOperation(o, "pa_context_set_card_profile_by_name"))
@@ -399,7 +401,8 @@ void QPulseAudioEngine::restoreVoiceCall()
 
     /* See if we need to restore any HSP+AD2P device state */
     if ((m_bt_hsp_a2dp != "") && (m_bt_hsp == "")) {
-        qDebug("Restoring PulseAudio card '%s' to profile '%s'", m_bt_hsp_a2dp.c_str(), PULSEAUDIO_PROFILE_A2DP);
+        qDebug("Restoring PulseAudio card '%s' to profile '%s'",
+                m_bt_hsp_a2dp.c_str(), PULSEAUDIO_PROFILE_A2DP);
         o = pa_context_set_card_profile_by_name(m_context,
             m_bt_hsp_a2dp.c_str(), PULSEAUDIO_PROFILE_A2DP, success_cb, this);
         if (!handleOperation(o, "pa_context_set_card_profile_by_name"))
@@ -440,14 +443,16 @@ void QPulseAudioEngine::setCallMode(QPulseAudioEngine::CallStatus callstatus, QP
      * This needs to be done before sink/source gets updated, because after changing mode
      * it will automatically move to input/output-parking */
     if ((m_callstatus == CallActive) && (m_voicecallcard != "") && (m_voicecallprofile != "")) {
-        qDebug("Setting PulseAudio card '%s' profile '%s'", m_voicecallcard.c_str(), m_voicecallprofile.c_str());
+        qDebug("Setting PulseAudio card '%s' profile '%s'",
+                m_voicecallcard.c_str(), m_voicecallprofile.c_str());
         o = pa_context_set_card_profile_by_name(m_context,
                 m_voicecallcard.c_str(), m_voicecallprofile.c_str(), success_cb, this);
         if (!handleOperation(o, "pa_context_set_card_profile_by_name"))
             return;
     } else if ((m_callstatus == CallEnded) && (m_voicecallcard != "") && (m_voicecallhighest != "")) {
         /* If using droid, make sure to restore to the profile that has the highest score */
-        qDebug("Restoring PulseAudio card '%s' to profile '%s'", m_voicecallcard.c_str(), m_voicecallhighest.c_str());
+        qDebug("Restoring PulseAudio card '%s' to profile '%s'",
+                m_voicecallcard.c_str(), m_voicecallhighest.c_str());
         o = pa_context_set_card_profile_by_name(m_context,
             m_voicecallcard.c_str(), m_voicecallhighest.c_str(), success_cb, this);
         if (!handleOperation(o, "pa_context_set_card_profile_by_name"))
@@ -470,8 +475,10 @@ void QPulseAudioEngine::setCallMode(QPulseAudioEngine::CallStatus callstatus, QP
             return;
     }
     if (m_valuetoset != "") {
-        qDebug("Setting PulseAudio sink '%s' port '%s'", m_nametoset.c_str(), m_valuetoset.c_str());
-        o = pa_context_set_sink_port_by_name(m_context, m_nametoset.c_str(), m_valuetoset.c_str(), success_cb, this);
+        qDebug("Setting PulseAudio sink '%s' port '%s'",
+                m_nametoset.c_str(), m_valuetoset.c_str());
+        o = pa_context_set_sink_port_by_name(m_context, m_nametoset.c_str(),
+                                             m_valuetoset.c_str(), success_cb, this);
         if (!handleOperation(o, "pa_context_set_sink_port_by_name"))
             return;
     }
@@ -488,8 +495,10 @@ void QPulseAudioEngine::setCallMode(QPulseAudioEngine::CallStatus callstatus, QP
             return;
     }
     if (m_valuetoset != "") {
-        qDebug("Setting PulseAudio source '%s' port '%s'", m_nametoset.c_str(), m_valuetoset.c_str());
-        o = pa_context_set_source_port_by_name(m_context, m_nametoset.c_str(), m_valuetoset.c_str(), success_cb, this);
+        qDebug("Setting PulseAudio source '%s' port '%s'",
+                m_nametoset.c_str(), m_valuetoset.c_str());
+        o = pa_context_set_source_port_by_name(m_context, m_nametoset.c_str(),
+                                               m_valuetoset.c_str(), success_cb, this);
         if (!handleOperation(o, "pa_context_set_source_port_by_name"))
             return;
     }
@@ -547,7 +556,6 @@ void QPulseAudioEngine::plugUnplugSlot()
     if (m_callstatus == CallActive)
         setCallMode(m_callstatus, m_callmode);
 }
-
 
 QT_END_NAMESPACE
 
