@@ -41,6 +41,7 @@
 
 #include "sqlitedatabase.h"
 #include "pendingmessagesmanager.h"
+#include "dbustypes.h"
 
 static void enable_earpiece()
 {
@@ -70,9 +71,6 @@ static void enable_ringtone()
     QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallRinging, QPulseAudioEngine::CallNormal);
 #endif
 }
-
-// miliseconds
-#define OFONO_REGISTER_RETRY_TIME 5000
 
 oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
                             const QString &cmName,
@@ -922,9 +920,14 @@ bool oFonoConnection::voicemailIndicator(Tp::DBusError *error)
     return mOfonoMessageWaiting->voicemailWaiting();
 }
 
-bool oFonoConnection::speakerMode()
+QString oFonoConnection::activeAudioOutput()
 {
-    return mSpeakerMode;
+    return mActiveAudioOutput;
+}
+
+AudioOutputList oFonoConnection::audioOutputs()
+{
+    return mAudioOutputs;
 }
 
 QStringList oFonoConnection::emergencyNumbers(Tp::DBusError *error)
@@ -932,12 +935,15 @@ QStringList oFonoConnection::emergencyNumbers(Tp::DBusError *error)
     return mOfonoVoiceCallManager->emergencyNumbers();
 }
 
+void oFonoConnection::setActiveAudioOutput(const QString &id)
+{
+}
+
 void oFonoConnection::setSpeakerMode(bool active)
 {
     if (mSpeakerMode != active) {
         mSpeakerMode = active;
         QMetaObject::invokeMethod(this, "updateAudioRoute", Qt::QueuedConnection);
-        Q_EMIT speakerModeChanged(active);
     }
 }
 
