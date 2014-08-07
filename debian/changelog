@@ -1,3 +1,11 @@
+telepathy-ofono (0.2+14.10.20140807-0ubuntu1) utopic; urgency=low
+
+  [ Tiago Salem Herrmann ]
+  * Check if the returned value is valid to avoid crashes. (LP:
+    #1351367)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Thu, 07 Aug 2014 18:42:38 +0000
+
 telepathy-ofono (0.2+14.10.20140804.1-0ubuntu1) utopic; urgency=low
 
   [ Ricardo Salveti de Araujo ]
