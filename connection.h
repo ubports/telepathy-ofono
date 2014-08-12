@@ -166,6 +166,7 @@ private:
     QMap<QString, MMSDService*> mMmsdServices;
     QMap<QString, QList<MMSDMessage*> > mServiceMMSList;
     oFonoConferenceCallChannel *mConferenceCall;
+    QString mModemPath;
     bool mSpeakerMode;
 };
 
