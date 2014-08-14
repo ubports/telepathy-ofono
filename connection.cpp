@@ -86,16 +86,16 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     mConferenceCall(NULL)
 {
     OfonoModem::SelectionSetting setting = OfonoModem::AutomaticSelect;
-    QString modemPath = parameters["modem-objpath"].toString();
-    if (!modemPath.isEmpty()) {
+    mModemPath = parameters["modem-objpath"].toString();
+    if (!mModemPath.isEmpty()) {
         setting = OfonoModem::ManualSelect;
     }
-    mOfonoMessageManager = new OfonoMessageManager(setting, modemPath);
-    mOfonoVoiceCallManager = new OfonoVoiceCallManager(setting, modemPath);
-    mOfonoCallVolume = new OfonoCallVolume(setting, modemPath);
-    mOfonoNetworkRegistration = new OfonoNetworkRegistration(setting, modemPath);
-    mOfonoMessageWaiting = new OfonoMessageWaiting(setting, modemPath);
-    mOfonoSupplementaryServices = new OfonoSupplementaryServices(setting, modemPath);
+    mOfonoMessageManager = new OfonoMessageManager(setting, mModemPath);
+    mOfonoVoiceCallManager = new OfonoVoiceCallManager(setting, mModemPath);
+    mOfonoCallVolume = new OfonoCallVolume(setting, mModemPath);
+    mOfonoNetworkRegistration = new OfonoNetworkRegistration(setting, mModemPath);
+    mOfonoMessageWaiting = new OfonoMessageWaiting(setting, mModemPath);
+    mOfonoSupplementaryServices = new OfonoSupplementaryServices(setting, mModemPath);
 
     setSelfHandle(newHandle("<SelfHandle>"));
 
@@ -266,8 +266,12 @@ void oFonoConnection::onCheckMMSServices()
 
 void oFonoConnection::onMMSDServiceAdded(const QString &path)
 {
-    qDebug() << "oFonoConnection::onMMSServiceAdded" << path;
     MMSDService *service = new MMSDService(path, this);
+    if (service->modemObjectPath() != mModemPath) {
+        service->deleteLater();
+        return;
+    }
+    qDebug() << "oFonoConnection::onMMSServiceAdded" << path;
     mMmsdServices[path] = service;
     QObject::connect(service, SIGNAL(messageAdded(const QString&, const QVariantMap&)), SLOT(onMMSAdded(const QString&, const QVariantMap&)));
     QObject::connect(service, SIGNAL(messageRemoved(const QString&)), SLOT(onMMSRemoved(const QString&)));
