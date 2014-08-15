@@ -71,7 +71,6 @@ public:
     Tp::ContactAttributesMap getContactAttributes(const Tp::UIntList &handles, const QStringList &ifaces, Tp::DBusError *error);
     uint setPresence(const QString& status, const QString& statusMessage, Tp::DBusError *error);
     void connect(Tp::DBusError *error);
-    void updateOnlineStatus();
     void setSpeakerMode(bool active);
     bool speakerMode();
     QStringList emergencyNumbers(Tp::DBusError *error);
@@ -142,6 +141,7 @@ private Q_SLOTS:
     void onMultipartyCallHeld();
     void onMultipartyCallActive();
     void onSimCardPresenceChanged(bool);
+    void updateOnlineStatus();
 
 private:
     bool isNetworkRegistered();
