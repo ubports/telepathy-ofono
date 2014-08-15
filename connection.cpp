@@ -96,6 +96,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     mOfonoNetworkRegistration = new OfonoNetworkRegistration(setting, modemPath);
     mOfonoMessageWaiting = new OfonoMessageWaiting(setting, modemPath);
     mOfonoSupplementaryServices = new OfonoSupplementaryServices(setting, modemPath);
+    mOfonoSimManager = new OfonoSimManager(setting, modemPath);
 
     setSelfHandle(newHandle("<SelfHandle>"));
 
@@ -164,32 +165,31 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     // Set Presence
     Tp::SimpleStatusSpec presenceOnline;
     presenceOnline.type = Tp::ConnectionPresenceTypeAvailable;
-    presenceOnline.maySetOnSelf = true;
-    presenceOnline.canHaveMessage = false;
+    presenceOnline.maySetOnSelf = false;
+    presenceOnline.canHaveMessage = true;
 
     Tp::SimpleStatusSpec presenceOffline;
     presenceOffline.type = Tp::ConnectionPresenceTypeOffline;
     presenceOffline.maySetOnSelf = false;
-    presenceOffline.canHaveMessage = false;
+    presenceOffline.canHaveMessage = true;
+
+    Tp::SimpleStatusSpec presenceAway;
+    presenceAway.type = Tp::ConnectionPresenceTypeAway;
+    presenceAway.maySetOnSelf = false;
+    presenceAway.canHaveMessage = true;
 
     Tp::SimpleStatusSpecMap statuses;
     statuses.insert(QLatin1String("available"), presenceOnline);
     statuses.insert(QLatin1String("offline"), presenceOffline);
+    statuses.insert(QLatin1String("away"), presenceAway);
 
     simplePresenceIface->setStatuses(statuses);
-    mSelfPresence.type = Tp::ConnectionPresenceTypeOffline;
-    mRequestedSelfPresence.type = Tp::ConnectionPresenceTypeOffline;
 
-    bool validModem = false;
-    if (mOfonoVoiceCallManager->modem()) {
-        validModem = mOfonoVoiceCallManager->modem()->isValid();
-        if (validModem) {
-            supplementaryServicesIface->setSerial(mOfonoSupplementaryServices->modem()->serial());
-            QObject::connect(mOfonoVoiceCallManager->modem(), SIGNAL(onlineChanged(bool)), SLOT(onValidityChanged(bool)));
-        }
+    if (mOfonoVoiceCallManager->modem() && mOfonoVoiceCallManager->modem()->isValid()) {
+        supplementaryServicesIface->setSerial(mOfonoSupplementaryServices->modem()->serial());
     }
     // force update current presence
-    onOfonoNetworkRegistrationChanged(mOfonoNetworkRegistration->status());
+    updateOnlineStatus();
 
     contactsIface = Tp::BaseConnectionContactsInterface::create();
     contactsIface->setGetContactAttributesCallback(Tp::memFun(this,&oFonoConnection::getContactAttributes));
@@ -247,9 +247,16 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
 
     QObject::connect(mOfonoSupplementaryServices, SIGNAL(respondComplete(bool, const QString &)), supplementaryServicesIface.data(), SLOT(RespondComplete(bool, const QString &)));
 
+    QObject::connect(mOfonoSimManager, SIGNAL(presenceChanged(bool)), this, SLOT(onSimCardPresenceChanged(bool)));
+
     // workaround: we can't add services here as tp-ofono interfaces are not exposed on dbus
     // todo: use QDBusServiceWatcher
     QTimer::singleShot(1000, this, SLOT(onCheckMMSServices()));
+}
+
+void oFonoConnection::onSimCardPresenceChanged(bool)
+{
+    updateOnlineStatus();
 }
 
 QMap<QString, oFonoCallChannel*> oFonoConnection::callChannels()
@@ -408,6 +415,9 @@ oFonoConnection::~oFonoConnection() {
 bool oFonoConnection::isNetworkRegistered()
 {
     QString status = mOfonoNetworkRegistration->status();
+    if (!mOfonoNetworkRegistration->isValid()) {
+        return false;
+    }
     return  !(!mOfonoNetworkRegistration->modem() ||
               !mOfonoNetworkRegistration->modem()->online() ||
               status == "unregistered" ||
@@ -430,20 +440,12 @@ bool oFonoConnection::isEmergencyNumber(const QString &number)
 
 void oFonoConnection::onOfonoNetworkRegistrationChanged(const QString &status)
 {
-    qDebug() << "onOfonoNetworkRegistrationChanged" << status << "is network registered: " << isNetworkRegistered();
-    if (!isNetworkRegistered() && mRequestedSelfPresence.type == Tp::ConnectionPresenceTypeAvailable) {
-        setOnline(false);
-        return;
-    }
-    setOnline(isNetworkRegistered());
+    updateOnlineStatus();
 }
 
 uint oFonoConnection::setPresence(const QString& status, const QString& statusMessage, Tp::DBusError *error)
 {
     qDebug() << "setPresence" << status;
-    if (status == "available") {
-        mRequestedSelfPresence.type = Tp::ConnectionPresenceTypeAvailable;
-    }
     if(!mOfonoNetworkRegistration->modem() ||!mOfonoNetworkRegistration->modem()->online() || !isNetworkRegistered()) {
         // this prevents tp-qt to propagate the available status
         error->set(TP_QT_ERROR_NETWORK_ERROR, "Modem is offline");
@@ -473,29 +475,31 @@ Tp::ContactAttributesMap oFonoConnection::getContactAttributes(const Tp::UIntLis
 
 void oFonoConnection::onValidityChanged(bool valid)
 {
-    qDebug() << "validityChanged" << valid << "is network registered: " << isNetworkRegistered() << mRequestedSelfPresence.type;
-    QObject::disconnect(mOfonoVoiceCallManager->modem(), 0,0,0);
-    QObject::connect(mOfonoVoiceCallManager->modem(), SIGNAL(onlineChanged(bool)), SLOT(onValidityChanged(bool)));
-    supplementaryServicesIface->setSerial(mOfonoSupplementaryServices->modem()->serial());
-    if (!isNetworkRegistered() && mRequestedSelfPresence.type == Tp::ConnectionPresenceTypeAvailable) {
-        setOnline(false);
+    QString modemSerial;
+    if (valid) {
+        modemSerial = mOfonoSupplementaryServices->modem()->serial();
     }
-    setOnline(isNetworkRegistered());
+    supplementaryServicesIface->setSerial(modemSerial);
+    updateOnlineStatus();
 }
 
-void oFonoConnection::setOnline(bool online)
+void oFonoConnection::updateOnlineStatus()
 {
-    qDebug() << "setOnline" << online;
     Tp::SimpleContactPresences presences;
-    if (online) {
+    if (isNetworkRegistered()) {
         mSelfPresence.status = "available";
-        mSelfPresence.statusMessage = "";
+        mSelfPresence.statusMessage = mOfonoNetworkRegistration->name();
         mSelfPresence.type = Tp::ConnectionPresenceTypeAvailable;
+    } else if (mOfonoSimManager->isValid() && mOfonoSimManager->present()) {
+        mSelfPresence.status = "away";
+        mSelfPresence.statusMessage = "";
+        mSelfPresence.type = Tp::ConnectionPresenceTypeAway;
     } else {
         mSelfPresence.status = "offline";
         mSelfPresence.statusMessage = "";
         mSelfPresence.type = Tp::ConnectionPresenceTypeOffline;
     }
+    qDebug() << "oFonoConnection::updateOnlineStatus: " << mSelfPresence.status << " | is network registered: " << isNetworkRegistered();
     presences[selfHandle()] = mSelfPresence;
     simplePresenceIface->setPresences(presences);
 }
