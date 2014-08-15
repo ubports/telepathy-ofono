@@ -38,6 +38,7 @@ public:
     QVariantMap properties() const;
     MessageList messages() const;
     QString path() const;
+    QString modemObjectPath() const;
 
     QDBusObjectPath sendMessage(QStringList recipients, OutgoingAttachmentList attachments);
 
