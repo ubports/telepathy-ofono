@@ -54,6 +54,7 @@ public:
     void restoreVoiceCall(void);
     void setCallMode(CallStatus callstatus, CallMode callmode);
     void setMicMute(bool muted); /* True if muted, false if unmuted */
+    void setSinkVolume(const char *sink_name, const double volume);
 
     /* These four are only used internally */
     void cardInfoCallback(const pa_card_info *card);
