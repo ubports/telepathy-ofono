@@ -1,3 +1,13 @@
+telepathy-ofono (0.2+14.10.20140819.3-0ubuntu1) utopic; urgency=low
+
+  [ Ubuntu daily release ]
+  * New rebuild forced
+
+  [ Ricardo Salveti de Araujo ]
+  * qpulseaudioengine: set default voicecall volume
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 19 Aug 2014 07:01:59 +0000
+
 telepathy-ofono (0.2+14.10.20140814-0ubuntu1) utopic; urgency=low
 
   [ Tiago Salem Herrmann ]
