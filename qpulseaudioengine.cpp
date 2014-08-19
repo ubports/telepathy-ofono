@@ -442,17 +442,22 @@ void QPulseAudioEngine::restoreVoiceCall()
 
 void QPulseAudioEngine::setCallMode(QPulseAudioEngine::CallStatus callstatus, QPulseAudioEngine::CallMode callmode)
 {
+    CallStatus p_callstatus = m_callstatus;
     pa_operation *o;
 
     /* Check if we need to save the current pulseaudio state (e.g. when starting a call) */
-    if ((callstatus != CallEnded) && (m_callstatus == CallEnded)) {
+    if ((callstatus != CallEnded) && (p_callstatus == CallEnded)) {
         setupVoiceCall();
     }
+
+    /* If we have an active call, update internal state (used later when updating sink/source ports) */
+    m_callstatus = callstatus;
+    m_callmode = callmode;
 
     /* Switch the virtual card mode when call is active and not active
      * This needs to be done before sink/source gets updated, because after changing mode
      * it will automatically move to input/output-parking */
-    if ((callstatus == CallActive) && (m_callstatus != CallActive) &&
+    if ((m_callstatus == CallActive) && (p_callstatus != CallActive) &&
             (m_voicecallcard != "") && (m_voicecallprofile != "")) {
         qDebug("Setting PulseAudio card '%s' profile '%s'",
                 m_voicecallcard.c_str(), m_voicecallprofile.c_str());
@@ -460,7 +465,7 @@ void QPulseAudioEngine::setCallMode(QPulseAudioEngine::CallStatus callstatus, QP
                 m_voicecallcard.c_str(), m_voicecallprofile.c_str(), success_cb, this);
         if (!handleOperation(o, "pa_context_set_card_profile_by_name"))
             return;
-    } else if ((callstatus == CallEnded) && (m_voicecallcard != "") && (m_voicecallhighest != "")) {
+    } else if ((m_callstatus == CallEnded) && (m_voicecallcard != "") && (m_voicecallhighest != "")) {
         /* If using droid, make sure to restore to the profile that has the highest score */
         qDebug("Restoring PulseAudio card '%s' to profile '%s'",
                 m_voicecallcard.c_str(), m_voicecallhighest.c_str());
@@ -495,9 +500,9 @@ void QPulseAudioEngine::setCallMode(QPulseAudioEngine::CallStatus callstatus, QP
     }
     /* Identify initial voice volume for the used port.
      * Set to a default fixed value when starting and when changing ports */
-    if ((callstatus == CallActive) && (m_callstatus != CallActive) && (m_nametoset != ""))
+    if ((m_callstatus == CallActive) && (p_callstatus != CallActive) && (m_nametoset != ""))
         setSinkVolume(m_nametoset.c_str(), DEFAULT_VOICECALL_VOLUME);
-    else if ((callstatus == CallActive) && (m_valuetoset != "")) {
+    else if ((m_callstatus == CallActive) && (m_valuetoset != "")) {
         /* Force voice volume to max for bluetooth SCO as volume is managed by the headset */
         if (m_valuetoset.find("bluetooth_sco") != std::string::npos)
             setSinkVolume(m_nametoset.c_str(), 1.0);
@@ -533,12 +538,8 @@ void QPulseAudioEngine::setCallMode(QPulseAudioEngine::CallStatus callstatus, QP
     }
 
     /* In case the app had set mute when the call wasn't active, make sure we reflect it here */
-    if (callstatus != CallEnded)
+    if (m_callstatus != CallEnded)
         setMicMute(m_micmute);
-
-    /* Update internal call state */
-    m_callstatus = callstatus;
-    m_callmode = callmode;
 }
 
 void QPulseAudioEngine::setMicMute(bool muted)
