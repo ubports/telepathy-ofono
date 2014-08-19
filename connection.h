@@ -27,6 +27,7 @@
 #include <TelepathyQt/DBusError>
 
 // ofono-qt
+#include <ofonomodem.h>
 #include <ofonomodemmanager.h>
 #include <ofonomessagemanager.h>
 #include <ofonovoicecallmanager.h>
@@ -123,7 +124,6 @@ private Q_SLOTS:
     void onOfonoIncomingMessage(const QString &message, const QVariantMap &info);
     void onOfonoImmediateMessage(const QString &message, const QVariantMap &info);
     void onOfonoCallAdded(const QString &call, const QVariantMap &properties);
-    void onOfonoNetworkRegistrationChanged(const QString &status);
     void onTextChannelClosed();
     void onCallChannelClosed();
     void onCallChannelDestroyed();
@@ -140,7 +140,6 @@ private Q_SLOTS:
     void onCallChannelSplitted();
     void onMultipartyCallHeld();
     void onMultipartyCallActive();
-    void onSimCardPresenceChanged(bool);
     void updateOnlineStatus();
 
 private:
@@ -162,6 +161,7 @@ private:
     OfonoMessageWaiting *mOfonoMessageWaiting;
     OfonoSupplementaryServices *mOfonoSupplementaryServices;
     OfonoSimManager *mOfonoSimManager;
+    OfonoModem *mOfonoModem;
     uint mHandleCount;
     Tp::SimplePresence mSelfPresence;
     MMSDManager *mMmsdManager;
