@@ -500,15 +500,9 @@ void QPulseAudioEngine::setCallMode(QPulseAudioEngine::CallStatus callstatus, QP
     }
     /* Identify initial voice volume for the used port.
      * Set to a default fixed value when starting and when changing ports */
-    if ((m_callstatus == CallActive) && (p_callstatus != CallActive) && (m_nametoset != ""))
+    if ((m_callstatus == CallActive) && (m_nametoset != "") &&
+                ((p_callstatus != CallActive) || (m_valuetoset != "")))
         setSinkVolume(m_nametoset.c_str(), DEFAULT_VOICECALL_VOLUME);
-    else if ((m_callstatus == CallActive) && (m_valuetoset != "")) {
-        /* Force voice volume to max for bluetooth SCO as volume is managed by the headset */
-        if (m_valuetoset.find("bluetooth_sco") != std::string::npos)
-            setSinkVolume(m_nametoset.c_str(), 1.0);
-        else
-            setSinkVolume(m_nametoset.c_str(), DEFAULT_VOICECALL_VOLUME);
-    }
 
     /* Same for source */
     m_nametoset = m_valuetoset = "";
