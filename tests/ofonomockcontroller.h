@@ -35,6 +35,7 @@ Q_SIGNALS:
     void CallAdded(QDBusObjectPath, QVariantMap);
     void TonesReceived(QString);
     void CallVolumeMuteChanged(bool muted);
+    void SimManagerPresenceChanged(bool present);
 
 public Q_SLOTS:
     void NetworkRegistrationSetStatus(const QString &status);
@@ -48,10 +49,12 @@ public Q_SLOTS:
     void VoiceCallHangup(const QString &objPath);
     void VoiceCallAnswer(const QString &objPath);
     void VoiceCallSetAlerting(const QString &objPath);
-    void ModemSetOnline();
+    void ModemSetOnline(bool online = true);
+    void SimManagerSetPresence(bool present);
 
 private Q_SLOTS:
     void onCallVolumePropertyChanged(const QString &name, const QDBusVariant &value);
+    void onSimManagerPropertyChanged(const QString &name, const QDBusVariant &value);
 
 private:
     explicit OfonoMockController(QObject *parent = 0);
@@ -59,6 +62,7 @@ private:
     QDBusInterface mMessageManagerInterface;
     QDBusInterface mVoiceCallManagerInterface;
     QDBusInterface mModemInterface;
+    QDBusInterface mSimManagerInterface;
 };
 
 #endif // OFONOMOCKCONTROLLER_H
