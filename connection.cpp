@@ -248,6 +248,22 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     // workaround: we can't add services here as tp-ofono interfaces are not exposed on dbus
     // todo: use QDBusServiceWatcher
     QTimer::singleShot(1000, this, SLOT(onCheckMMSServices()));
+    AudioOutput audio1;
+    AudioOutput audio2;
+    AudioOutput audio3;
+    audio1.id = "default";
+    audio1.type = "phone";
+    audio1.name = "wired headset or earpiece";
+    audio2.id = "speaker";
+    audio2.type = "speaker";
+    audio2.name = "phone speaker";
+    audio3.id = "bluetooth";
+    audio3.type = "bluetooth";
+    audio3.name = "bluetooth headset";
+    AudioOutputList outputList;
+    outputList << audio1 << audio2 << audio3;
+    setAudioOutputs(outputList);
+    setActiveAudioOutput("default");
 }
 
 QMap<QString, oFonoCallChannel*> oFonoConnection::callChannels()
@@ -935,8 +951,19 @@ QStringList oFonoConnection::emergencyNumbers(Tp::DBusError *error)
     return mOfonoVoiceCallManager->emergencyNumbers();
 }
 
+void oFonoConnection::setAudioOutputs(const AudioOutputList &outputList)
+{
+    mAudioOutputs = outputList;
+    //audioOutputsIface->setAudioOutputs(mAudioOutputs);
+    Q_EMIT audioOutputsChanged(mAudioOutputs);
+}
+
 void oFonoConnection::setActiveAudioOutput(const QString &id)
 {
+    mActiveAudioOutput = id;
+    //audioOutputsIface->setActiveAudioOutput(id);
+    // only emit activeAudioOutputChanged() when we get a response from pulse
+    Q_EMIT activeAudioOutputChanged(id);
 }
 
 void oFonoConnection::setSpeakerMode(bool active)

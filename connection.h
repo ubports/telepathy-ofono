@@ -73,6 +73,7 @@ public:
     void setOnline(bool online);
     void setSpeakerMode(bool active);
     void setActiveAudioOutput(const QString &id);
+    void setAudioOutputs(const AudioOutputList &outputList);
     AudioOutputList audioOutputs();
     QString activeAudioOutput();
     QStringList emergencyNumbers(Tp::DBusError *error);
