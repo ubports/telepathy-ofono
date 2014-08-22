@@ -27,6 +27,7 @@
 #include <TelepathyQt/DBusError>
 
 // ofono-qt
+#include <ofonomodem.h>
 #include <ofonomodemmanager.h>
 #include <ofonomessagemanager.h>
 #include <ofonovoicecallmanager.h>
@@ -35,6 +36,7 @@
 #include <ofononetworkregistration.h>
 #include <ofonomessagewaiting.h>
 #include <ofonosupplementaryservices.h>
+#include <ofonosimmanager.h>
 
 // telepathy-ofono
 #include "ofonotextchannel.h"
@@ -70,7 +72,6 @@ public:
     Tp::ContactAttributesMap getContactAttributes(const Tp::UIntList &handles, const QStringList &ifaces, Tp::DBusError *error);
     uint setPresence(const QString& status, const QString& statusMessage, Tp::DBusError *error);
     void connect(Tp::DBusError *error);
-    void setOnline(bool online);
     void setSpeakerMode(bool active);
     bool speakerMode();
     QStringList emergencyNumbers(Tp::DBusError *error);
@@ -123,7 +124,6 @@ private Q_SLOTS:
     void onOfonoIncomingMessage(const QString &message, const QVariantMap &info);
     void onOfonoImmediateMessage(const QString &message, const QVariantMap &info);
     void onOfonoCallAdded(const QString &call, const QVariantMap &properties);
-    void onOfonoNetworkRegistrationChanged(const QString &status);
     void onTextChannelClosed();
     void onCallChannelClosed();
     void onCallChannelDestroyed();
@@ -140,6 +140,7 @@ private Q_SLOTS:
     void onCallChannelSplitted();
     void onMultipartyCallHeld();
     void onMultipartyCallActive();
+    void updateOnlineStatus();
 
 private:
     bool isNetworkRegistered();
@@ -159,9 +160,10 @@ private:
     OfonoNetworkRegistration *mOfonoNetworkRegistration;
     OfonoMessageWaiting *mOfonoMessageWaiting;
     OfonoSupplementaryServices *mOfonoSupplementaryServices;
+    OfonoSimManager *mOfonoSimManager;
+    OfonoModem *mOfonoModem;
     uint mHandleCount;
     Tp::SimplePresence mSelfPresence;
-    Tp::SimplePresence mRequestedSelfPresence;
     MMSDManager *mMmsdManager;
     QMap<QString, MMSDService*> mMmsdServices;
     QMap<QString, QList<MMSDMessage*> > mServiceMMSList;

@@ -26,18 +26,27 @@ OfonoMockController::OfonoMockController(QObject *parent) :
     mNetworkRegistrationInterface("org.ofono", OFONO_MOCK_NETWORK_REGISTRATION_OBJECT, "org.ofono.NetworkRegistration"),
     mMessageManagerInterface("org.ofono", OFONO_MOCK_MESSAGE_MANAGER_OBJECT, "org.ofono.MessageManager"),
     mVoiceCallManagerInterface("org.ofono", OFONO_MOCK_VOICECALL_MANAGER_OBJECT, "org.ofono.VoiceCallManager"),
-    mModemInterface("org.ofono", OFONO_MOCK_MODEM_OBJECT, "org.ofono.Modem")
+    mModemInterface("org.ofono", OFONO_MOCK_MODEM_OBJECT, "org.ofono.Modem"),
+    mSimManagerInterface("org.ofono", OFONO_MOCK_SIM_MANAGER_OBJECT, "org.ofono.SimManager")
 {
     QDBusConnection::sessionBus().connect("org.ofono", OFONO_MOCK_MESSAGE_MANAGER_OBJECT, "org.ofono.MessageManager", "MessageAdded", this, SIGNAL(MessageAdded(QDBusObjectPath, QVariantMap)));
     QDBusConnection::sessionBus().connect("org.ofono", OFONO_MOCK_VOICECALL_MANAGER_OBJECT, "org.ofono.VoiceCallManager", "CallAdded", this, SIGNAL(CallAdded(QDBusObjectPath, QVariantMap)));
     QDBusConnection::sessionBus().connect("org.ofono", OFONO_MOCK_VOICECALL_MANAGER_OBJECT, "org.ofono.VoiceCallManager", "TonesReceived", this, SIGNAL(TonesReceived(QString)));
     QDBusConnection::sessionBus().connect("org.ofono", OFONO_MOCK_CALL_VOLUME_OBJECT, "org.ofono.CallVolume", "PropertyChanged", this, SLOT(onCallVolumePropertyChanged(QString, QDBusVariant)));
+    QDBusConnection::sessionBus().connect("org.ofono", OFONO_MOCK_SIM_MANAGER_OBJECT, "org.ofono.SimManager", "PropertyChanged", this, SLOT(onSimManagerPropertyChanged(QString, QDBusVariant)));
 }
 
 OfonoMockController *OfonoMockController::instance()
 {
     static OfonoMockController *self = new OfonoMockController();
     return self;
+}
+
+void OfonoMockController::onSimManagerPropertyChanged(const QString& name, const QDBusVariant& value)
+{
+    if (name == "Present") {
+        Q_EMIT SimManagerPresenceChanged(value.variant().value<bool>());
+    }
 }
 
 void OfonoMockController::onCallVolumePropertyChanged(const QString& name, const QDBusVariant& value)
@@ -110,8 +119,12 @@ void OfonoMockController::VoiceCallHangup(const QString &objPath)
     iface.call("Hangup");
 }
 
-void OfonoMockController::ModemSetOnline()
+void OfonoMockController::ModemSetOnline(bool online)
 {
-    mModemInterface.call("SetProperty", "Online", QVariant::fromValue(QDBusVariant(true)));
+    mModemInterface.call("SetProperty", "Online", QVariant::fromValue(QDBusVariant(online)));
 }
 
+void OfonoMockController::SimManagerSetPresence(bool present)
+{
+    mSimManagerInterface.call("SetProperty", "Present", QVariant::fromValue(QDBusVariant(present)));
+}
