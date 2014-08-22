@@ -98,6 +98,11 @@ QString MMSDService::path() const
     return m_servicePath;
 }
 
+QString MMSDService::modemObjectPath() const
+{
+    return m_properties["ModemObjectPath"].value<QDBusObjectPath>().path();
+}
+
 QVariantMap MMSDService::properties() const
 {
     return m_properties;

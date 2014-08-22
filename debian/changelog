@@ -1,3 +1,45 @@
+telepathy-ofono (0.2+14.10.20140822-0ubuntu1) utopic; urgency=low
+
+  [ Tiago Salem Herrmann ]
+  * Report "away" status if there is no network and "offline" if the sim
+    card is not present. Remove legacy code. Expose operator name to
+    apps via presence message. .
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Fri, 22 Aug 2014 13:28:26 +0000
+
+telepathy-ofono (0.2+14.10.20140819.3-0ubuntu1) utopic; urgency=low
+
+  [ Ubuntu daily release ]
+  * New rebuild forced
+
+  [ Ricardo Salveti de Araujo ]
+  * qpulseaudioengine: set default voicecall volume
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 19 Aug 2014 07:01:59 +0000
+
+telepathy-ofono (0.2+14.10.20140814-0ubuntu1) utopic; urgency=low
+
+  [ Tiago Salem Herrmann ]
+  * Check if the mms service matches the modem object path. (LP:
+    #1356180)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Thu, 14 Aug 2014 20:18:43 +0000
+
+telepathy-ofono (0.2+14.10.20140807-0ubuntu1) utopic; urgency=low
+
+  [ Tiago Salem Herrmann ]
+  * Check if the returned value is valid to avoid crashes. (LP:
+    #1351367)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Thu, 07 Aug 2014 18:42:38 +0000
+
+telepathy-ofono (0.2+14.10.20140804.1-0ubuntu1) utopic; urgency=low
+
+  [ Ricardo Salveti de Araujo ]
+  * Adding support for handsfree/headset (bluetooth).
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Mon, 04 Aug 2014 15:49:02 +0000
+
 telepathy-ofono (0.2+14.10.20140725.2-0ubuntu1) utopic; urgency=low
 
   [ Ubuntu daily release ]

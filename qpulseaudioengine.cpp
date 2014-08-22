@@ -26,6 +26,9 @@
 #define PULSEAUDIO_PROFILE_HSP "hsp"
 #define PULSEAUDIO_PROFILE_A2DP "a2dp"
 
+/* Default initial value also used by android */
+#define DEFAULT_VOICECALL_VOLUME 0.35
+
 QT_BEGIN_NAMESPACE
 
 static void contextStateCallbackInit(pa_context *context, void *userdata)
@@ -353,6 +356,17 @@ bool QPulseAudioEngine::handleOperation(pa_operation *operation, const char *fun
     return true;
 }
 
+void QPulseAudioEngine::setSinkVolume(const char *sink_name, const double volume)
+{
+    pa_cvolume cv;
+    pa_volume_t v = pa_sw_volume_from_linear(volume);
+
+    qDebug("Setting sink '%s' volume to '%f'", sink_name, volume);
+
+    pa_cvolume_set(&cv, 2, v);
+    pa_operation_unref(pa_context_set_sink_volume_by_name(m_context, sink_name, &cv, success_cb, this));
+}
+
 void QPulseAudioEngine::setupVoiceCall()
 {
     pa_operation *o;
@@ -428,21 +442,23 @@ void QPulseAudioEngine::restoreVoiceCall()
 
 void QPulseAudioEngine::setCallMode(QPulseAudioEngine::CallStatus callstatus, QPulseAudioEngine::CallMode callmode)
 {
+    CallStatus p_callstatus = m_callstatus;
     pa_operation *o;
 
     /* Check if we need to save the current pulseaudio state (e.g. when starting a call) */
-    if ((callstatus != CallEnded) && (m_callstatus == CallEnded)) {
+    if ((callstatus != CallEnded) && (p_callstatus == CallEnded)) {
         setupVoiceCall();
     }
 
-    /* If we have an active call, update internal state (used later when updating sink/source ports */
+    /* If we have an active call, update internal state (used later when updating sink/source ports) */
     m_callstatus = callstatus;
     m_callmode = callmode;
 
     /* Switch the virtual card mode when call is active and not active
      * This needs to be done before sink/source gets updated, because after changing mode
      * it will automatically move to input/output-parking */
-    if ((m_callstatus == CallActive) && (m_voicecallcard != "") && (m_voicecallprofile != "")) {
+    if ((m_callstatus == CallActive) && (p_callstatus != CallActive) &&
+            (m_voicecallcard != "") && (m_voicecallprofile != "")) {
         qDebug("Setting PulseAudio card '%s' profile '%s'",
                 m_voicecallcard.c_str(), m_voicecallprofile.c_str());
         o = pa_context_set_card_profile_by_name(m_context,
@@ -482,6 +498,11 @@ void QPulseAudioEngine::setCallMode(QPulseAudioEngine::CallStatus callstatus, QP
         if (!handleOperation(o, "pa_context_set_sink_port_by_name"))
             return;
     }
+    /* Identify initial voice volume for the used port.
+     * Set to a default fixed value when starting and when changing ports */
+    if ((m_callstatus == CallActive) && (m_nametoset != "") &&
+                ((p_callstatus != CallActive) || (m_valuetoset != "")))
+        setSinkVolume(m_nametoset.c_str(), DEFAULT_VOICECALL_VOLUME);
 
     /* Same for source */
     m_nametoset = m_valuetoset = "";
