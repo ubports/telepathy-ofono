@@ -954,15 +954,12 @@ QStringList oFonoConnection::emergencyNumbers(Tp::DBusError *error)
 void oFonoConnection::setAudioOutputs(const AudioOutputList &outputList)
 {
     mAudioOutputs = outputList;
-    //audioOutputsIface->setAudioOutputs(mAudioOutputs);
     Q_EMIT audioOutputsChanged(mAudioOutputs);
 }
 
 void oFonoConnection::setActiveAudioOutput(const QString &id)
 {
     mActiveAudioOutput = id;
-    //audioOutputsIface->setActiveAudioOutput(id);
-    // only emit activeAudioOutputChanged() when we get a response from pulse
     Q_EMIT activeAudioOutputChanged(id);
 }
 
