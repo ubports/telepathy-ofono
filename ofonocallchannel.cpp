@@ -301,6 +301,9 @@ void oFonoCallChannel::onOfonoCallStateChanged(const QString &state)
         if (mMultiparty) {
             Q_EMIT multipartyCallActive();
         }
+        if (mPreviousState == "incoming") {
+            mConnection->updateAudioRouteToEarpiece();
+        }
         if (mPreviousState == "dialing" || mPreviousState == "alerting" || 
                 mPreviousState == "incoming") {
             mConnection->callVolume()->setMuted(false);

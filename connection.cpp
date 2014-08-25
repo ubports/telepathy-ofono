@@ -1070,3 +1070,11 @@ void oFonoConnection::updateAudioRoute()
 
 }
 
+// this method is only called when call channels go from incoming to active.
+// please call this method only from oFonoCallChannel instances
+void oFonoConnection::updateAudioRouteToEarpiece()
+{
+    if (mOfonoVoiceCallManager->getCalls().size() == 1) {
+        enable_earpiece();
+    }
+}

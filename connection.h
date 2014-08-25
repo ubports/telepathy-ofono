@@ -126,6 +126,7 @@ Q_SIGNALS:
 
 public Q_SLOTS:
     void updateAudioRoute();
+    void updateAudioRouteToEarpiece();
 
 private Q_SLOTS:
     void onOfonoIncomingMessage(const QString &message, const QVariantMap &info);
