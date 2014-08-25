@@ -257,22 +257,6 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     // workaround: we can't add services here as tp-ofono interfaces are not exposed on dbus
     // todo: use QDBusServiceWatcher
     QTimer::singleShot(1000, this, SLOT(onCheckMMSServices()));
-    AudioOutput audio1;
-    AudioOutput audio2;
-    AudioOutput audio3;
-    audio1.id = "default";
-    audio1.type = "phone";
-    audio1.name = "wired headset or earpiece";
-    audio2.id = "speaker";
-    audio2.type = "speaker";
-    audio2.name = "phone speaker";
-    audio3.id = "bluetooth";
-    audio3.type = "bluetooth";
-    audio3.name = "bluetooth headset";
-    AudioOutputList outputList;
-    outputList << audio1 << audio2 << audio3;
-    setAudioOutputs(outputList);
-    setActiveAudioOutput("default");
 }
 
 QMap<QString, oFonoCallChannel*> oFonoConnection::callChannels()
