@@ -49,6 +49,10 @@
 #include "speakeriface.h"
 #include "ussdiface.h"
 
+#ifdef USE_PULSEAUDIO
+#include "qpulseaudioengine.h"
+#endif
+
 class oFonoConnection;
 class oFonoTextChannel;
 class oFonoCallChannel;
@@ -141,6 +145,11 @@ private Q_SLOTS:
     void onMultipartyCallHeld();
     void onMultipartyCallActive();
     void updateOnlineStatus();
+
+#ifdef USE_PULSEAUDIO
+    void onAudioModeChanged(AudioMode mode);
+    void onAvailableAudioModesChanged(AudioModes modes);
+#endif
 
 private:
     bool isNetworkRegistered();

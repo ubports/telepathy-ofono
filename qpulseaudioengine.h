@@ -24,6 +24,20 @@
 #include <QtCore/qbytearray.h>
 #include <pulse/pulseaudio.h>
 
+enum AudioMode {
+    AudioModeEarpiece = 0x0001,
+    AudioModeWiredHeadset = 0x0002,
+    AudioModeSpeaker = 0x0004,
+    AudioModeBluetooth = 0x0008,
+    AudioModeBtOrWiredOrEarpiece = AudioModeBluetooth | AudioModeWiredHeadset | AudioModeEarpiece,
+    AudioModeWiredOrEarpiece = AudioModeWiredHeadset | AudioModeEarpiece,
+    AudioModeWiredOrSpeaker = AudioModeWiredHeadset | AudioModeSpeaker
+};
+Q_DECLARE_METATYPE(AudioMode)
+
+typedef QList<AudioMode> AudioModes;
+Q_DECLARE_METATYPE(AudioModes)
+
 QT_BEGIN_NAMESPACE
 
 class QPulseAudioEngine : public QObject
@@ -37,12 +51,6 @@ public:
         CallEnded
     };
 
-    enum CallMode {
-        CallNormal,
-        CallSpeaker,
-        CallBluetooth
-    };
-
     QPulseAudioEngine(QObject *parent = 0);
     ~QPulseAudioEngine();
 
@@ -52,26 +60,35 @@ public:
 
     void setupVoiceCall(void);
     void restoreVoiceCall(void);
-    void setCallMode(CallStatus callstatus, CallMode callmode);
+    void setCallMode(CallStatus callstatus, AudioMode audiomode);
     void setMicMute(bool muted); /* True if muted, false if unmuted */
     void setSinkVolume(const char *sink_name, const double volume);
 
-    /* These four are only used internally */
+    /* Callbacks to be used internally */
     void cardInfoCallback(const pa_card_info *card);
     void sinkInfoCallback(const pa_sink_info *sink);
     void sourceInfoCallback(const pa_source_info *source);
     void serverInfoCallback(const pa_server_info *server);
+    void plugCardCallback(const pa_card_info *card);
+    void updateCardCallback(const pa_card_info *card);
+    void unplugCardCallback();
+
+Q_SIGNALS:
+    void audioModeChanged(const AudioMode mode);
+    void availableAudioModesChanged(const AudioModes modes);
+
 public Q_SLOTS:
-    void plugUnplugCard();
-    void plugUnplugSlot();
+    void handleCardEvent(const int evt, const unsigned int idx);
+
 private:
     pa_mainloop_api *m_mainLoopApi;
     pa_threaded_mainloop *m_mainLoop;
     pa_context *m_context;
 
+    AudioModes m_availableAudioModes;
     CallStatus m_callstatus;
-    CallMode m_callmode;
-    bool m_micmute;
+    AudioMode m_audiomode;
+    bool m_micmute, m_handleevent;
     std::string m_nametoset, m_valuetoset;
     std::string m_defaultsink, m_defaultsource;
     std::string m_bt_hsp, m_bt_hsp_a2dp;

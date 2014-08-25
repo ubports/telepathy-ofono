@@ -42,14 +42,14 @@
 static void enable_earpiece()
 {
 #ifdef USE_PULSEAUDIO
-    QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallActive, QPulseAudioEngine::CallNormal);
+    QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallActive, AudioModeBtOrWiredOrEarpiece);
 #endif
 }
 
 static void enable_normal()
 {
 #ifdef USE_PULSEAUDIO
-    QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallEnded, QPulseAudioEngine::CallNormal);
+    QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallEnded, AudioModeWiredOrSpeaker);
     QPulseAudioEngine::instance()->setMicMute(false);
 #endif
 }
@@ -57,14 +57,14 @@ static void enable_normal()
 static void enable_speaker()
 {
 #ifdef USE_PULSEAUDIO
-    QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallActive, QPulseAudioEngine::CallSpeaker);
+    QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallActive, AudioModeSpeaker);
 #endif
 }
 
 static void enable_ringtone()
 {
 #ifdef USE_PULSEAUDIO
-    QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallRinging, QPulseAudioEngine::CallNormal);
+    QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallRinging, AudioModeWiredOrSpeaker);
 #endif
 }
 
@@ -220,6 +220,12 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     // update audio route
     QObject::connect(mOfonoVoiceCallManager, SIGNAL(callAdded(QString,QVariantMap)), SLOT(updateAudioRoute()));
     QObject::connect(mOfonoVoiceCallManager, SIGNAL(callRemoved(QString)), SLOT(updateAudioRoute()));
+
+#ifdef USE_PULSEAUDIO
+    // update audio modes
+    QObject::connect(QPulseAudioEngine::instance(), SIGNAL(audioModeChanged(AudioMode)), SLOT(onAudioModeChanged(AudioMode)));
+    QObject::connect(QPulseAudioEngine::instance(), SIGNAL(availableAudioModesChanged(AudioModes)), SLOT(onAvailableAudioModesChanged(AudioModes)));
+#endif
 
     QObject::connect(mOfonoSupplementaryServices, SIGNAL(notificationReceived(const QString &)), supplementaryServicesIface.data(), SLOT(NotificationReceived(const QString &)));
     QObject::connect(mOfonoSupplementaryServices, SIGNAL(requestReceived(const QString &)), supplementaryServicesIface.data(), SLOT(RequestReceived(const QString &)));
@@ -968,6 +974,23 @@ void oFonoConnection::USSDCancel(Tp::DBusError *error)
 {
     mOfonoSupplementaryServices->cancel();
 }
+
+#ifdef USE_PULSEAUDIO
+void oFonoConnection::onAudioModeChanged(AudioMode mode)
+{
+    qDebug("PulseAudio audio mode changed: 0x%x", mode);
+
+    if (mSpeakerMode && (mode != AudioModeSpeaker)) {
+        mSpeakerMode = false;
+        Q_EMIT speakerModeChanged(mSpeakerMode);
+    }
+}
+
+void oFonoConnection::onAvailableAudioModesChanged(AudioModes modes)
+{
+    qDebug("PulseAudio available audio modes changed");
+}
+#endif
 
 void oFonoConnection::updateAudioRoute()
 {
