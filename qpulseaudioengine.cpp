@@ -84,9 +84,6 @@ QPulseAudioEngine::QPulseAudioEngine(QObject *parent)
     , m_bt_hsp_a2dp("")
 
 {
-    qRegisterMetaType<AudioOutputList>();
-    qRegisterMetaType<AudioOutput>();
- 
     bool keepGoing = true;
     bool ok = true;
 
