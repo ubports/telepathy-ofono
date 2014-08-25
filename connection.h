@@ -46,7 +46,7 @@
 #include "mmsdmanager.h"
 #include "mmsdmessage.h"
 #include "dbustypes.h"
-#include "speakeriface.h"
+#include "audiooutputsiface.h"
 #include "ussdiface.h"
 
 #ifdef USE_PULSEAUDIO
@@ -77,7 +77,9 @@ public:
     uint setPresence(const QString& status, const QString& statusMessage, Tp::DBusError *error);
     void connect(Tp::DBusError *error);
     void setSpeakerMode(bool active);
-    bool speakerMode();
+    void setActiveAudioOutput(const QString &id);
+    AudioOutputList audioOutputs();
+    QString activeAudioOutput();
     QStringList emergencyNumbers(Tp::DBusError *error);
     bool voicemailIndicator(Tp::DBusError *error);
     QString voicemailNumber(Tp::DBusError *error);
@@ -116,7 +118,8 @@ public:
     ~oFonoConnection();
 
 Q_SIGNALS:
-    void speakerModeChanged(bool active);
+    void activeAudioOutputChanged(const QString &id);
+    void audioOutputsChanged(const AudioOutputList &outputs);
     void channelMerged(const QDBusObjectPath &objPath);
     void channelSplitted(const QDBusObjectPath &objPath);
     void channelHangup(const QDBusObjectPath &objPath);
@@ -178,7 +181,8 @@ private:
     QMap<QString, QList<MMSDMessage*> > mServiceMMSList;
     oFonoConferenceCallChannel *mConferenceCall;
     QString mModemPath;
-    bool mSpeakerMode;
+    QString mActiveAudioOutput;
+    AudioOutputList mAudioOutputs;
 };
 
 #endif

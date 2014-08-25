@@ -38,6 +38,7 @@
 
 #include "sqlitedatabase.h"
 #include "pendingmessagesmanager.h"
+#include "dbustypes.h"
 
 static void enable_earpiece()
 {
@@ -76,9 +77,10 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     mOfonoModemManager(new OfonoModemManager(this)),
     mHandleCount(0),
     mMmsdManager(new MMSDManager(this)),
-    mSpeakerMode(false),
     mConferenceCall(NULL)
 {
+    qRegisterMetaType<AudioOutputList>();
+    qRegisterMetaType<AudioOutput>();
     OfonoModem::SelectionSetting setting = OfonoModem::AutomaticSelect;
     mModemPath = parameters["modem-objpath"].toString();
     if (!mModemPath.isEmpty()) {
@@ -941,9 +943,14 @@ bool oFonoConnection::voicemailIndicator(Tp::DBusError *error)
     return mOfonoMessageWaiting->voicemailWaiting();
 }
 
-bool oFonoConnection::speakerMode()
+QString oFonoConnection::activeAudioOutput()
 {
-    return mSpeakerMode;
+    return mActiveAudioOutput;
+}
+
+AudioOutputList oFonoConnection::audioOutputs()
+{
+    return mAudioOutputs;
 }
 
 QStringList oFonoConnection::emergencyNumbers(Tp::DBusError *error)
@@ -951,13 +958,10 @@ QStringList oFonoConnection::emergencyNumbers(Tp::DBusError *error)
     return mOfonoVoiceCallManager->emergencyNumbers();
 }
 
-void oFonoConnection::setSpeakerMode(bool active)
+void oFonoConnection::setActiveAudioOutput(const QString &id)
 {
-    if (mSpeakerMode != active) {
-        mSpeakerMode = active;
-        QMetaObject::invokeMethod(this, "updateAudioRoute", Qt::QueuedConnection);
-        Q_EMIT speakerModeChanged(active);
-    }
+    mActiveAudioOutput = id;
+    Q_EMIT activeAudioOutputChanged(id);
 }
 
 void oFonoConnection::USSDInitiate(const QString &command, Tp::DBusError *error)
@@ -980,15 +984,46 @@ void oFonoConnection::onAudioModeChanged(AudioMode mode)
 {
     qDebug("PulseAudio audio mode changed: 0x%x", mode);
 
-    if (mSpeakerMode && (mode != AudioModeSpeaker)) {
-        mSpeakerMode = false;
-        Q_EMIT speakerModeChanged(mSpeakerMode);
+    if ((mode == AudioModeEarpiece && mActiveAudioOutput != "default") ||
+        (mode == AudioModeWiredHeadset && mActiveAudioOutput != "default")) {
+        setActiveAudioOutput("default");
+    } else if (mode == AudioModeSpeaker && mActiveAudioOutput != "speaker") {
+        setActiveAudioOutput("speaker");
+    } else if (mode == AudioModeBluetooth && mActiveAudioOutput != "bluetooth") {
+        setActiveAudioOutput("bluetooth");
     }
 }
 
 void oFonoConnection::onAvailableAudioModesChanged(AudioModes modes)
 {
     qDebug("PulseAudio available audio modes changed");
+    bool defaultFound = false;
+    mAudioOutputs.clear();
+    Q_FOREACH(const AudioMode &mode, modes) {
+        AudioOutput output;
+        if (mode == AudioModeBluetooth) {
+            // there can be only one bluetooth
+            output.id = "bluetooth";
+            output.type = "bluetooth";
+            // we dont support names for now, so we set a default value
+            output.name = "bluetooth";
+        } else if (mode == AudioModeEarpiece || mode == AudioModeWiredHeadset) {
+            if (!defaultFound) {
+                defaultFound = true;
+                output.id = "default";
+                output.type = "default";
+                output.name = "default";
+            } else {
+                continue;
+            }
+        } else if (mode == AudioModeSpeaker) {
+            output.id = "speaker";
+            output.type = "speaker";
+            output.name = "speaker";
+        }
+        mAudioOutputs << output;
+    }
+    Q_EMIT audioOutputsChanged(mAudioOutputs);
 }
 #endif
 
@@ -1023,14 +1058,13 @@ void oFonoConnection::updateAudioRoute()
                 call->deleteLater();
             }
         }
-        if(mSpeakerMode) {
+        if(activeAudioOutput() == "speaker") {
             enable_speaker();
         } else {
             enable_earpiece();
         }
     } else {
         enable_normal();
-        setSpeakerMode(false);
     }
 
 }
