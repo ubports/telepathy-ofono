@@ -113,4 +113,4 @@ install (FILES ofono.manager DESTINATION share/telepathy/managers)
 install (FILES ${CMAKE_CURRENT_BINARY_DIR}/org.freedesktop.Telepathy.ConnectionManager.ofono.service DESTINATION share/dbus-1/services)
 
 add_subdirectory(schema)
-#add_subdirectory(tests)
+add_subdirectory(tests)
