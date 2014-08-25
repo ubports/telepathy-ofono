@@ -24,6 +24,8 @@
 #include <QtCore/qbytearray.h>
 #include <pulse/pulseaudio.h>
 
+#include "dbustypes.h"
+
 QT_BEGIN_NAMESPACE
 
 class QPulseAudioEngine : public QObject
@@ -64,6 +66,9 @@ public:
 public Q_SLOTS:
     void plugUnplugCard();
     void plugUnplugSlot();
+Q_SIGNALS:
+    void activeAudioOutputChanged(const QString &id);
+    void audioOutputsChanged(const AudioOutputList &outputs);
 private:
     pa_mainloop_api *m_mainLoopApi;
     pa_threaded_mainloop *m_mainLoop;

@@ -18,6 +18,7 @@
 
 #ifndef DBUSTYPES
 #define DBUSTYPES
+#include <QDBusObjectPath>
 
 struct AudioOutput {
     QString id;

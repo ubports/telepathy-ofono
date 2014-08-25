@@ -80,6 +80,8 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     mSpeakerMode(false),
     mConferenceCall(NULL)
 {
+    qRegisterMetaType<AudioOutputList>();
+    qRegisterMetaType<AudioOutput>();
     OfonoModem::SelectionSetting setting = OfonoModem::AutomaticSelect;
     mModemPath = parameters["modem-objpath"].toString();
     if (!mModemPath.isEmpty()) {
@@ -253,6 +255,9 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     QObject::connect(mOfonoSupplementaryServices, SIGNAL(stateChanged(const QString&)), supplementaryServicesIface.data(), SLOT(StateChanged(const QString&)));
 
     QObject::connect(mOfonoSupplementaryServices, SIGNAL(respondComplete(bool, const QString &)), supplementaryServicesIface.data(), SLOT(RespondComplete(bool, const QString &)));
+
+    QObject::connect(QPulseAudioEngine::instance(), SIGNAL(onActiveAudioOutputChanged(QString)), this, SLOT(setActiveAudioOutput(QString)));
+    QObject::connect(QPulseAudioEngine::instance(), SIGNAL(onAudioOutputsChanged(AudioOutputList)), this, SLOT(setAudioOutputs(AudioOutputList)));
 
     // workaround: we can't add services here as tp-ofono interfaces are not exposed on dbus
     // todo: use QDBusServiceWatcher
