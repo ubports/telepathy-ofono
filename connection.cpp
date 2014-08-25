@@ -1051,17 +1051,18 @@ void oFonoConnection::updateAudioRoute()
                     call->deleteLater();
                     return;
                 }
+                // if only one call and dialing, default to earpiece
+                if (call->state() == "dialing") {
+                    enable_earpiece();
+                    call->deleteLater();
+                    return;
+                }
                 if (call->state().isEmpty()) {
                     call->deleteLater();
                     return;
                 }
                 call->deleteLater();
             }
-        }
-        if(activeAudioOutput() == "speaker") {
-            enable_speaker();
-        } else {
-            enable_earpiece();
         }
     } else {
         enable_normal();
