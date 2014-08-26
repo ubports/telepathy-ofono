@@ -1,3 +1,13 @@
+telepathy-ofono (0.2+14.10.20140826.1-0ubuntu1) utopic; urgency=low
+
+  [ Ricardo Salveti de Araujo ]
+  * Improve event handling from pulse, also exporting mode changes.
+
+  [ Tiago Salem Herrmann ]
+  * Improve event handling from pulse, also exporting mode changes.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 26 Aug 2014 22:49:51 +0000
+
 telepathy-ofono (0.2+14.10.20140822-0ubuntu1) utopic; urgency=low
 
   [ Tiago Salem Herrmann ]
