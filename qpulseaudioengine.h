@@ -57,8 +57,9 @@ public:
     static QPulseAudioEngine *instance();
     pa_threaded_mainloop *mainloop() { return m_mainLoop; }
     pa_context *context() { return m_context; }
+    void createPulseContext(void);
 
-    void setupVoiceCall(void);
+    int setupVoiceCall(void);
     void restoreVoiceCall(void);
     void setCallMode(CallStatus callstatus, AudioMode audiomode);
     void setMicMute(bool muted); /* True if muted, false if unmuted */
@@ -96,6 +97,7 @@ private:
     std::string m_voicecallcard, m_voicecallhighest, m_voicecallprofile;
 
     bool handleOperation(pa_operation *operation, const char *func_name);
+    void releasePulseContext(void);
  };
 
 QT_END_NAMESPACE

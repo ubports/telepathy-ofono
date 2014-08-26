@@ -120,9 +120,6 @@ QPulseAudioEngine::QPulseAudioEngine(QObject *parent)
     , m_bt_hsp_a2dp("")
 
 {
-    bool keepGoing = true;
-    bool ok = true;
-
     m_mainLoop = pa_threaded_mainloop_new();
     if (m_mainLoop == 0) {
         qWarning("Unable to create pulseaudio mainloop");
@@ -132,8 +129,20 @@ QPulseAudioEngine::QPulseAudioEngine(QObject *parent)
     if (pa_threaded_mainloop_start(m_mainLoop) != 0) {
         qWarning("Unable to start pulseaudio mainloop");
         pa_threaded_mainloop_free(m_mainLoop);
+        m_mainLoop = 0;
         return;
     }
+
+    createPulseContext();
+}
+
+void QPulseAudioEngine::createPulseContext()
+{
+    bool keepGoing = true;
+    bool ok = true;
+
+    if (m_context)
+        return;
 
     m_mainLoopApi = pa_threaded_mainloop_get_api(m_mainLoop);
 
@@ -144,14 +153,14 @@ QPulseAudioEngine::QPulseAudioEngine(QObject *parent)
 
     if (!m_context) {
         qWarning("Unable to create new pulseaudio context");
-        pa_threaded_mainloop_free(m_mainLoop);
+        pa_threaded_mainloop_unlock(m_mainLoop);
         return;
     }
 
     if (pa_context_connect(m_context, NULL, (pa_context_flags_t)0, NULL) < 0) {
         qWarning("Unable to create a connection to the pulseaudio context");
-        pa_context_unref(m_context);
-        pa_threaded_mainloop_free(m_mainLoop);
+        pa_threaded_mainloop_unlock(m_mainLoop);
+        releasePulseContext();
         return;
     }
 
@@ -201,14 +210,22 @@ QPulseAudioEngine::QPulseAudioEngine(QObject *parent)
     pa_threaded_mainloop_unlock(m_mainLoop);
 }
 
-QPulseAudioEngine::~QPulseAudioEngine()
+
+void QPulseAudioEngine::releasePulseContext()
 {
     if (m_context) {
         pa_threaded_mainloop_lock(m_mainLoop);
         pa_context_disconnect(m_context);
+        pa_context_unref(m_context);
         pa_threaded_mainloop_unlock(m_mainLoop);
         m_context = 0;
     }
+
+}
+
+QPulseAudioEngine::~QPulseAudioEngine()
+{
+    releasePulseContext();
 
     if (m_mainLoop) {
         pa_threaded_mainloop_stop(m_mainLoop);
@@ -219,7 +236,11 @@ QPulseAudioEngine::~QPulseAudioEngine()
 
 QPulseAudioEngine *QPulseAudioEngine::instance()
 {
-    return pulseEngine();
+    QPulseAudioEngine *engine = pulseEngine();
+
+    /* Make sure context is also available, otherwise everything fails */
+    engine->createPulseContext();
+    return engine;
 }
 
 void QPulseAudioEngine::cardInfoCallback(const pa_card_info *info)
@@ -414,7 +435,9 @@ bool QPulseAudioEngine::handleOperation(pa_operation *operation, const char *fun
 {
     if (!operation) {
         qCritical("'%s' failed (lost PulseAudio connection?)", func_name);
+        /* Free resources so it can retry a new connection during next operation */
         pa_threaded_mainloop_unlock(m_mainLoop);
+        releasePulseContext();
         return false;
     }
 
@@ -435,7 +458,7 @@ void QPulseAudioEngine::setSinkVolume(const char *sink_name, const double volume
     pa_operation_unref(pa_context_set_sink_volume_by_name(m_context, sink_name, &cv, success_cb, this));
 }
 
-void QPulseAudioEngine::setupVoiceCall()
+int QPulseAudioEngine::setupVoiceCall()
 {
     pa_operation *o;
 
@@ -446,7 +469,7 @@ void QPulseAudioEngine::setupVoiceCall()
     /* Get and set the default sink/source to be restored later */
     o = pa_context_get_server_info(m_context, serverinfo_cb, this);
     if (!handleOperation(o, "pa_context_get_server_info"))
-        return;
+        return -1;
 
     qDebug("Recorded default sink: %s default source: %s",
             m_defaultsink.c_str(), m_defaultsource.c_str());
@@ -457,7 +480,7 @@ void QPulseAudioEngine::setupVoiceCall()
     m_bt_hsp = m_bt_hsp_a2dp = "";
     o = pa_context_get_card_info_list(m_context, cardinfo_cb, this);
     if (!handleOperation(o, "pa_context_get_card_info_list"))
-        return;
+        return -1;
     /* In case we have only one bt device that provides hsp and a2dp, we need
      * to make sure we switch the default profile for that card (to hsp) */
     if ((m_bt_hsp_a2dp != "") && (m_bt_hsp == "")) {
@@ -466,10 +489,12 @@ void QPulseAudioEngine::setupVoiceCall()
         o = pa_context_set_card_profile_by_name(m_context,
             m_bt_hsp_a2dp.c_str(), PULSEAUDIO_PROFILE_HSP, success_cb, this);
         if (!handleOperation(o, "pa_context_set_card_profile_by_name"))
-            return;
+            return -1;
     }
 
     pa_threaded_mainloop_unlock(m_mainLoop);
+
+    return 0;
 }
 
 void QPulseAudioEngine::restoreVoiceCall()
@@ -517,7 +542,10 @@ void QPulseAudioEngine::setCallMode(CallStatus callstatus, AudioMode audiomode)
 
     /* Check if we need to save the current pulseaudio state (e.g. when starting a call) */
     if ((callstatus != CallEnded) && (p_callstatus == CallEnded)) {
-        setupVoiceCall();
+        if (setupVoiceCall() < 0) {
+            qCritical("Failed to setup PulseAudio for Voice Call");
+            return;
+        }
     }
 
     /* If we have an active call, update internal state (used later when updating sink/source ports) */
@@ -707,7 +735,8 @@ void QPulseAudioEngine::handleCardEvent(const int evt, const unsigned int idx)
         if (m_handleevent) {
             qDebug("Adding new BT-HSP capable device");
             /* In case A2DP is available, switch to HSP */
-            setupVoiceCall();
+            if (setupVoiceCall() < 0)
+                return;
             /* Enable the HSP output port  */
             setCallMode(m_callstatus, AudioModeBluetooth);
         }
@@ -735,7 +764,8 @@ void QPulseAudioEngine::handleCardEvent(const int evt, const unsigned int idx)
         if (m_handleevent) {
             qDebug("Notifying about BT-HSP card removal");
             /* Needed in order to save the default sink/source */
-            setupVoiceCall();
+            if (setupVoiceCall() < 0)
+                return;
             /* Enable the default handset output port  */
             setCallMode(m_callstatus, AudioModeWiredOrEarpiece);
         }
