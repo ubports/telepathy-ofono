@@ -38,18 +38,19 @@
 
 #include "sqlitedatabase.h"
 #include "pendingmessagesmanager.h"
+#include "dbustypes.h"
 
 static void enable_earpiece()
 {
 #ifdef USE_PULSEAUDIO
-    QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallActive, QPulseAudioEngine::CallNormal);
+    QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallActive, AudioModeBtOrWiredOrEarpiece);
 #endif
 }
 
 static void enable_normal()
 {
 #ifdef USE_PULSEAUDIO
-    QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallEnded, QPulseAudioEngine::CallNormal);
+    QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallEnded, AudioModeWiredOrSpeaker);
     QPulseAudioEngine::instance()->setMicMute(false);
 #endif
 }
@@ -57,14 +58,14 @@ static void enable_normal()
 static void enable_speaker()
 {
 #ifdef USE_PULSEAUDIO
-    QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallActive, QPulseAudioEngine::CallSpeaker);
+    QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallActive, AudioModeSpeaker);
 #endif
 }
 
 static void enable_ringtone()
 {
 #ifdef USE_PULSEAUDIO
-    QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallRinging, QPulseAudioEngine::CallNormal);
+    QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallRinging, AudioModeWiredOrSpeaker);
 #endif
 }
 
@@ -76,9 +77,10 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     mOfonoModemManager(new OfonoModemManager(this)),
     mHandleCount(0),
     mMmsdManager(new MMSDManager(this)),
-    mSpeakerMode(false),
     mConferenceCall(NULL)
 {
+    qRegisterMetaType<AudioOutputList>();
+    qRegisterMetaType<AudioOutput>();
     OfonoModem::SelectionSetting setting = OfonoModem::AutomaticSelect;
     mModemPath = parameters["modem-objpath"].toString();
     if (!mModemPath.isEmpty()) {
@@ -220,6 +222,12 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     // update audio route
     QObject::connect(mOfonoVoiceCallManager, SIGNAL(callAdded(QString,QVariantMap)), SLOT(updateAudioRoute()));
     QObject::connect(mOfonoVoiceCallManager, SIGNAL(callRemoved(QString)), SLOT(updateAudioRoute()));
+
+#ifdef USE_PULSEAUDIO
+    // update audio modes
+    QObject::connect(QPulseAudioEngine::instance(), SIGNAL(audioModeChanged(AudioMode)), SLOT(onAudioModeChanged(AudioMode)));
+    QObject::connect(QPulseAudioEngine::instance(), SIGNAL(availableAudioModesChanged(AudioModes)), SLOT(onAvailableAudioModesChanged(AudioModes)));
+#endif
 
     QObject::connect(mOfonoSupplementaryServices, SIGNAL(notificationReceived(const QString &)), supplementaryServicesIface.data(), SLOT(NotificationReceived(const QString &)));
     QObject::connect(mOfonoSupplementaryServices, SIGNAL(requestReceived(const QString &)), supplementaryServicesIface.data(), SLOT(RequestReceived(const QString &)));
@@ -935,9 +943,14 @@ bool oFonoConnection::voicemailIndicator(Tp::DBusError *error)
     return mOfonoMessageWaiting->voicemailWaiting();
 }
 
-bool oFonoConnection::speakerMode()
+QString oFonoConnection::activeAudioOutput()
 {
-    return mSpeakerMode;
+    return mActiveAudioOutput;
+}
+
+AudioOutputList oFonoConnection::audioOutputs()
+{
+    return mAudioOutputs;
 }
 
 QStringList oFonoConnection::emergencyNumbers(Tp::DBusError *error)
@@ -945,13 +958,10 @@ QStringList oFonoConnection::emergencyNumbers(Tp::DBusError *error)
     return mOfonoVoiceCallManager->emergencyNumbers();
 }
 
-void oFonoConnection::setSpeakerMode(bool active)
+void oFonoConnection::setActiveAudioOutput(const QString &id)
 {
-    if (mSpeakerMode != active) {
-        mSpeakerMode = active;
-        QMetaObject::invokeMethod(this, "updateAudioRoute", Qt::QueuedConnection);
-        Q_EMIT speakerModeChanged(active);
-    }
+    mActiveAudioOutput = id;
+    Q_EMIT activeAudioOutputChanged(id);
 }
 
 void oFonoConnection::USSDInitiate(const QString &command, Tp::DBusError *error)
@@ -968,6 +978,54 @@ void oFonoConnection::USSDCancel(Tp::DBusError *error)
 {
     mOfonoSupplementaryServices->cancel();
 }
+
+#ifdef USE_PULSEAUDIO
+void oFonoConnection::onAudioModeChanged(AudioMode mode)
+{
+    qDebug("PulseAudio audio mode changed: 0x%x", mode);
+
+    if ((mode == AudioModeEarpiece && mActiveAudioOutput != "default") ||
+        (mode == AudioModeWiredHeadset && mActiveAudioOutput != "default")) {
+        setActiveAudioOutput("default");
+    } else if (mode == AudioModeSpeaker && mActiveAudioOutput != "speaker") {
+        setActiveAudioOutput("speaker");
+    } else if (mode == AudioModeBluetooth && mActiveAudioOutput != "bluetooth") {
+        setActiveAudioOutput("bluetooth");
+    }
+}
+
+void oFonoConnection::onAvailableAudioModesChanged(AudioModes modes)
+{
+    qDebug("PulseAudio available audio modes changed");
+    bool defaultFound = false;
+    mAudioOutputs.clear();
+    Q_FOREACH(const AudioMode &mode, modes) {
+        AudioOutput output;
+        if (mode == AudioModeBluetooth) {
+            // there can be only one bluetooth
+            output.id = "bluetooth";
+            output.type = "bluetooth";
+            // we dont support names for now, so we set a default value
+            output.name = "bluetooth";
+        } else if (mode == AudioModeEarpiece || mode == AudioModeWiredHeadset) {
+            if (!defaultFound) {
+                defaultFound = true;
+                output.id = "default";
+                output.type = "default";
+                output.name = "default";
+            } else {
+                continue;
+            }
+        } else if (mode == AudioModeSpeaker) {
+            output.id = "speaker";
+            output.type = "speaker";
+            output.name = "speaker";
+        }
+        mAudioOutputs << output;
+    }
+    Q_EMIT audioOutputsChanged(mAudioOutputs);
+}
+#endif
 
 void oFonoConnection::updateAudioRoute()
 {
@@ -993,6 +1051,12 @@ void oFonoConnection::updateAudioRoute()
                     call->deleteLater();
                     return;
                 }
+                // if only one call and dialing, default to earpiece
+                if (call->state() == "dialing") {
+                    enable_earpiece();
+                    call->deleteLater();
+                    return;
+                }
                 if (call->state().isEmpty()) {
                     call->deleteLater();
                     return;
@@ -1000,15 +1064,17 @@ void oFonoConnection::updateAudioRoute()
                 call->deleteLater();
             }
         }
-        if(mSpeakerMode) {
-            enable_speaker();
-        } else {
-            enable_earpiece();
-        }
     } else {
         enable_normal();
-        setSpeakerMode(false);
     }
 
 }
 
+// this method is only called when call channels go from incoming to active.
+// please call this method only from oFonoCallChannel instances
+void oFonoConnection::updateAudioRouteToEarpiece()
+{
+    if (mOfonoVoiceCallManager->getCalls().size() == 1) {
+        enable_earpiece();
+    }
+}

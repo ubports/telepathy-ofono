@@ -50,8 +50,8 @@ oFonoConferenceCallChannel::oFonoConferenceCallChannel(oFonoConnection *conn, QO
     mMuteIface = Tp::BaseCallMuteInterface::create();
     mMuteIface->setSetMuteStateCallback(Tp::memFun(this,&oFonoConferenceCallChannel::onMuteStateChanged));
 
-    mSpeakerIface = BaseChannelSpeakerInterface::create();
-    mSpeakerIface->setTurnOnSpeakerCallback(Tp::memFun(this,&oFonoConferenceCallChannel::onTurnOnSpeaker));
+    mAudioOutputsIface = BaseChannelAudioOutputsInterface::create();
+    mAudioOutputsIface->setSetActiveAudioOutputCallback(Tp::memFun(this,&oFonoConferenceCallChannel::onSetActiveAudioOutput));
 
     mConferenceIface = Tp::BaseChannelConferenceInterface::create(mCallChannels);
 
@@ -60,7 +60,7 @@ oFonoConferenceCallChannel::oFonoConferenceCallChannel(oFonoConnection *conn, QO
 
     baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mHoldIface));
     baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mMuteIface));
-    baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mSpeakerIface));
+    baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mAudioOutputsIface));
     baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mConferenceIface));
     baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mMergeableIface));
 
@@ -123,9 +123,18 @@ void oFonoConferenceCallChannel::onChannelSplitted(const QDBusObjectPath &path)
     }
 }
 
-void oFonoConferenceCallChannel::onTurnOnSpeaker(bool active, Tp::DBusError *error)
+void oFonoConferenceCallChannel::onSetActiveAudioOutput(const QString &id, Tp::DBusError *error)
 {
-    mConnection->setSpeakerMode(active);
+#ifdef USE_PULSEAUDIO
+    // fallback to earpiece/headset
+    AudioMode mode = AudioModeWiredOrEarpiece;
+    if (id == "bluetooth") {
+        mode = AudioModeBluetooth;
+    } else if (id == "speaker") {
+        mode = AudioModeSpeaker;
+    }
+    QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallActive, mode);
+#endif
 }
 
 void oFonoConferenceCallChannel::onHangup(uint reason, const QString &detailedReason, const QString &message, Tp::DBusError *error)
@@ -157,10 +166,13 @@ void oFonoConferenceCallChannel::init()
 
     QObject::connect(mBaseChannel.data(), SIGNAL(closed()), this, SLOT(deleteLater()));
     QObject::connect(mConnection->callVolume(), SIGNAL(mutedChanged(bool)), SLOT(onOfonoMuteChanged(bool)));
-    QObject::connect(mConnection, SIGNAL(speakerModeChanged(bool)), mSpeakerIface.data(), SLOT(setSpeakerMode(bool)));
+    QObject::connect(mConnection, SIGNAL(activeAudioOutputChanged(QString)), mAudioOutputsIface.data(), SLOT(setActiveAudioOutput(QString)));
+    QObject::connect(mConnection, SIGNAL(audioOutputsChanged(AudioOutputList)), mAudioOutputsIface.data(), SLOT(setAudioOutputs(AudioOutputList)));
     QObject::connect(mConnection->voiceCallManager(), SIGNAL(sendTonesComplete(bool)), SLOT(onDtmfComplete(bool)));
 
-    mSpeakerIface->setSpeakerMode(mConnection->speakerMode());
+    mAudioOutputsIface->setAudioOutputs(mConnection->audioOutputs());
+    mAudioOutputsIface->setActiveAudioOutput(mConnection->activeAudioOutput());
+
     QObject::connect(mConnection, SIGNAL(channelMerged(const QDBusObjectPath&)), this, SLOT(onChannelMerged(const QDBusObjectPath&)));
     QObject::connect(mConnection, SIGNAL(channelSplitted(const QDBusObjectPath&)), this, SLOT(onChannelSplitted(const QDBusObjectPath&)));
     QObject::connect(mConnection, SIGNAL(channelHangup(const QDBusObjectPath&)), this, SLOT(onChannelSplitted(const QDBusObjectPath&)));
