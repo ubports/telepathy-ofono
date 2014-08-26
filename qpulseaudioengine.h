@@ -88,6 +88,7 @@ private:
     AudioModes m_availableAudioModes;
     CallStatus m_callstatus;
     AudioMode m_audiomode;
+    AudioMode m_audiomodetoset;
     bool m_micmute, m_handleevent;
     std::string m_nametoset, m_valuetoset;
     std::string m_defaultsink, m_defaultsource;

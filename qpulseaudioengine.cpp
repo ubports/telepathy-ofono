@@ -663,7 +663,11 @@ void QPulseAudioEngine::updateCardCallback(const pa_card_info *info)
 
     /* We only care if the card event for the voicecall capable card */
     if ((m_callstatus == CallActive) && (!strcmp(info->name, m_voicecallcard.c_str()))) {
-        if (m_audiomode != AudioModeWiredHeadset) {
+        if (m_audiomode == AudioModeWiredHeadset) {
+            /* If previous mode is wired, it means it got unplugged */
+            m_handleevent = true;
+            m_audiomodetoset = AudioModeBtOrWiredOrEarpiece;
+        } else if ((m_audiomode == AudioModeEarpiece) || ((m_audiomode == AudioModeSpeaker))) {
             /* Now only trigger the event in case wired headset/headphone is now available */
             pa_card_port_info *port_info = NULL;
             for (int i = 0; i < info->n_ports; i++) {
@@ -671,10 +675,13 @@ void QPulseAudioEngine::updateCardCallback(const pa_card_info *info)
                             !strcmp(info->ports[i]->name, "output-wired_headset") ||
                             !strcmp(info->ports[i]->name, "output-wired_headphone"))) {
                     m_handleevent = true;
+                    m_audiomodetoset = AudioModeWiredOrEarpiece;
                 }
             }
-        } else {
+        } else if (m_audiomode == AudioModeBluetooth) {
+            /* Handle the event so we can update the audiomodes */
             m_handleevent = true;
+            m_audiomodetoset = AudioModeBluetooth;
         }
     }
 }
@@ -711,7 +718,7 @@ void QPulseAudioEngine::handleCardEvent(const int evt, const unsigned int idx)
         if (m_handleevent) {
             /* In this case it means the handset state changed */
             qDebug("Notifying card changes for the voicecall capable card");
-            setCallMode(m_callstatus, AudioModeBtOrWiredOrEarpiece);
+            setCallMode(m_callstatus, m_audiomodetoset);
         }
     } else if (evt == PA_SUBSCRIPTION_EVENT_REMOVE) {
         /* Check if the main HSP card was removed */
