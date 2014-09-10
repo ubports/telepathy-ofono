@@ -61,7 +61,6 @@ public:
 
     QString state() const;
     QString serial() const;
-    void setSerial(const QString& serial) const;
 
 public Q_SLOTS:
     void NotificationReceived(const QString &message);
@@ -79,6 +78,7 @@ public Q_SLOTS:
     void InitiateFailed();
     void StateChanged(const QString &state);
 
+    void setSerial(const QString& serial) const;
 protected:
     BaseConnectionUSSDInterface();
 
