@@ -1,3 +1,10 @@
+telepathy-ofono (0.2+14.10.20140910-0ubuntu1) utopic; urgency=low
+
+  [ Tiago Salem Herrmann ]
+  * Set modem serial when it changes (LP: #1367749)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Wed, 10 Sep 2014 19:46:07 +0000
+
 telepathy-ofono (0.2+14.10.20140826.1-0ubuntu1) utopic; urgency=low
 
   [ Ricardo Salveti de Araujo ]
