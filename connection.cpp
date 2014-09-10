@@ -202,6 +202,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     plugInterface(Tp::AbstractConnectionInterfacePtr::dynamicCast(contactsIface));
 
     QObject::connect(mOfonoModem, SIGNAL(onlineChanged(bool)), SLOT(updateOnlineStatus()));
+    QObject::connect(mOfonoModem, SIGNAL(serialChanged(QString)), supplementaryServicesIface.data(), SLOT(setSerial(QString)));
     QObject::connect(mOfonoModem, SIGNAL(interfacesChanged(QStringList)), SLOT(updateOnlineStatus()));
     QObject::connect(mOfonoMessageManager, SIGNAL(incomingMessage(QString,QVariantMap)), this, SLOT(onOfonoIncomingMessage(QString,QVariantMap)));
     QObject::connect(mOfonoMessageManager, SIGNAL(immediateMessage(QString,QVariantMap)), this, SLOT(onOfonoImmediateMessage(QString,QVariantMap)));
