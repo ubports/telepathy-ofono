@@ -160,6 +160,11 @@ void oFonoConferenceCallChannel::init()
     mCallChannel->setCallState(Tp::CallStateActive, 0, reason, stateDetails);
 
     mDTMFIface = Tp::BaseCallContentDTMFInterface::create();
+    mCallContent = Tp::BaseCallContent::create(baseChannel()->dbusConnection(), baseChannel().data(), "audio", Tp::MediaStreamTypeAudio, Tp::MediaStreamDirectionNone);
+
+    mDTMFIface = Tp::BaseCallContentDTMFInterface::create();
+    mCallContent->plugInterface(Tp::AbstractCallContentInterfacePtr::dynamicCast(mDTMFIface));
+    mCallChannel->addContent(mCallContent);
 
     mDTMFIface->setStartToneCallback(Tp::memFun(this,&oFonoConferenceCallChannel::onDTMFStartTone));
     mDTMFIface->setStopToneCallback(Tp::memFun(this,&oFonoConferenceCallChannel::onDTMFStopTone));
