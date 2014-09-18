@@ -24,6 +24,9 @@
 
 #include <TelepathyQt/BaseProtocol>
 
+#include "powerdaudiomodemediator.h"
+#include "powerddbus.h"
+
 class Protocol : public Tp::BaseProtocol
 {
     Q_OBJECT
@@ -34,6 +37,8 @@ public:
 
 private:
     Tp::BaseConnectionPtr createConnection(const QVariantMap &parameters, Tp::DBusError *error);
+    PowerDDBus mPowerDDBus;
+    PowerDAudioModeMediator mAudioModeMediator;
 };
 
 #endif

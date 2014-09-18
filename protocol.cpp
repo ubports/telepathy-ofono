@@ -24,7 +24,7 @@
 #include <TelepathyQt/ProtocolParameterList>
 
 Protocol::Protocol(const QDBusConnection &dbusConnection, const QString &name)
-    : Tp::BaseProtocol(dbusConnection, name)
+    : Tp::BaseProtocol(dbusConnection, name), mAudioModeMediator(mPowerDDBus)
 {
     setRequestableChannelClasses(Tp::RequestableChannelClassSpecList() <<
                                  Tp::RequestableChannelClassSpec::textChat() <<
@@ -40,5 +40,16 @@ Protocol::Protocol(const QDBusConnection &dbusConnection, const QString &name)
 
 Tp::BaseConnectionPtr Protocol::createConnection(const QVariantMap &parameters, Tp::DBusError *error) {
     Q_UNUSED(error);
-    return Tp::BaseConnection::create<oFonoConnection>(QDBusConnection::sessionBus(), "ofono", name().toLatin1(), parameters);
+    Tp::BaseConnectionPtr connection_ptr = Tp::BaseConnection::create<oFonoConnection>(QDBusConnection::sessionBus(), "ofono", name().toLatin1(), parameters);
+    connect(
+        static_cast<oFonoConnection*>(connection_ptr.data()), &oFonoConnection::activeAudioOutputChanged,
+        Tp::memFun(&mAudioModeMediator, &PowerDAudioModeMediator::audioModeChanged)
+        );
+    connect(
+        static_cast<oFonoConnection*>(connection_ptr.data()), &oFonoConnection::channelHangup,
+        [this](const QDBusObjectPath &objPath) {
+            mAudioModeMediator.channelHangup();
+            }
+        );
+    return connection_ptr;
 }
