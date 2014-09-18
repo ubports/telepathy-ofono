@@ -74,6 +74,7 @@ private:
     BaseChannelAudioOutputsInterfacePtr mAudioOutputsIface;
     Tp::BaseChannelCallTypePtr mCallChannel;
     Tp::BaseCallContentDTMFInterfacePtr mDTMFIface;
+    Tp::BaseCallContentPtr mCallContent;
     bool mDtmfLock;
     QStringList mDtmfPendingStrings;
 };

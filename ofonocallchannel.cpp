@@ -226,9 +226,15 @@ void oFonoCallChannel::sendNextDtmf()
 
 void oFonoCallChannel::onDtmfComplete(bool success)
 {
+    // this might be a response for another channel
+    if (mCallChannel->callState() != Tp::CallStateActive) {
+        return;
+    }
     mDtmfLock = false;
     if (success) {
-        mDtmfPendingStrings.removeFirst();
+       if (mDtmfPendingStrings.count() > 0) {
+           mDtmfPendingStrings.removeFirst();
+       }
        if (mDtmfPendingStrings.isEmpty()) {
            return;
        }
