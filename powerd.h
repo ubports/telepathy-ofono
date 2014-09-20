@@ -24,7 +24,7 @@
 class PowerD
 {
 public:
-    PowerD() = default
+    PowerD() = default;
     virtual ~PowerD() = default;
     PowerD(PowerD const&) = delete;
     PowerD& operator=(PowerD const&) = delete;
