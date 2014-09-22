@@ -66,6 +66,7 @@ void MessagesTest::initTestCase()
     QTRY_COMPARE(spy.count(), 1);
 
     OfonoMockController::instance()->SimManagerSetPresence(true);
+    OfonoMockController::instance()->SimManagerSetPinRequired("none");
     OfonoMockController::instance()->ModemSetOnline();
     OfonoMockController::instance()->NetworkRegistrationSetStatus("registered");
     // the account should be connected
