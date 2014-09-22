@@ -210,6 +210,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     QObject::connect(mOfonoVoiceCallManager, SIGNAL(callAdded(QString,QVariantMap)), SLOT(onOfonoCallAdded(QString, QVariantMap)));
     QObject::connect(mOfonoSimManager, SIGNAL(validityChanged(bool)), SLOT(onValidityChanged(bool)));
     QObject::connect(mOfonoSimManager, SIGNAL(presenceChanged(bool)), SLOT(updateOnlineStatus()));
+    QObject::connect(mOfonoSimManager, SIGNAL(pinRequiredChanged(QString)), SLOT(updateOnlineStatus()));
     QObject::connect(mOfonoNetworkRegistration, SIGNAL(statusChanged(QString)), SLOT(updateOnlineStatus()));
     QObject::connect(mOfonoNetworkRegistration, SIGNAL(nameChanged(QString)), SLOT(updateOnlineStatus()));
     QObject::connect(mOfonoNetworkRegistration, SIGNAL(validityChanged(bool)), SLOT(updateOnlineStatus()));
@@ -505,6 +506,9 @@ void oFonoConnection::updateOnlineStatus()
     } else if ((mOfonoSimManager->isValid() && !mOfonoSimManager->present()) ||
                 !mOfonoSimManager->isValid()) {
         mSelfPresence.status = "nosim";
+    } else if (mOfonoSimManager->pinRequired() != "none") {
+        mSelfPresence.status = "simlocked";
+        mSelfPresence.type = Tp::ConnectionPresenceTypeAway;
     } else if (isNetworkRegistered()) {
         mSelfPresence.status = mOfonoNetworkRegistration->status();
         mSelfPresence.statusMessage = mOfonoNetworkRegistration->name();
