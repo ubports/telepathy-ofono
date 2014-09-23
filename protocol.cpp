@@ -46,7 +46,7 @@ Tp::BaseConnectionPtr Protocol::createConnection(const QVariantMap &parameters, 
         Tp::memFun(&mAudioModeMediator, &PowerDAudioModeMediator::audioModeChanged)
         );
     connect(
-        static_cast<oFonoConnection*>(connection_ptr.data()), &oFonoConnection::audioOutputClosed,
+        static_cast<oFonoConnection*>(connection_ptr.data()), &oFonoConnection::lastChannelClosed,
         Tp::memFun(&mAudioModeMediator, &PowerDAudioModeMediator::audioOutputClosed)
         );
     return connection_ptr;

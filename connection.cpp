@@ -847,7 +847,7 @@ void oFonoConnection::onCallChannelDestroyed()
         mCallChannels.remove(key);
 
         if (mCallChannels.empty()) {
-            Q_EMIT audioOutputClosed();
+            Q_EMIT lastChannelClosed();
         }
     }
 }
