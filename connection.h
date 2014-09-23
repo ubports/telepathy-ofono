@@ -123,6 +123,7 @@ Q_SIGNALS:
     void channelMerged(const QDBusObjectPath &objPath);
     void channelSplitted(const QDBusObjectPath &objPath);
     void channelHangup(const QDBusObjectPath &objPath);
+    void audioOutputClosed();
 
 public Q_SLOTS:
     void updateAudioRoute();

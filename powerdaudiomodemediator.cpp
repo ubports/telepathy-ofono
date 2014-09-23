@@ -43,7 +43,7 @@ void PowerDAudioModeMediator::audioModeChanged(const QString &mode)
     }
 }
 
-void PowerDAudioModeMediator::channelHangup()
+void PowerDAudioModeMediator::audioOutputClosed()
 {
     if (last_request)
     {

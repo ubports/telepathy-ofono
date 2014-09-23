@@ -36,7 +36,7 @@ class PowerDAudioModeMediator
 public:
     PowerDAudioModeMediator(PowerD &powerd);
     void audioModeChanged(const QString &mode);
-    void channelHangup();
+    void audioOutputClosed();
 private:
     PowerD &powerd;
     struct PendingRequest

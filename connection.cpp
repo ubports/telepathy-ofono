@@ -845,6 +845,10 @@ void oFonoConnection::onCallChannelDestroyed()
         QString key = mCallChannels.key(channel);
         qDebug() << "call channel closed for number " << key;
         mCallChannels.remove(key);
+
+        if (mCallChannels.empty()) {
+            Q_EMIT audioOutputClosed();
+        }
     }
 }
 
