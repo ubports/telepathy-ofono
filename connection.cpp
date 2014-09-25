@@ -181,6 +181,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     statuses.insert(QLatin1String("flightmode"), presenceOffline);
     statuses.insert(QLatin1String("nosim"), presenceOffline);
     statuses.insert(QLatin1String("nomodem"), presenceOffline);
+    statuses.insert(QLatin1String("simlocked"), presenceAway);
     statuses.insert(QLatin1String("unregistered"), presenceAway);
     statuses.insert(QLatin1String("denied"), presenceAway);
     statuses.insert(QLatin1String("unknown"), presenceAway);
