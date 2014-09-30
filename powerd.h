@@ -19,8 +19,6 @@
 #ifndef POWERD_H
 #define POWERD_H
 
-#include <QString>
-
 class PowerD
 {
 public:
@@ -29,16 +27,8 @@ public:
     PowerD(PowerD const&) = delete;
     PowerD& operator=(PowerD const&) = delete;
 
-    // FIXME: There is no client API header to get those constants
-    enum PowerState
-    {
-        Suspend = 0,
-        ActiveDisplay,
-        ActiveDisplayWithProximityBlanking
-    };
-
-    virtual QString requestState(PowerState newState) = 0;
-    virtual void clearState(QString const& cookie) = 0;
+    virtual void enableProximityHandling() = 0;
+    virtual void disableProximityHandling() = 0;
 };
 
 #endif // POWERD_H

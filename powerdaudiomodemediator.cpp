@@ -25,29 +25,28 @@ PowerDAudioModeMediator::PowerDAudioModeMediator(PowerD &powerd)
 
 void PowerDAudioModeMediator::audioModeChanged(const QString &mode)
 {
-    PowerD::PowerState expectedState =
-        (mode == "speaker" || mode == "bluetooth") ?
-        PowerD::ActiveDisplay :
-        PowerD::ActiveDisplayWithProximityBlanking;
+    bool enableProximity = !(mode == "speaker" || mode == "bluetooth");
 
-    if (!last_request || last_request->state != expectedState)
+    if (mProximityEnabled != enableProximity)
     {
-        decltype(last_request) old_request{ std::move(last_request) };
-        last_request.reset(new PendingRequest{ powerd.requestState(expectedState), expectedState });
-
-        if (last_request->cookie.isEmpty())
-            last_request.reset();
-
-        if (old_request)
-            powerd.clearState( old_request->cookie );
+        mProximityEnabled = enableProximity;
+        apply();
     }
+}
+
+void PowerDAudioModeMediator::apply() const
+{
+    if (mProximityEnabled)
+        powerd.enableProximityHandling();
+    else
+        powerd.disableProximityHandling();
 }
 
 void PowerDAudioModeMediator::audioOutputClosed()
 {
-    if (last_request)
+    if (mProximityEnabled)
     {
-        powerd.clearState( last_request->cookie );
-        last_request.reset();
+        mProximityEnabled = false;
+        apply();
     }
 }

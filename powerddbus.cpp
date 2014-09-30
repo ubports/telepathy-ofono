@@ -32,18 +32,12 @@ PowerDDBus::PowerDDBus()
 {
 }
 
-QString PowerDDBus::requestState(PowerState newState)
+void PowerDDBus::enableProximityHandling()
 {
-    QDBusReply<QString> reply = mPowerDIface->call("requestSysState", "telepathy-ofono", newState);
-
-    if (reply.isValid())
-    {
-        return reply.value();
-    }
-    return "";
+    mPowerDIface->call("enableProximityHandling", "telepathy-ofono");
 }
 
-void PowerDDBus::clearState(QString const& cookie)
+void PowerDDBus::disableProximityHandling()
 {
-    mPowerDIface->call("clearSysState", cookie);
+    mPowerDIface->call("disableProximityHandling", "telepathy-ofono");
 }

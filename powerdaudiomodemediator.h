@@ -38,14 +38,9 @@ public:
     void audioModeChanged(const QString &mode);
     void audioOutputClosed();
 private:
+    void apply() const;
     PowerD &powerd;
-    struct PendingRequest
-    {
-        QString cookie;
-        PowerD::PowerState state;
-    };
-    std::unique_ptr<PendingRequest> last_request;
-    bool mProximityStatus{false};
+    bool mProximityEnabled{false};
 };
 
 #endif

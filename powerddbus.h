@@ -29,8 +29,8 @@ class PowerDDBus : public PowerD
 {
 public:
     PowerDDBus();
-    QString requestState(PowerState newState) override;
-    void clearState(QString const& cookie) override;
+    void enableProximityHandling() override;
+    void disableProximityHandling() override;
 private:
     std::unique_ptr<QDBusInterface> mPowerDIface;
 };
