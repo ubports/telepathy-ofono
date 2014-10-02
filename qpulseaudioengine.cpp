@@ -157,7 +157,7 @@ void QPulseAudioEngine::createPulseContext()
         return;
     }
 
-    if (pa_context_connect(m_context, NULL, (pa_context_flags_t)0, NULL) < 0) {
+    if (pa_context_connect(m_context, NULL, PA_CONTEXT_NOAUTOSPAWN, NULL) < 0) {
         qWarning("Unable to create a connection to the pulseaudio context");
         pa_threaded_mainloop_unlock(m_mainLoop);
         releasePulseContext();
