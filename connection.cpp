@@ -484,11 +484,13 @@ void oFonoConnection::onValidityChanged(bool valid)
     // becomes available, so it contains old values.
     Q_EMIT mOfonoSimManager->modem()->pathChanged(mOfonoModem->path());
     Q_EMIT mOfonoNetworkRegistration->modem()->pathChanged(mOfonoModem->path());
+    Q_EMIT mOfonoVoiceCallManager->modem()->pathChanged(mOfonoModem->path());
     QString modemSerial;
     if (valid) {
         modemSerial = mOfonoModem->serial();
     }
     supplementaryServicesIface->setSerial(modemSerial);
+    emergencyModeIface->setEmergencyNumbers(mOfonoVoiceCallManager->emergencyNumbers());
     updateOnlineStatus();
 }
 
