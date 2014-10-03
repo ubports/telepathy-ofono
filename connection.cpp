@@ -143,6 +143,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     QObject::connect(mOfonoVoiceCallManager, SIGNAL(emergencyNumbersChanged(QStringList)),
                      emergencyModeIface.data(), SLOT(setEmergencyNumbers(QStringList)));
     plugInterface(Tp::AbstractConnectionInterfacePtr::dynamicCast(emergencyModeIface));
+    emergencyModeIface->setEmergencyNumbers(mOfonoVoiceCallManager->emergencyNumbers());
 
     // init custom voicemail interface (not provided by telepathy)
     voicemailIface = BaseConnectionVoicemailInterface::create();
