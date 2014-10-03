@@ -209,6 +209,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     QObject::connect(mOfonoMessageManager, SIGNAL(immediateMessage(QString,QVariantMap)), this, SLOT(onOfonoImmediateMessage(QString,QVariantMap)));
     QObject::connect(mOfonoMessageManager, SIGNAL(statusReport(QString,QVariantMap)), this, SLOT(onDeliveryReportReceived(QString,QVariantMap)));
     QObject::connect(mOfonoVoiceCallManager, SIGNAL(callAdded(QString,QVariantMap)), SLOT(onOfonoCallAdded(QString, QVariantMap)));
+    QObject::connect(mOfonoVoiceCallManager, SIGNAL(validityChanged(bool)), SLOT(onValidityChanged(bool)));
     QObject::connect(mOfonoSimManager, SIGNAL(validityChanged(bool)), SLOT(onValidityChanged(bool)));
     QObject::connect(mOfonoSimManager, SIGNAL(presenceChanged(bool)), SLOT(updateOnlineStatus()));
     QObject::connect(mOfonoNetworkRegistration, SIGNAL(statusChanged(QString)), SLOT(updateOnlineStatus()));
