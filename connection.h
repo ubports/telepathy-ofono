@@ -162,6 +162,10 @@ private:
     void ensureTextChannel(const QString &message, const QVariantMap &info, bool flash);
     QMap<uint, QString> mHandles;
 
+#ifdef USE_PULSEAUDIO
+    bool mHasPulseAudio;
+#endif
+
     QList<oFonoTextChannel*> mTextChannels;
     QMap<QString, oFonoCallChannel*> mCallChannels;
 

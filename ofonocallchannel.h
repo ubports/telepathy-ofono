@@ -71,6 +71,9 @@ private Q_SLOTS:
 private:
     QString mObjPath;
     QString mPreviousState;
+#ifdef USE_PULSEAUDIO
+    bool mHasPulseAudio;
+#endif
     bool mIncoming;
     bool mRequestedHangup;
     Tp::BaseChannelPtr mBaseChannel;
