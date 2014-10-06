@@ -66,6 +66,13 @@ oFonoCallChannel::oFonoCallChannel(oFonoConnection *conn, QString phoneNumber, u
 
     // init must be called after initialization, otherwise we will have no object path registered.
     QTimer::singleShot(0, this, SLOT(init()));
+
+#ifdef USE_PULSEAUDIO
+    QByteArray pulseAudioDisabled = qgetenv("PA_DISABLED");
+    mHasPulseAudio = true;
+    if (!pulseAudioDisabled.isEmpty())
+        mHasPulseAudio = false;
+#endif
 }
 
 Tp::CallState oFonoCallChannel::callState()
@@ -88,7 +95,8 @@ void oFonoCallChannel::onSetActiveAudioOutput(const QString &id, Tp::DBusError *
     } else if (id == "speaker") {
         mode = AudioModeSpeaker;
     }
-    QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallActive, mode);
+    if (mHasPulseAudio)
+        QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallActive, mode);
 #endif
 }
 
@@ -191,24 +199,17 @@ void oFonoCallChannel::onHoldStateChanged(const Tp::LocalHoldState &state, const
 
 void oFonoCallChannel::onMuteStateChanged(const Tp::LocalMuteState &state, Tp::DBusError *error)
 {
-    bool hasPulseAudio = true;
-    QByteArray pulseAudioDisabled = qgetenv("PA_DISABLED");
-    if (!pulseAudioDisabled.isEmpty()) {
-        hasPulseAudio = false;
-    }
     if (state == Tp::LocalMuteStateMuted) {
         mConnection->callVolume()->setMuted(true);
 #ifdef USE_PULSEAUDIO
-        if(hasPulseAudio) {
+        if (mHasPulseAudio)
             QPulseAudioEngine::instance()->setMicMute(true);
-        }
 #endif
     } else if (state == Tp::LocalMuteStateUnmuted) {
         mConnection->callVolume()->setMuted(false);
 #ifdef USE_PULSEAUDIO
-        if(hasPulseAudio) {
+        if (mHasPulseAudio)
             QPulseAudioEngine::instance()->setMicMute(false);
-        }
 #endif
     }
 }
