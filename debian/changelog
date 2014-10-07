@@ -1,3 +1,16 @@
+telepathy-ofono (0.2+14.10.20141007-0ubuntu1) 14.09; urgency=low
+
+  [ Ubuntu daily release ]
+  * New rebuild forced
+
+  [ Tiago Salem Herrmann ]
+  * Report away status when sim is locked.
+  * refresh emergency numbers when appropriate
+  * Use local timestamp instead of the one provided by the carrier. (LP:
+    #1246198)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 07 Oct 2014 19:16:08 +0000
+
 telepathy-ofono (0.2+14.10.20141006-0ubuntu1) utopic; urgency=low
 
   [ Ricardo Salveti de Araujo ]
