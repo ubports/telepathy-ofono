@@ -128,3 +128,8 @@ void OfonoMockController::SimManagerSetPresence(bool present)
 {
     mSimManagerInterface.call("SetProperty", "Present", QVariant::fromValue(QDBusVariant(present)));
 }
+
+void OfonoMockController::SimManagerSetPinRequired(const QString &type)
+{
+    mSimManagerInterface.call("SetProperty", "PinRequired", QVariant::fromValue(QDBusVariant(type)));
+}
