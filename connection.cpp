@@ -228,6 +228,12 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     // update audio modes
     QObject::connect(QPulseAudioEngine::instance(), SIGNAL(audioModeChanged(AudioMode)), SLOT(onAudioModeChanged(AudioMode)));
     QObject::connect(QPulseAudioEngine::instance(), SIGNAL(availableAudioModesChanged(AudioModes)), SLOT(onAvailableAudioModesChanged(AudioModes)));
+
+    // check if we should indeed use pulseaudio
+    QByteArray pulseAudioDisabled = qgetenv("PA_DISABLED");
+    mHasPulseAudio = true;
+    if (!pulseAudioDisabled.isEmpty())
+        mHasPulseAudio = false;
 #endif
 
     QObject::connect(mOfonoSupplementaryServices, SIGNAL(notificationReceived(const QString &)), supplementaryServicesIface.data(), SLOT(NotificationReceived(const QString &)));
@@ -1030,10 +1036,10 @@ void oFonoConnection::onAvailableAudioModesChanged(AudioModes modes)
 
 void oFonoConnection::updateAudioRoute()
 {
-    QByteArray pulseAudioDisabled = qgetenv("PA_DISABLED");
-    if (!pulseAudioDisabled.isEmpty()) {
+#ifdef USE_PULSEAUDIO
+    if (!mHasPulseAudio)
         return;
-    }
+#endif
 
     int currentCalls = mOfonoVoiceCallManager->getCalls().size();
     if (currentCalls != 0) {
@@ -1076,6 +1082,11 @@ void oFonoConnection::updateAudioRoute()
 // please call this method only from oFonoCallChannel instances
 void oFonoConnection::updateAudioRouteToEarpiece()
 {
+#ifdef USE_PULSEAUDIO
+    if (!mHasPulseAudio)
+        return;
+#endif
+
     if (mOfonoVoiceCallManager->getCalls().size() == 1) {
         enable_earpiece();
     }

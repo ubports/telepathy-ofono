@@ -1,3 +1,30 @@
+telepathy-ofono (0.2+14.10.20141006-0ubuntu1) utopic; urgency=low
+
+  [ Ricardo Salveti de Araujo ]
+  * qpulse: don't try to autostart pulse when creating context (LP:
+    #1375249)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Mon, 06 Oct 2014 18:52:57 +0000
+
+telepathy-ofono (0.2+14.10.20140923-0ubuntu1) utopic; urgency=low
+
+  [ Ricardo Salveti de Araujo ]
+  * qpulseaudioengine: don't need to set initial volume anymore, handled
+    by the indicator and pulse
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 23 Sep 2014 06:14:04 +0000
+
+telepathy-ofono (0.2+14.10.20140918.1-0ubuntu1) utopic; urgency=low
+
+  [ Ubuntu daily release ]
+  * New rebuild forced
+
+  [ Tiago Salem Herrmann ]
+  * Do not process ofono dtmf dbus response if the channel is not
+    active. (LP: #1370106)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Thu, 18 Sep 2014 13:31:16 +0000
+
 telepathy-ofono (0.2+14.10.20140910-0ubuntu1) utopic; urgency=low
 
   [ Tiago Salem Herrmann ]
