@@ -2,6 +2,7 @@ project(telepathy-ofono)
 cmake_minimum_required(VERSION 2.8)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
 set(TELEPATHY_OFONO telepathy-ofono)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -91,6 +92,8 @@ set(TELEPATHY_OFONO_SRC
    mmsdmessage.cpp
    pendingmessagesmanager.cpp
    phoneutils.cpp
+   powerdaudiomodemediator.cpp
+   powerddbus.cpp
    sqlitedatabase.cpp
    ussdiface.cpp
    ${telepathyfono_RES})

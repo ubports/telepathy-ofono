@@ -1073,6 +1073,7 @@ void oFonoConnection::updateAudioRoute()
         }
     } else {
         enable_normal();
+        Q_EMIT lastChannelClosed();
     }
 
 }
