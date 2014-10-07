@@ -143,6 +143,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     QObject::connect(mOfonoVoiceCallManager, SIGNAL(emergencyNumbersChanged(QStringList)),
                      emergencyModeIface.data(), SLOT(setEmergencyNumbers(QStringList)));
     plugInterface(Tp::AbstractConnectionInterfacePtr::dynamicCast(emergencyModeIface));
+    emergencyModeIface->setEmergencyNumbers(mOfonoVoiceCallManager->emergencyNumbers());
 
     // init custom voicemail interface (not provided by telepathy)
     voicemailIface = BaseConnectionVoicemailInterface::create();
@@ -209,6 +210,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     QObject::connect(mOfonoMessageManager, SIGNAL(immediateMessage(QString,QVariantMap)), this, SLOT(onOfonoImmediateMessage(QString,QVariantMap)));
     QObject::connect(mOfonoMessageManager, SIGNAL(statusReport(QString,QVariantMap)), this, SLOT(onDeliveryReportReceived(QString,QVariantMap)));
     QObject::connect(mOfonoVoiceCallManager, SIGNAL(callAdded(QString,QVariantMap)), SLOT(onOfonoCallAdded(QString, QVariantMap)));
+    QObject::connect(mOfonoVoiceCallManager, SIGNAL(validityChanged(bool)), SLOT(onValidityChanged(bool)));
     QObject::connect(mOfonoSimManager, SIGNAL(validityChanged(bool)), SLOT(onValidityChanged(bool)));
     QObject::connect(mOfonoSimManager, SIGNAL(presenceChanged(bool)), SLOT(updateOnlineStatus()));
     QObject::connect(mOfonoSimManager, SIGNAL(pinRequiredChanged(QString)), SLOT(updateOnlineStatus()));
@@ -492,11 +494,13 @@ void oFonoConnection::onValidityChanged(bool valid)
     // becomes available, so it contains old values.
     Q_EMIT mOfonoSimManager->modem()->pathChanged(mOfonoModem->path());
     Q_EMIT mOfonoNetworkRegistration->modem()->pathChanged(mOfonoModem->path());
+    Q_EMIT mOfonoVoiceCallManager->modem()->pathChanged(mOfonoModem->path());
     QString modemSerial;
     if (valid) {
         modemSerial = mOfonoModem->serial();
     }
     supplementaryServicesIface->setSerial(modemSerial);
+    emergencyModeIface->setEmergencyNumbers(mOfonoVoiceCallManager->emergencyNumbers());
     updateOnlineStatus();
 }
 
