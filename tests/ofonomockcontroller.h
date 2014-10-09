@@ -51,6 +51,7 @@ public Q_SLOTS:
     void VoiceCallSetAlerting(const QString &objPath);
     void ModemSetOnline(bool online = true);
     void SimManagerSetPresence(bool present);
+    void SimManagerSetPinRequired(const QString &type);
 
 private Q_SLOTS:
     void onCallVolumePropertyChanged(const QString &name, const QDBusVariant &value);

@@ -143,6 +143,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     QObject::connect(mOfonoVoiceCallManager, SIGNAL(emergencyNumbersChanged(QStringList)),
                      emergencyModeIface.data(), SLOT(setEmergencyNumbers(QStringList)));
     plugInterface(Tp::AbstractConnectionInterfacePtr::dynamicCast(emergencyModeIface));
+    emergencyModeIface->setEmergencyNumbers(mOfonoVoiceCallManager->emergencyNumbers());
 
     // init custom voicemail interface (not provided by telepathy)
     voicemailIface = BaseConnectionVoicemailInterface::create();
@@ -181,6 +182,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     statuses.insert(QLatin1String("flightmode"), presenceOffline);
     statuses.insert(QLatin1String("nosim"), presenceOffline);
     statuses.insert(QLatin1String("nomodem"), presenceOffline);
+    statuses.insert(QLatin1String("simlocked"), presenceAway);
     statuses.insert(QLatin1String("unregistered"), presenceAway);
     statuses.insert(QLatin1String("denied"), presenceAway);
     statuses.insert(QLatin1String("unknown"), presenceAway);
@@ -208,8 +210,10 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     QObject::connect(mOfonoMessageManager, SIGNAL(immediateMessage(QString,QVariantMap)), this, SLOT(onOfonoImmediateMessage(QString,QVariantMap)));
     QObject::connect(mOfonoMessageManager, SIGNAL(statusReport(QString,QVariantMap)), this, SLOT(onDeliveryReportReceived(QString,QVariantMap)));
     QObject::connect(mOfonoVoiceCallManager, SIGNAL(callAdded(QString,QVariantMap)), SLOT(onOfonoCallAdded(QString, QVariantMap)));
+    QObject::connect(mOfonoVoiceCallManager, SIGNAL(validityChanged(bool)), SLOT(onValidityChanged(bool)));
     QObject::connect(mOfonoSimManager, SIGNAL(validityChanged(bool)), SLOT(onValidityChanged(bool)));
     QObject::connect(mOfonoSimManager, SIGNAL(presenceChanged(bool)), SLOT(updateOnlineStatus()));
+    QObject::connect(mOfonoSimManager, SIGNAL(pinRequiredChanged(QString)), SLOT(updateOnlineStatus()));
     QObject::connect(mOfonoNetworkRegistration, SIGNAL(statusChanged(QString)), SLOT(updateOnlineStatus()));
     QObject::connect(mOfonoNetworkRegistration, SIGNAL(nameChanged(QString)), SLOT(updateOnlineStatus()));
     QObject::connect(mOfonoNetworkRegistration, SIGNAL(validityChanged(bool)), SLOT(updateOnlineStatus()));
@@ -490,11 +494,13 @@ void oFonoConnection::onValidityChanged(bool valid)
     // becomes available, so it contains old values.
     Q_EMIT mOfonoSimManager->modem()->pathChanged(mOfonoModem->path());
     Q_EMIT mOfonoNetworkRegistration->modem()->pathChanged(mOfonoModem->path());
+    Q_EMIT mOfonoVoiceCallManager->modem()->pathChanged(mOfonoModem->path());
     QString modemSerial;
     if (valid) {
         modemSerial = mOfonoModem->serial();
     }
     supplementaryServicesIface->setSerial(modemSerial);
+    emergencyModeIface->setEmergencyNumbers(mOfonoVoiceCallManager->emergencyNumbers());
     updateOnlineStatus();
 }
 
@@ -511,6 +517,9 @@ void oFonoConnection::updateOnlineStatus()
     } else if ((mOfonoSimManager->isValid() && !mOfonoSimManager->present()) ||
                 !mOfonoSimManager->isValid()) {
         mSelfPresence.status = "nosim";
+    } else if (mOfonoSimManager->pinRequired() != "none") {
+        mSelfPresence.status = "simlocked";
+        mSelfPresence.type = Tp::ConnectionPresenceTypeAway;
     } else if (isNetworkRegistered()) {
         mSelfPresence.status = mOfonoNetworkRegistration->status();
         mSelfPresence.statusMessage = mOfonoNetworkRegistration->name();

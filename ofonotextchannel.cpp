@@ -407,7 +407,7 @@ void oFonoTextChannel::messageReceived(const QString &message, uint handle, cons
 
     Tp::MessagePart header;
     header["message-token"] = QDBusVariant(info["SentTime"].toString() +"-" + QString::number(mMessageCounter++));
-    header["message-received"] = QDBusVariant(QDateTime::fromString(info["SentTime"].toString(), Qt::ISODate).toTime_t());
+    header["message-received"] = QDBusVariant(QDateTime::currentDateTime().toTime_t());
     header["message-sender"] = QDBusVariant(handle);
     header["message-sender-id"] = QDBusVariant(mPhoneNumbers[0]);
     header["message-type"] = QDBusVariant(Tp::ChannelTextMessageTypeNormal);
