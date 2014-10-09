@@ -1,4 +1,4 @@
-telepathy-ofono (0.2+14.10.20141008-0ubuntu1) UNRELEASED; urgency=low
+telepathy-ofono (0.2+14.10.20141008-0ubuntu1) utopic; urgency=low
 
   [ Tiago Salem Herrmann ]
   * Report away status when sim is locked.
