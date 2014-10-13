@@ -517,7 +517,8 @@ void oFonoConnection::updateOnlineStatus()
     } else if ((mOfonoSimManager->isValid() && !mOfonoSimManager->present()) ||
                 !mOfonoSimManager->isValid()) {
         mSelfPresence.status = "nosim";
-    } else if (mOfonoSimManager->pinRequired() != "none") {
+    } else if (mOfonoSimManager->isValid() && mOfonoSimManager->present() && 
+               mOfonoSimManager->pinRequired() != "none" && !mOfonoSimManager->pinRequired().isEmpty()) {
         mSelfPresence.status = "simlocked";
         mSelfPresence.type = Tp::ConnectionPresenceTypeAway;
     } else if (isNetworkRegistered()) {
