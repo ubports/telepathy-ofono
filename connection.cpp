@@ -216,7 +216,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     QObject::connect(mOfonoSimManager, SIGNAL(pinRequiredChanged(QString)), SLOT(updateOnlineStatus()));
     QObject::connect(mOfonoNetworkRegistration, SIGNAL(statusChanged(QString)), SLOT(updateOnlineStatus()));
     QObject::connect(mOfonoNetworkRegistration, SIGNAL(nameChanged(QString)), SLOT(updateOnlineStatus()));
-    QObject::connect(mOfonoNetworkRegistration, SIGNAL(validityChanged(bool)), SLOT(updateOnlineStatus()));
+    QObject::connect(mOfonoNetworkRegistration, SIGNAL(validityChanged(bool)), SLOT(onValidityChanged(bool)));
     QObject::connect(mOfonoMessageWaiting, SIGNAL(voicemailMessageCountChanged(int)), voicemailIface.data(), SLOT(setVoicemailCount(int)));
     QObject::connect(mOfonoMessageWaiting, SIGNAL(voicemailWaitingChanged(bool)), voicemailIface.data(), SLOT(setVoicemailIndicator(bool)));
     QObject::connect(mOfonoMessageWaiting, SIGNAL(voicemailMailboxNumberChanged(QString)), voicemailIface.data(), SLOT(setVoicemailNumber(QString)));
