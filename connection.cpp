@@ -216,7 +216,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     QObject::connect(mOfonoSimManager, SIGNAL(pinRequiredChanged(QString)), SLOT(updateOnlineStatus()));
     QObject::connect(mOfonoNetworkRegistration, SIGNAL(statusChanged(QString)), SLOT(updateOnlineStatus()));
     QObject::connect(mOfonoNetworkRegistration, SIGNAL(nameChanged(QString)), SLOT(updateOnlineStatus()));
-    QObject::connect(mOfonoNetworkRegistration, SIGNAL(validityChanged(bool)), SLOT(updateOnlineStatus()));
+    QObject::connect(mOfonoNetworkRegistration, SIGNAL(validityChanged(bool)), SLOT(onValidityChanged(bool)));
     QObject::connect(mOfonoMessageWaiting, SIGNAL(voicemailMessageCountChanged(int)), voicemailIface.data(), SLOT(setVoicemailCount(int)));
     QObject::connect(mOfonoMessageWaiting, SIGNAL(voicemailWaitingChanged(bool)), voicemailIface.data(), SLOT(setVoicemailIndicator(bool)));
     QObject::connect(mOfonoMessageWaiting, SIGNAL(voicemailMailboxNumberChanged(QString)), voicemailIface.data(), SLOT(setVoicemailNumber(QString)));
@@ -492,9 +492,13 @@ void oFonoConnection::onValidityChanged(bool valid)
 {
     // WORKAROUND: ofono-qt does not refresh the properties once the interface
     // becomes available, so it contains old values.
-    Q_EMIT mOfonoSimManager->modem()->pathChanged(mOfonoModem->path());
-    Q_EMIT mOfonoNetworkRegistration->modem()->pathChanged(mOfonoModem->path());
-    Q_EMIT mOfonoVoiceCallManager->modem()->pathChanged(mOfonoModem->path());
+    if (sender() == mOfonoSimManager) {
+        Q_EMIT mOfonoSimManager->modem()->pathChanged(mOfonoModem->path());
+    } else if (sender() == mOfonoNetworkRegistration) {
+        Q_EMIT mOfonoNetworkRegistration->modem()->pathChanged(mOfonoModem->path());
+    } else if (sender() == mOfonoVoiceCallManager) {
+        Q_EMIT mOfonoVoiceCallManager->modem()->pathChanged(mOfonoModem->path());
+    }
     QString modemSerial;
     if (valid) {
         modemSerial = mOfonoModem->serial();
@@ -517,7 +521,8 @@ void oFonoConnection::updateOnlineStatus()
     } else if ((mOfonoSimManager->isValid() && !mOfonoSimManager->present()) ||
                 !mOfonoSimManager->isValid()) {
         mSelfPresence.status = "nosim";
-    } else if (mOfonoSimManager->pinRequired() != "none") {
+    } else if (mOfonoSimManager->isValid() && mOfonoSimManager->present() && 
+               mOfonoSimManager->pinRequired() != "none" && !mOfonoSimManager->pinRequired().isEmpty()) {
         mSelfPresence.status = "simlocked";
         mSelfPresence.type = Tp::ConnectionPresenceTypeAway;
     } else if (isNetworkRegistered()) {
