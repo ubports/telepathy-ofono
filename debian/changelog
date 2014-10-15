@@ -1,3 +1,14 @@
+telepathy-ofono (0.2+14.10.20141015-0ubuntu1) 14.09; urgency=low
+
+  [ Ubuntu daily release ]
+  * New rebuild forced
+
+  [ Tiago Salem Herrmann ]
+  * Check if the SimManager interface is available and property not
+    empty before assuming the sim is locked. (LP: #1379836)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Wed, 15 Oct 2014 13:33:36 +0000
+
 telepathy-ofono (0.2+14.10.20141008-0ubuntu1) utopic; urgency=low
 
   [ Tiago Salem Herrmann ]
