@@ -492,9 +492,13 @@ void oFonoConnection::onValidityChanged(bool valid)
 {
     // WORKAROUND: ofono-qt does not refresh the properties once the interface
     // becomes available, so it contains old values.
-    Q_EMIT mOfonoSimManager->modem()->pathChanged(mOfonoModem->path());
-    Q_EMIT mOfonoNetworkRegistration->modem()->pathChanged(mOfonoModem->path());
-    Q_EMIT mOfonoVoiceCallManager->modem()->pathChanged(mOfonoModem->path());
+    if (sender() == mOfonoSimManager) {
+        Q_EMIT mOfonoSimManager->modem()->pathChanged(mOfonoModem->path());
+    } else if (sender() == mOfonoNetworkRegistration) {
+        Q_EMIT mOfonoNetworkRegistration->modem()->pathChanged(mOfonoModem->path());
+    } else if (sender() == mOfonoVoiceCallManager) {
+        Q_EMIT mOfonoVoiceCallManager->modem()->pathChanged(mOfonoModem->path());
+    }
     QString modemSerial;
     if (valid) {
         modemSerial = mOfonoModem->serial();
