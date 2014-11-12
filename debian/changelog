@@ -1,3 +1,20 @@
+telepathy-ofono (0.2+15.04.20141112-0ubuntu1) vivid; urgency=low
+
+  [ Bill Filler ]
+  * Wait 2 seconds before calling enable_normal() so the beeps emitted
+    after a call is terminated are played using the right audio output
+    device. (LP: #1392082)
+
+  [ Ubuntu daily release ]
+  * New rebuild forced
+
+  [ Tiago Salem Herrmann ]
+  * Wait 2 seconds before calling enable_normal() so the beeps emitted
+    after a call is terminated are played using the right audio output
+    device. (LP: #1392082)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Wed, 12 Nov 2014 22:39:31 +0000
+
 telepathy-ofono (0.2+14.10.20141015-0ubuntu1) 14.09; urgency=low
 
   [ Ubuntu daily release ]
