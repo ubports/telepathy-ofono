@@ -50,8 +50,14 @@ static void enable_earpiece()
 static void enable_normal()
 {
 #ifdef USE_PULSEAUDIO
-    QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallEnded, AudioModeWiredOrSpeaker);
-    QPulseAudioEngine::instance()->setMicMute(false);
+    QTimer* timer = new QTimer();
+    timer->setSingleShot(true);
+    QObject::connect(timer, &QTimer::timeout, [=](){
+        QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallEnded, AudioModeWiredOrSpeaker);
+        QPulseAudioEngine::instance()->setMicMute(false);
+        timer->deleteLater();
+    });
+    timer->start(2000);
 #endif
 }
 
