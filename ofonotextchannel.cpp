@@ -179,8 +179,10 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
     Tp::MessagePart body = message.at(1);
     QString objpath;
 
+    bool mms = header["mms"].variant().toBool();
+
     // if message contains more than header and one body, it is an mms.
-    if (message.size() > 2) {
+    if (mms) {
         // pop header out
         message.removeFirst();
         OutgoingAttachmentList attachments;
