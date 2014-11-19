@@ -181,7 +181,6 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
 
     bool mms = header["mms"].variant().toBool();
 
-    // if message contains more than header and one body, it is an mms.
     if (mms) {
         // pop header out
         message.removeFirst();
