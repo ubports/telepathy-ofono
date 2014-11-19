@@ -429,6 +429,7 @@ void oFonoTextChannel::mmsReceived(const QString &id, uint handle, const QVarian
     header["message-sender"] = QDBusVariant(handle);
     header["message-received"] = QDBusVariant(QDateTime::currentDateTimeUtc().toTime_t());
     header["message-type"] = QDBusVariant(Tp::DeliveryStatusDelivered);
+    header["mms"] = QDBusVariant(true);
     if (!subject.isEmpty())
     {
         header["subject"] = QDBusVariant(subject);
