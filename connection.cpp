@@ -374,9 +374,12 @@ void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &pr
     mServiceMMSList[servicePath].append(msg);
     if (properties["Status"] ==  "received") {
         const QString senderNormalizedNumber = PhoneUtils::normalizePhoneNumber(properties["Sender"].toString());
+        QStringList recipientList = properties["Recipients"].toStringList();
+        // FIXME: assuming the first item is always our own number
+        recipientList.removeFirst();
         QSet<QString> recipients;
         Tp::UIntList initialInviteeHandles;
-        Q_FOREACH(const QString &recipient, properties["Recipients"].toStringList()) {
+        Q_FOREACH(const QString &recipient, recipientList) {
             recipients << PhoneUtils::normalizePhoneNumber(recipient);
             initialInviteeHandles << ensureHandle(recipient);
         }
@@ -390,19 +393,24 @@ void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &pr
         Tp::DBusError error;
         bool yours;
         QVariantMap hints;
+        uint handle = ensureHandle(senderNormalizedNumber);
+        qDebug() << "ensure handle" << senderNormalizedNumber << handle;
+
         if (initialInviteeHandles.size() > 0) {
+            initialInviteeHandles << handle;
             hints[TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeHandles")] = QVariant::fromValue(initialInviteeHandles);
+            ensureChannel(TP_QT_IFACE_CHANNEL_TYPE_TEXT, Tp::HandleTypeNone, 0, yours, handle, false, hints, &error);
+        } else {
+            ensureChannel(TP_QT_IFACE_CHANNEL_TYPE_TEXT, Tp::HandleTypeContact, handle, yours, handle, false, hints, &error);
         }
-        qDebug() << "new handle" << senderNormalizedNumber;
-        uint handle = newHandle(senderNormalizedNumber);
-        ensureChannel(TP_QT_IFACE_CHANNEL_TYPE_TEXT,Tp::HandleTypeContact, handle, yours, handle, false, hints, &error);
+
         if(error.isValid()) {
             qCritical() << "Error creating channel for incoming message " << error.name() << error.message();
             return;
         }
         channel = textChannelForMembers(QStringList() << senderNormalizedNumber << recipients.toList());
         if (channel) {
-            channel->mmsReceived(path, ensureHandle(senderNormalizedNumber), properties);
+            channel->mmsReceived(path, handle, properties);
         }
     }
 }
