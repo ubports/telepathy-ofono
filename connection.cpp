@@ -375,9 +375,14 @@ void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &pr
     if (properties["Status"] ==  "received") {
         const QString senderNormalizedNumber = PhoneUtils::normalizePhoneNumber(properties["Sender"].toString());
         QStringList recipientList = properties["Recipients"].toStringList();
+        // remove empty strings if any
+        recipientList.removeAll("");
         // remove ourselves from the recipient list 
         Q_FOREACH(const QString &myNumber, mOfonoSimManager->subscriberNumbers()) {
             Q_FOREACH(const QString &remoteNumber, recipientList) {
+                if (remoteNumber.isEmpty()) {
+                    continue;
+                }
                 if (PhoneUtils::comparePhoneNumbers(remoteNumber, myNumber)) {
                     recipientList.removeAll(remoteNumber);
                     break;
