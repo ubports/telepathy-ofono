@@ -101,7 +101,11 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     mOfonoSimManager = new OfonoSimManager(setting, mModemPath);
     mOfonoModem = mOfonoSimManager->modem();
 
-    setSelfHandle(newHandle("<SelfHandle>"));
+    if (mOfonoSimManager->subscriberNumbers().size() > 0) {
+        setSelfHandle(newHandle(mOfonoSimManager->subscriberNumbers()[0]));
+    } else {
+        setSelfHandle(newHandle(""));
+    }
 
     setConnectCallback(Tp::memFun(this,&oFonoConnection::connect));
     setInspectHandlesCallback(Tp::memFun(this,&oFonoConnection::inspectHandles));
@@ -220,6 +224,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     QObject::connect(mOfonoSimManager, SIGNAL(validityChanged(bool)), SLOT(onValidityChanged(bool)));
     QObject::connect(mOfonoSimManager, SIGNAL(presenceChanged(bool)), SLOT(updateOnlineStatus()));
     QObject::connect(mOfonoSimManager, SIGNAL(pinRequiredChanged(QString)), SLOT(updateOnlineStatus()));
+    QObject::connect(mOfonoSimManager, SIGNAL(subscriberNumbersChanged(QStringList)), SLOT(updateOnlineStatus()));
     QObject::connect(mOfonoNetworkRegistration, SIGNAL(statusChanged(QString)), SLOT(updateOnlineStatus()));
     QObject::connect(mOfonoNetworkRegistration, SIGNAL(nameChanged(QString)), SLOT(updateOnlineStatus()));
     QObject::connect(mOfonoNetworkRegistration, SIGNAL(validityChanged(bool)), SLOT(onValidityChanged(bool)));
@@ -549,6 +554,8 @@ void oFonoConnection::updateOnlineStatus()
     Tp::SimpleContactPresences presences;
     mSelfPresence.statusMessage = "";
     mSelfPresence.type = Tp::ConnectionPresenceTypeOffline;
+    Tp::DBusError *error;
+    QString selfHandleId = inspectHandles(Tp::HandleTypeContact, Tp::UIntList() << selfHandle(), error)[0];
 
     if (!mOfonoModem->isValid()) {
         mSelfPresence.status = "nomodem";
@@ -569,6 +576,11 @@ void oFonoConnection::updateOnlineStatus()
         mSelfPresence.status = mOfonoNetworkRegistration->status();
         mSelfPresence.type = Tp::ConnectionPresenceTypeAway;
     }
+
+    if (mOfonoSimManager->subscriberNumbers().size() > 0 && selfHandleId != mOfonoSimManager->subscriberNumbers()[0]) {
+        setSelfHandle(newHandle(mOfonoSimManager->subscriberNumbers()[0]));
+    }
+
     presences[selfHandle()] = mSelfPresence;
     simplePresenceIface->setPresences(presences);
 }
