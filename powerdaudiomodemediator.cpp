@@ -25,7 +25,7 @@ PowerDAudioModeMediator::PowerDAudioModeMediator(PowerD &powerd)
 
 void PowerDAudioModeMediator::audioModeChanged(const QString &mode)
 {
-    bool enableProximity = !(mode == "speaker" || mode == "bluetooth");
+    bool enableProximity = !(mode == "speaker" || mode == "bluetooth" || mode == "wired_headset");
 
     if (mProximityEnabled != enableProximity)
     {
