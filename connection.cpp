@@ -1011,9 +1011,10 @@ void oFonoConnection::onAudioModeChanged(AudioMode mode)
 {
     qDebug("PulseAudio audio mode changed: 0x%x", mode);
 
-    if ((mode == AudioModeEarpiece && mActiveAudioOutput != "default") ||
-        (mode == AudioModeWiredHeadset && mActiveAudioOutput != "default")) {
-        setActiveAudioOutput("default");
+    if (mode == AudioModeEarpiece && mActiveAudioOutput != "earpiece") {
+        setActiveAudioOutput("earpiece");
+    } else if (mode == AudioModeWiredHeadset && mActiveAudioOutput != "wired_headset") {
+        setActiveAudioOutput("wired_headset");
     } else if (mode == AudioModeSpeaker && mActiveAudioOutput != "speaker") {
         setActiveAudioOutput("speaker");
     } else if (mode == AudioModeBluetooth && mActiveAudioOutput != "bluetooth") {
