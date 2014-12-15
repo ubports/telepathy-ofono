@@ -47,7 +47,7 @@ void PowerDAudioModeMediator::apply() const
                                   QDBusConnection::systemBus());
         QList<QVariant> args;
         args.append("on");
-        args.append(0);
+        args.append(3);
         unityIface.callWithArgumentList(QDBus::NoBlock, "setScreenPowerMode", args);
         powerd.disableProximityHandling();
     }
