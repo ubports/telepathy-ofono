@@ -1,3 +1,25 @@
+telepathy-ofono (0.2+15.04.20141216-0ubuntu1) vivid; urgency=low
+
+  [ Ubuntu daily release ]
+  * New rebuild forced
+
+  [ Tiago Salem Herrmann ]
+  * Power the screen on before disabling the proximity sensor. (LP:
+    #1398525)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 16 Dec 2014 02:31:39 +0000
+
+telepathy-ofono (0.2+15.04.20141210-0ubuntu1) vivid; urgency=low
+
+  [ Ubuntu daily release ]
+  * New rebuild forced
+
+  [ Tiago Salem Herrmann ]
+  * Disable proximity sensor also when using a wired headset. (LP:
+    #1398525)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Wed, 10 Dec 2014 18:05:47 +0000
+
 telepathy-ofono (0.2+15.04.20141112-0ubuntu1) vivid; urgency=low
 
   [ Bill Filler ]
