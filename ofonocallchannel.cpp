@@ -191,10 +191,20 @@ void oFonoCallChannel::onOfonoMuteChanged(bool mute)
 void oFonoCallChannel::onHoldStateChanged(const Tp::LocalHoldState &state, const Tp::LocalHoldStateReason &reason, Tp::DBusError *error)
 {
     if (state == Tp::LocalHoldStateHeld && this->state() == "active") {
+        QObject::connect(mConnection->voiceCallManager(), SIGNAL(swapCallsComplete(bool)), this, SLOT(onSwapCallsComplete(bool)));
         mConnection->voiceCallManager()->swapCalls();
     } else if (state == Tp::LocalHoldStateUnheld && this->state() == "held") {
+        QObject::connect(mConnection->voiceCallManager(), SIGNAL(swapCallsComplete(bool)), this, SLOT(onSwapCallsComplete(bool)));
         mConnection->voiceCallManager()->swapCalls();
     }
+}
+
+void oFonoCallChannel::onSwapCallsComplete(bool success)
+{
+    Tp::LocalHoldState holdState = this->state() == "active" ? Tp::LocalHoldStateUnheld : Tp::LocalHoldStateHeld;
+    Tp::LocalHoldStateReason reason = success ? Tp::LocalHoldStateReasonRequested : Tp::LocalHoldStateReasonResourceNotAvailable;
+    QObject::disconnect(mConnection->voiceCallManager(), SIGNAL(swapCallsComplete(bool)), this, SLOT(onSwapCallsComplete(bool)));
+    mHoldIface->setHoldState(holdState, reason);
 }
 
 void oFonoCallChannel::onMuteStateChanged(const Tp::LocalMuteState &state, Tp::DBusError *error)
