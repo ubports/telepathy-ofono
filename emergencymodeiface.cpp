@@ -37,6 +37,7 @@ struct TP_QT_NO_EXPORT BaseConnectionEmergencyModeInterface::Private {
     }
     EmergencyNumbersCallback emergencyNumbersCB;
     BaseConnectionEmergencyModeInterface::Adaptee *adaptee;
+    QString fakeEmergencyNumber;
 };
 
 BaseConnectionEmergencyModeInterface::Adaptee::~Adaptee()
@@ -55,7 +56,11 @@ void BaseConnectionEmergencyModeInterface::Adaptee::emergencyNumbers(const Conne
         context->setFinishedWithError(error.name(), error.message());
         return;
     }
-    context->setFinished(numbers);
+    if (mInterface->mPriv->fakeEmergencyNumber.isEmpty()) {
+        context->setFinished(numbers);
+    } else {
+        context->setFinished(QStringList() << numbers << mInterface->mPriv->fakeEmergencyNumber);
+    }
 }
 
 BaseConnectionEmergencyModeInterface::BaseConnectionEmergencyModeInterface()
@@ -76,7 +81,18 @@ void BaseConnectionEmergencyModeInterface::setEmergencyNumbersCallback(const Eme
 
 void BaseConnectionEmergencyModeInterface::setEmergencyNumbers(const QStringList &numbers)
 {
-    Q_EMIT mPriv->adaptee->emergencyNumbersChanged(numbers);
+    QStringList finalEmergencyList(numbers);
+
+    if (!mPriv->fakeEmergencyNumber.isEmpty()) {
+        finalEmergencyList << mPriv->fakeEmergencyNumber;
+    }
+    
+    Q_EMIT mPriv->adaptee->emergencyNumbersChanged(finalEmergencyList);
+}
+
+void BaseConnectionEmergencyModeInterface::setFakeEmergencyNumber(const QString &fakeEmergencyNumber)
+{
+    mPriv->fakeEmergencyNumber = fakeEmergencyNumber;
 }
 
 QVariantMap BaseConnectionEmergencyModeInterface::immutableProperties() const
