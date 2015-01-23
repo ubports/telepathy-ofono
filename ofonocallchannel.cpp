@@ -193,9 +193,11 @@ void oFonoCallChannel::onHoldStateChanged(const Tp::LocalHoldState &state, const
     if (state == Tp::LocalHoldStateHeld && this->state() == "active") {
         QObject::connect(mConnection->voiceCallManager(), SIGNAL(swapCallsComplete(bool)), this, SLOT(onSwapCallsComplete(bool)));
         mConnection->voiceCallManager()->swapCalls();
+        mHoldIface->setHoldState(Tp::LocalHoldStatePendingHold, Tp::LocalHoldStateReasonRequested);
     } else if (state == Tp::LocalHoldStateUnheld && this->state() == "held") {
         QObject::connect(mConnection->voiceCallManager(), SIGNAL(swapCallsComplete(bool)), this, SLOT(onSwapCallsComplete(bool)));
         mConnection->voiceCallManager()->swapCalls();
+        mHoldIface->setHoldState(Tp::LocalHoldStatePendingUnhold, Tp::LocalHoldStateReasonRequested);
     }
 }
 
