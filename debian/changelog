@@ -1,3 +1,11 @@
+telepathy-ofono (0.2+15.04.20150126-0ubuntu1) vivid; urgency=low
+
+  [ Tiago Salem Herrmann ]
+  * Watch for swapCallsComplete(bool) and set HoldState and
+    HoldStateReason accordingly. (LP: #1410365)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Mon, 26 Jan 2015 18:53:41 +0000
+
 telepathy-ofono (0.2+15.04.20150121-0ubuntu1) vivid; urgency=low
 
   [ Tiago Salem Herrmann ]
