@@ -52,6 +52,7 @@ public:
 
     typedef Tp::Callback1<QStringList, Tp::DBusError*> EmergencyNumbersCallback;
     void setEmergencyNumbersCallback(const EmergencyNumbersCallback &cb);
+    void setFakeEmergencyNumber(const QString &fakeEmergencyNumber);
 
 public Q_SLOTS:
     void setEmergencyNumbers(const QStringList &numbers);
