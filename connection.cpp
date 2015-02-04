@@ -101,7 +101,11 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     mOfonoSimManager = new OfonoSimManager(setting, mModemPath);
     mOfonoModem = mOfonoSimManager->modem();
 
-    setSelfHandle(newHandle("<SelfHandle>"));
+    if (mOfonoSimManager->subscriberNumbers().size() > 0) {
+        setSelfHandle(newHandle(mOfonoSimManager->subscriberNumbers()[0]));
+    } else {
+        setSelfHandle(newHandle(""));
+    }
 
     setConnectCallback(Tp::memFun(this,&oFonoConnection::connect));
     setInspectHandlesCallback(Tp::memFun(this,&oFonoConnection::inspectHandles));
@@ -221,6 +225,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     QObject::connect(mOfonoSimManager, SIGNAL(validityChanged(bool)), SLOT(onValidityChanged(bool)));
     QObject::connect(mOfonoSimManager, SIGNAL(presenceChanged(bool)), SLOT(updateOnlineStatus()));
     QObject::connect(mOfonoSimManager, SIGNAL(pinRequiredChanged(QString)), SLOT(updateOnlineStatus()));
+    QObject::connect(mOfonoSimManager, SIGNAL(subscriberNumbersChanged(QStringList)), SLOT(updateOnlineStatus()));
     QObject::connect(mOfonoNetworkRegistration, SIGNAL(statusChanged(QString)), SLOT(updateOnlineStatus()));
     QObject::connect(mOfonoNetworkRegistration, SIGNAL(nameChanged(QString)), SLOT(updateOnlineStatus()));
     QObject::connect(mOfonoNetworkRegistration, SIGNAL(validityChanged(bool)), SLOT(onValidityChanged(bool)));
@@ -374,26 +379,53 @@ void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &pr
     MMSDMessage *msg = new MMSDMessage(path, properties);
     mServiceMMSList[servicePath].append(msg);
     if (properties["Status"] ==  "received") {
-        const QString normalizedNumber = PhoneUtils::normalizePhoneNumber(properties["Sender"].toString());
+        const QString senderNormalizedNumber = PhoneUtils::normalizePhoneNumber(properties["Sender"].toString());
+        QStringList recipientList = properties["Recipients"].toStringList();
+        // remove empty strings if any
+        recipientList.removeAll("");
+        // remove ourselves from the recipient list 
+        Q_FOREACH(const QString &myNumber, mOfonoSimManager->subscriberNumbers()) {
+            Q_FOREACH(const QString &remoteNumber, recipientList) {
+                if (PhoneUtils::comparePhoneNumbers(remoteNumber, myNumber)) {
+                    recipientList.removeAll(remoteNumber);
+                    break;
+                }
+            }
+        }
+        QSet<QString> recipients;
+        Tp::UIntList initialInviteeHandles;
+        Q_FOREACH(const QString &recipient, recipientList) {
+            recipients << PhoneUtils::normalizePhoneNumber(recipient);
+            initialInviteeHandles << ensureHandle(recipient);
+        }
         // check if there is an open channel for this number and use it
-        oFonoTextChannel *channel = textChannelForMembers(QStringList() << normalizedNumber);
+        oFonoTextChannel *channel = textChannelForMembers(QStringList() << senderNormalizedNumber << recipients.toList());
         if (channel) {
-            channel->mmsReceived(path, ensureHandle(normalizedNumber), properties);
+            channel->mmsReceived(path, ensureHandle(senderNormalizedNumber), properties);
             return;
         }
 
         Tp::DBusError error;
         bool yours;
-        qDebug() << "new handle" << normalizedNumber;
-        uint handle = newHandle(normalizedNumber);
-        ensureChannel(TP_QT_IFACE_CHANNEL_TYPE_TEXT,Tp::HandleTypeContact, handle, yours, handle, false, QVariantMap(), &error);
+        QVariantMap hints;
+        uint handle = ensureHandle(senderNormalizedNumber);
+        qDebug() << "ensure handle" << senderNormalizedNumber << handle;
+
+        if (initialInviteeHandles.size() > 0) {
+            initialInviteeHandles << handle;
+            hints[TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeHandles")] = QVariant::fromValue(initialInviteeHandles);
+            ensureChannel(TP_QT_IFACE_CHANNEL_TYPE_TEXT, Tp::HandleTypeNone, 0, yours, handle, false, hints, &error);
+        } else {
+            ensureChannel(TP_QT_IFACE_CHANNEL_TYPE_TEXT, Tp::HandleTypeContact, handle, yours, handle, false, hints, &error);
+        }
+
         if(error.isValid()) {
             qCritical() << "Error creating channel for incoming message " << error.name() << error.message();
             return;
         }
-        channel = textChannelForMembers(QStringList() << normalizedNumber);
+        channel = textChannelForMembers(QStringList() << senderNormalizedNumber << recipients.toList());
         if (channel) {
-            channel->mmsReceived(path, ensureHandle(normalizedNumber), properties);
+            channel->mmsReceived(path, handle, properties);
         }
     }
 }
@@ -520,6 +552,8 @@ void oFonoConnection::updateOnlineStatus()
     Tp::SimpleContactPresences presences;
     mSelfPresence.statusMessage = "";
     mSelfPresence.type = Tp::ConnectionPresenceTypeOffline;
+    Tp::DBusError *error;
+    QString selfHandleId = inspectHandles(Tp::HandleTypeContact, Tp::UIntList() << selfHandle(), error)[0];
 
     if (!mOfonoModem->isValid()) {
         mSelfPresence.status = "nomodem";
@@ -540,6 +574,11 @@ void oFonoConnection::updateOnlineStatus()
         mSelfPresence.status = mOfonoNetworkRegistration->status();
         mSelfPresence.type = Tp::ConnectionPresenceTypeAway;
     }
+
+    if (mOfonoSimManager->subscriberNumbers().size() > 0 && selfHandleId != mOfonoSimManager->subscriberNumbers()[0]) {
+        setSelfHandle(newHandle(mOfonoSimManager->subscriberNumbers()[0]));
+    }
+
     presences[selfHandle()] = mSelfPresence;
     simplePresenceIface->setPresences(presences);
 }
