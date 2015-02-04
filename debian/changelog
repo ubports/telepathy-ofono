@@ -1,3 +1,10 @@
+telepathy-ofono (0.2+15.04.20150204-0ubuntu1) vivid; urgency=medium
+
+  [ Tiago Salem Herrmann ]
+  * Add initial MMS group chat support. (LP: #1415458)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Wed, 04 Feb 2015 21:09:22 +0000
+
 telepathy-ofono (0.2+15.04.20150126-0ubuntu1) vivid; urgency=low
 
   [ Tiago Salem Herrmann ]
