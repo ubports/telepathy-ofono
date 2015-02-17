@@ -1,3 +1,10 @@
+telepathy-ofono (0.2+15.04.20150217-0ubuntu1) vivid; urgency=medium
+
+  [ Tiago Salem Herrmann ]
+  * Retry when hangup() or answer() fail. (LP: #1422401)
+
+ -- CI Train Bot <ci-train-bot@canonical.com>  Tue, 17 Feb 2015 17:23:42 +0000
+
 telepathy-ofono (0.2+15.04.20150204-0ubuntu1) vivid; urgency=medium
 
   [ Tiago Salem Herrmann ]
