@@ -64,6 +64,8 @@ oFonoCallChannel::oFonoCallChannel(oFonoConnection *conn, QString phoneNumber, u
     mCallChannel->setHangupCallback(Tp::memFun(this,&oFonoCallChannel::onHangup));
     mCallChannel->setAcceptCallback(Tp::memFun(this,&oFonoCallChannel::onAccept));
 
+    QObject::connect(this, SIGNAL(hangupComplete(bool)), this, SLOT(onHangupComplete(bool)));
+    QObject::connect(this, SIGNAL(answerComplete(bool)), this, SLOT(onAnswerComplete(bool)));
     // init must be called after initialization, otherwise we will have no object path registered.
     QTimer::singleShot(0, this, SLOT(init()));
 
@@ -98,6 +100,20 @@ void oFonoCallChannel::onSetActiveAudioOutput(const QString &id, Tp::DBusError *
     if (mHasPulseAudio)
         QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallActive, mode);
 #endif
+}
+
+void oFonoCallChannel::onHangupComplete(bool status)
+{
+    if (!status) {
+        QTimer::singleShot(2000, this, SLOT(hangup()));
+    }
+}
+
+void oFonoCallChannel::onAnswerComplete(bool status)
+{
+    if (!status) {
+        QTimer::singleShot(1000, this, SLOT(answer()));
+    }
 }
 
 void oFonoCallChannel::onHangup(uint reason, const QString &detailedReason, const QString &message, Tp::DBusError *error)
@@ -203,6 +219,10 @@ void oFonoCallChannel::onHoldStateChanged(const Tp::LocalHoldState &state, const
 
 void oFonoCallChannel::onSwapCallsComplete(bool success)
 {
+    if (!success && errorName() == "org.ofono.Error.InProgress") {
+        QTimer::singleShot(2000, mConnection->voiceCallManager(), SLOT(swapCalls()));
+        return;
+    }
     Tp::LocalHoldState holdState = this->state() == "active" ? Tp::LocalHoldStateUnheld : Tp::LocalHoldStateHeld;
     Tp::LocalHoldStateReason reason = success ? Tp::LocalHoldStateReasonRequested : Tp::LocalHoldStateReasonResourceNotAvailable;
     QObject::disconnect(mConnection->voiceCallManager(), SIGNAL(swapCallsComplete(bool)), this, SLOT(onSwapCallsComplete(bool)));
