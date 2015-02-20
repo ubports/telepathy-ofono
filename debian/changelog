@@ -1,3 +1,15 @@
+telepathy-ofono (0.2+15.04.20150220-0ubuntu1) vivid; urgency=medium
+
+  [ You-Sheng Yang ]
+  * Add --parallel to dh so that one may kick off parallel build with
+    `DEB_BUILD_OPTIONS=parallel=16 ./debian/rules binary`.
+  * DEB_HOST_GNU_TYPE and other variables may not be set when not using
+    tools like dpkg-buildpackage. Include
+    /usr/share/dpkg/architecture.mk as recommended in
+    https://wiki.debian.org/CrossBuildPackagingGuidelines .
+
+ -- CI Train Bot <ci-train-bot@canonical.com>  Fri, 20 Feb 2015 20:27:41 +0000
+
 telepathy-ofono (0.2+15.04.20150217-0ubuntu1) vivid; urgency=medium
 
   [ Tiago Salem Herrmann ]
