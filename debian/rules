@@ -13,4 +13,4 @@ override_dh_auto_test:
 	CTEST_OUTPUT_ON_FAILURE=1 make -C obj-$(DEB_HOST_GNU_TYPE) test
 
 %:
-	dh $@
+	dh $@ --parallel
