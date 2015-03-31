@@ -361,7 +361,7 @@ oFonoTextChannel* oFonoConnection::textChannelForMembers(const QStringList &memb
 
         Q_FOREACH(const QString &phoneNumberNew, members) {
             Q_FOREACH(const QString &phoneNumberOld, phoneNumbersOld) {
-                if (PhoneUtils::comparePhoneNumbers(PhoneUtils::normalizePhoneNumber(phoneNumberOld), PhoneUtils::normalizePhoneNumber(phoneNumberNew))) {
+                if (PhoneUtils::normalizePhoneNumber(phoneNumberOld) == PhoneUtils::normalizePhoneNumber(phoneNumberNew)) {
                     count++;
                 }
             }
@@ -919,7 +919,7 @@ uint oFonoConnection::ensureHandle(const QString &phoneNumber)
     const QString normalizedNumber = PhoneUtils::normalizePhoneNumber(phoneNumber);
 
     Q_FOREACH(const QString &phone, mHandles.values()) {
-        if (PhoneUtils::comparePhoneNumbers(normalizedNumber, phone)) {
+        if (normalizedNumber == phone) {
             // this user already exists
             return mHandles.key(phone);
         }
