@@ -5,4 +5,5 @@ ObjectPath = /org/freedesktop/Telepathy/ConnectionManager/ofono
 
 [Protocol ofono]
 param-modem-objpath=s
+param-fakeEmergencyNumber=s
 

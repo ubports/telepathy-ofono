@@ -58,6 +58,7 @@ private Q_SLOTS:
     void onOfonoMuteChanged(bool mute);
     void onChannelMerged(const QDBusObjectPath &path);
     void onChannelSplitted(const QDBusObjectPath &path);
+    void onSwapCallsComplete(bool success);
 
 private:
     QString mObjPath;

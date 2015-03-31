@@ -1,10 +1,108 @@
+telepathy-ofono (0.2+15.04.20150220-0ubuntu1) vivid; urgency=medium
+
+  [ You-Sheng Yang ]
+  * Add --parallel to dh so that one may kick off parallel build with
+    `DEB_BUILD_OPTIONS=parallel=16 ./debian/rules binary`.
+  * DEB_HOST_GNU_TYPE and other variables may not be set when not using
+    tools like dpkg-buildpackage. Include
+    /usr/share/dpkg/architecture.mk as recommended in
+    https://wiki.debian.org/CrossBuildPackagingGuidelines .
+
+ -- CI Train Bot <ci-train-bot@canonical.com>  Fri, 20 Feb 2015 20:27:41 +0000
+
+telepathy-ofono (0.2+15.04.20150217-0ubuntu1) vivid; urgency=medium
+
+  [ Tiago Salem Herrmann ]
+  * Retry when hangup() or answer() fail. (LP: #1422401)
+
+ -- CI Train Bot <ci-train-bot@canonical.com>  Tue, 17 Feb 2015 17:23:42 +0000
+
+telepathy-ofono (0.2+15.04.20150204-0ubuntu1) vivid; urgency=medium
+
+  [ Tiago Salem Herrmann ]
+  * Add initial MMS group chat support. (LP: #1415458)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Wed, 04 Feb 2015 21:09:22 +0000
+
+telepathy-ofono (0.2+15.04.20150126-0ubuntu1) vivid; urgency=low
+
+  [ Tiago Salem Herrmann ]
+  * Watch for swapCallsComplete(bool) and set HoldState and
+    HoldStateReason accordingly. (LP: #1410365)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Mon, 26 Jan 2015 18:53:41 +0000
+
+telepathy-ofono (0.2+15.04.20150121-0ubuntu1) vivid; urgency=low
+
+  [ Tiago Salem Herrmann ]
+  * Add "fakeEmergencyNumber" property for testing.
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Wed, 21 Jan 2015 18:01:47 +0000
+
+telepathy-ofono (0.2+15.04.20141216-0ubuntu1) vivid; urgency=low
+
+  [ Ubuntu daily release ]
+  * New rebuild forced
+
+  [ Tiago Salem Herrmann ]
+  * Power the screen on before disabling the proximity sensor. (LP:
+    #1398525)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 16 Dec 2014 02:31:39 +0000
+
+telepathy-ofono (0.2+15.04.20141210-0ubuntu1) vivid; urgency=low
+
+  [ Ubuntu daily release ]
+  * New rebuild forced
+
+  [ Tiago Salem Herrmann ]
+  * Disable proximity sensor also when using a wired headset. (LP:
+    #1398525)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Wed, 10 Dec 2014 18:05:47 +0000
+
+telepathy-ofono (0.2+15.04.20141112-0ubuntu1) vivid; urgency=low
+
+  [ Bill Filler ]
+  * Wait 2 seconds before calling enable_normal() so the beeps emitted
+    after a call is terminated are played using the right audio output
+    device. (LP: #1392082)
+
+  [ Ubuntu daily release ]
+  * New rebuild forced
+
+  [ Tiago Salem Herrmann ]
+  * Wait 2 seconds before calling enable_normal() so the beeps emitted
+    after a call is terminated are played using the right audio output
+    device. (LP: #1392082)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Wed, 12 Nov 2014 22:39:31 +0000
+
+telepathy-ofono (0.2+14.10.20141015-0ubuntu1) 14.09; urgency=low
+
+  [ Ubuntu daily release ]
+  * New rebuild forced
+
+  [ Tiago Salem Herrmann ]
+  * Check if the SimManager interface is available and property not
+    empty before assuming the sim is locked. (LP: #1379836)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Wed, 15 Oct 2014 13:33:36 +0000
+
+telepathy-ofono (0.2+14.10.20141008-0ubuntu1) utopic; urgency=low
+
+  [ Tiago Salem Herrmann ]
+  * Report away status when sim is locked.
+  * refresh emergency numbers when appropriate
+  * Use local timestamp instead of the one provided by the carrier. (LP:
+    #1246198)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 07 Oct 2014 19:16:08 +0000
+
 telepathy-ofono (0.2+14.10.20141007-0ubuntu1) utopic; urgency=low
 
   [ Andreas Pokorny ]
   * Request proximity based screen blanking from powerd
-
-  [ Ubuntu daily release ]
-  * New rebuild forced
 
  -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 07 Oct 2014 19:13:15 +0000
 

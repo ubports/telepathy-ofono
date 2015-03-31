@@ -16,6 +16,7 @@
  * Authors: Andreas Pokorny <andreas.pokorny@canonical.com>
  */
 
+#include <QDBusInterface>
 #include "powerdaudiomodemediator.h"
 
 PowerDAudioModeMediator::PowerDAudioModeMediator(PowerD &powerd)
@@ -25,7 +26,7 @@ PowerDAudioModeMediator::PowerDAudioModeMediator(PowerD &powerd)
 
 void PowerDAudioModeMediator::audioModeChanged(const QString &mode)
 {
-    bool enableProximity = !(mode == "speaker" || mode == "bluetooth");
+    bool enableProximity = !(mode == "speaker" || mode == "bluetooth" || mode == "wired_headset");
 
     if (mProximityEnabled != enableProximity)
     {
@@ -36,10 +37,20 @@ void PowerDAudioModeMediator::audioModeChanged(const QString &mode)
 
 void PowerDAudioModeMediator::apply() const
 {
-    if (mProximityEnabled)
+    if (mProximityEnabled) {
         powerd.enableProximityHandling();
-    else
+    } else {
+        // we need to power the screen on before disabling the proximity handling
+        QDBusInterface unityIface("com.canonical.Unity.Screen",
+                                  "/com/canonical/Unity/Screen",
+                                  "com.canonical.Unity.Screen",
+                                  QDBusConnection::systemBus());
+        QList<QVariant> args;
+        args.append("on");
+        args.append(3);
+        unityIface.callWithArgumentList(QDBus::NoBlock, "setScreenPowerMode", args);
         powerd.disableProximityHandling();
+    }
 }
 
 void PowerDAudioModeMediator::audioOutputClosed()

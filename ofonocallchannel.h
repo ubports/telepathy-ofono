@@ -61,8 +61,11 @@ Q_SIGNALS:
 private Q_SLOTS:
     void onOfonoCallStateChanged(const QString &state);
     void onDtmfComplete(bool success);
+    void onSwapCallsComplete(bool success);
     void sendNextDtmf();
     void init();
+    void onAnswerComplete(bool success);
+    void onHangupComplete(bool success);
 
     void onOfonoMuteChanged(bool mute);
     void onMultipartyChanged(bool multiparty);

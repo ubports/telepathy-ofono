@@ -192,20 +192,33 @@ void oFonoConferenceCallChannel::onOfonoMuteChanged(bool mute)
 void oFonoConferenceCallChannel::setConferenceActive(bool active)
 {
     if (active) {
-        mHoldIface->setHoldState(Tp::LocalHoldStateUnheld, Tp::LocalHoldStateReasonNone);
+        mHoldIface->setHoldState(Tp::LocalHoldStateUnheld, Tp::LocalHoldStateReasonRequested);
     } else {
-        mHoldIface->setHoldState(Tp::LocalHoldStateHeld, Tp::LocalHoldStateReasonNone);
+        mHoldIface->setHoldState(Tp::LocalHoldStateHeld, Tp::LocalHoldStateReasonRequested);
     }
 }
 
 void oFonoConferenceCallChannel::onHoldStateChanged(const Tp::LocalHoldState &state, const Tp::LocalHoldStateReason &reason, Tp::DBusError *error)
 {
     if (state == Tp::LocalHoldStateHeld && mHoldIface->getHoldState() == Tp::LocalHoldStateUnheld) {
+        QObject::connect(mConnection->voiceCallManager(), SIGNAL(swapCallsComplete(bool)), this, SLOT(onSwapCallsComplete(bool)));
+        mHoldIface->setHoldState(Tp::LocalHoldStatePendingHold, Tp::LocalHoldStateReasonRequested);
         mConnection->voiceCallManager()->swapCalls();
     } else if (state == Tp::LocalHoldStateUnheld && mHoldIface->getHoldState() == Tp::LocalHoldStateHeld) {
+        QObject::connect(mConnection->voiceCallManager(), SIGNAL(swapCallsComplete(bool)), this, SLOT(onSwapCallsComplete(bool)));
+        mHoldIface->setHoldState(Tp::LocalHoldStatePendingUnhold, Tp::LocalHoldStateReasonRequested);
         mConnection->voiceCallManager()->swapCalls();
     }
+}
 
+void oFonoConferenceCallChannel::onSwapCallsComplete(bool success)
+{
+    QObject::disconnect(mConnection->voiceCallManager(), SIGNAL(swapCallsComplete(bool)), this, SLOT(onSwapCallsComplete(bool)));
+    if (!success) {
+        // only change hold state in case of failure. Successful action will happen through setConferenceActive()
+        Tp::LocalHoldState holdState = mHoldIface->getHoldState() == Tp::LocalHoldStatePendingHold ? Tp::LocalHoldStateUnheld : Tp::LocalHoldStateHeld;
+        mHoldIface->setHoldState(holdState, Tp::LocalHoldStateReasonResourceNotAvailable);
+    }
 }
 
 void oFonoConferenceCallChannel::onMuteStateChanged(const Tp::LocalMuteState &state, Tp::DBusError *error)
