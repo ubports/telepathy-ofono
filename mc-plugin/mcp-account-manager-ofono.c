@@ -77,7 +77,7 @@ static void mcp_account_manager_ofono_init(McpAccountManagerOfono *self)
     if (!g_file_test ("/usr/bin/getprop", G_FILE_TEST_IS_EXECUTABLE)) {
         return;
     }
-    if (!g_spawn_command_line_sync("/usr/bin/getprop rild.libpath 'a'",
+    if (!g_spawn_command_line_sync("/usr/bin/getprop rild.libpath ''",
                                     &output, NULL, NULL,
                                     &error)) {
         g_debug("%s", error->message);
