@@ -7,6 +7,7 @@ Build-Depends: cmake,
                dbus-test-runner,
                dconf-cli,
                gnome-keyring,
+               libmission-control-plugins-dev (>= 1:5.14.0),
                libofono-qt-dev (>= 1.5),
                libqt5sql5-sqlite,
                libtelepathy-qt5-dev (>= 0.9.3),
@@ -33,3 +34,13 @@ Description: telepathy oFono connection manager
  telepathy-ofono is a Telepathy connection manager that makes it possible for
  Telepathy clients to communicate using oFono modems, enabling features like
  real phone calls and send and receive SMSs.
+
+Package: telepathy-ofono-ril-mc-plugin
+Architecture: any
+Depends: telepathy-ofono,
+         ${misc:Depends},
+         ${shlibs:Depends},
+         libhybris-utils
+Description: telepathy oFono mission control plugin for ril modems
+ This telepathy mission-control plugin is used to automatically provision
+ telepathy-ofono accounts for each available ril modem.

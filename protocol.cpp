@@ -33,7 +33,8 @@ Protocol::Protocol(const QDBusConnection &dbusConnection, const QString &name)
     setCreateConnectionCallback(memFun(this, &Protocol::createConnection));
     Tp::ProtocolParameterList parameters;
     Tp::ProtocolParameter parameter("modem-objpath", "s", 0);
-    parameters << parameter;
+    Tp::ProtocolParameter parameter2("fakeEmergencyNumber", "s", 0);
+    parameters << parameter << parameter2;
 
     setParameters(parameters);
 }

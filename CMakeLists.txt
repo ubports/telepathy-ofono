@@ -37,6 +37,7 @@ add_definitions(-DQT_NO_KEYWORDS)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(TP_QT5 REQUIRED TelepathyQt5)
 pkg_check_modules(SQLITE3 REQUIRED sqlite3)
+pkg_check_modules(MC_PLUGINS REQUIRED mission-control-plugins)
 
 pkg_check_modules(PULSEAUDIO libpulse)
 if (PULSEAUDIO_FOUND)
@@ -117,3 +118,4 @@ install (FILES ${CMAKE_CURRENT_BINARY_DIR}/org.freedesktop.Telepathy.ConnectionM
 
 add_subdirectory(schema)
 add_subdirectory(tests)
+add_subdirectory(mc-plugin)
