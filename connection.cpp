@@ -407,16 +407,22 @@ void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &pr
 
         Tp::DBusError error;
         bool yours;
-        QVariantMap hints;
+        QVariantMap request;
+
         uint handle = ensureHandle(senderNormalizedNumber);
         qDebug() << "ensure handle" << senderNormalizedNumber << handle;
 
+        request[TP_QT_IFACE_CHANNEL + QLatin1String(".ChannelType")] = TP_QT_IFACE_CHANNEL_TYPE_TEXT;
+        request[TP_QT_IFACE_CHANNEL + QLatin1String(".InitiatorHandle")] = handle;
+
         if (initialInviteeHandles.size() > 0) {
             initialInviteeHandles << handle;
-            hints[TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeHandles")] = QVariant::fromValue(initialInviteeHandles);
-            ensureChannel(TP_QT_IFACE_CHANNEL_TYPE_TEXT, Tp::HandleTypeNone, 0, yours, handle, false, hints, &error);
+            request[TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeHandles")] = QVariant::fromValue(initialInviteeHandles);
+            ensureChannel(request, yours, false, &error);
         } else {
-            ensureChannel(TP_QT_IFACE_CHANNEL_TYPE_TEXT, Tp::HandleTypeContact, handle, yours, handle, false, hints, &error);
+            request[TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandleType")] = Tp::HandleTypeContact;
+            request[TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandle")] = handle;
+            ensureChannel(request, yours, false, &error);
         }
 
         if(error.isValid()) {
@@ -640,10 +646,9 @@ Tp::UIntList oFonoConnection::requestHandles(uint handleType, const QStringList&
     return handles;
 }
 
-Tp::BaseChannelPtr oFonoConnection::createTextChannel(uint targetHandleType,
-                                               uint targetHandle, const QVariantMap &hints, Tp::DBusError *error)
+Tp::BaseChannelPtr oFonoConnection::createTextChannel(const QVariantMap &request, Tp::DBusError *error)
 {
-    Q_UNUSED(targetHandleType);
+    uint targetHandle = request.value(TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandle")).toUInt();
 
     if (mSelfPresence.type != Tp::ConnectionPresenceTypeAvailable) {
         error->set(TP_QT_ERROR_NETWORK_ERROR, "No network available");
@@ -652,14 +657,14 @@ Tp::BaseChannelPtr oFonoConnection::createTextChannel(uint targetHandleType,
 
     QStringList phoneNumbers;
     bool flash = false;
-    if (hints.contains(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeHandles"))) {
-        phoneNumbers << inspectHandles(Tp::HandleTypeContact, qdbus_cast<Tp::UIntList>(hints[TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeHandles")]), error);
+    if (request.contains(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeHandles"))) {
+        phoneNumbers << inspectHandles(Tp::HandleTypeContact, qdbus_cast<Tp::UIntList>(request[TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeHandles")]), error);
     } else {
         phoneNumbers << mHandles.value(targetHandle);
     }
 
-    if (hints.contains(TP_QT_IFACE_CHANNEL_INTERFACE_SMS + QLatin1String(".Flash"))) {
-        flash = hints[TP_QT_IFACE_CHANNEL_INTERFACE_SMS + QLatin1String(".Flash")].toBool();
+    if (request.contains(TP_QT_IFACE_CHANNEL_INTERFACE_SMS + QLatin1String(".Flash"))) {
+        flash = request[TP_QT_IFACE_CHANNEL_INTERFACE_SMS + QLatin1String(".Flash")].toBool();
     }
 
     oFonoTextChannel *channel = new oFonoTextChannel(this, phoneNumbers, flash);
@@ -689,16 +694,16 @@ void oFonoConnection::onConferenceCallChannelClosed()
     }
 }
 
-Tp::BaseChannelPtr oFonoConnection::createCallChannel(uint targetHandleType,
-                                               uint targetHandle, const QVariantMap &hints, Tp::DBusError *error)
+Tp::BaseChannelPtr oFonoConnection::createCallChannel(const QVariantMap &request, Tp::DBusError *error)
 {
-    Q_UNUSED(targetHandleType);
+    uint targetHandle = request.value(TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandle")).toUInt();
 
     bool success = true;
     QString newPhoneNumber = mHandles.value(targetHandle);
     bool available = (mSelfPresence.type == Tp::ConnectionPresenceTypeAvailable);
-    bool isConference = (hints.contains(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialChannels")) &&
-                         targetHandleType == Tp::HandleTypeNone && targetHandle == 0);
+    bool isConference = (request.contains(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialChannels")) &&
+                         !request.contains(TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandleType")) &&
+                         !request.contains(TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandle")));
 
     if (!available && (isConference || !isEmergencyNumber(newPhoneNumber))) {
         error->set(TP_QT_ERROR_NETWORK_ERROR, "No network available");
@@ -722,7 +727,7 @@ Tp::BaseChannelPtr oFonoConnection::createCallChannel(uint targetHandleType,
         return Tp::BaseChannelPtr();
     }
 
-    QDBusObjectPath objpath(hints["ofonoObjPath"].toString());
+    QDBusObjectPath objpath(request["ofonoObjPath"].toString());
 
     if (objpath.path().isEmpty()) {
         objpath = mOfonoVoiceCallManager->dial(newPhoneNumber, "", success);
@@ -787,13 +792,14 @@ void oFonoConnection::onCallChannelSplitted()
 }
 
 
-Tp::BaseChannelPtr oFonoConnection::createChannel(const QString& channelType, uint targetHandleType,
-                                               uint targetHandle, const QVariantMap &hints, Tp::DBusError *error)
+Tp::BaseChannelPtr oFonoConnection::createChannel(const QVariantMap &request, Tp::DBusError *error)
 {
+    const QString channelType = request.value(TP_QT_IFACE_CHANNEL + QLatin1String(".ChannelType")).toString();
+
     if (channelType == TP_QT_IFACE_CHANNEL_TYPE_TEXT) {
-        return createTextChannel(targetHandleType, targetHandle, hints, error);
+        return createTextChannel(request, error);
     } else if (channelType == TP_QT_IFACE_CHANNEL_TYPE_CALL) {
-        return createCallChannel(targetHandleType, targetHandle, hints, error);
+        return createCallChannel(request, error);
     } else {
         error->set(TP_QT_ERROR_NOT_IMPLEMENTED, "Channel type not available");
     }
@@ -835,7 +841,15 @@ void oFonoConnection::onDeliveryReportReceived(const QString &messageId, const Q
     Tp::DBusError error;
     bool yours;
     uint handle = newHandle(normalizedNumber);
-    ensureChannel(TP_QT_IFACE_CHANNEL_TYPE_TEXT,Tp::HandleTypeContact, handle, yours, handle, false, QVariantMap(), &error);
+
+    QVariantMap request;
+    request[TP_QT_IFACE_CHANNEL + QLatin1String(".ChannelType")] = TP_QT_IFACE_CHANNEL_TYPE_TEXT;
+    request[TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandleType")] = Tp::HandleTypeContact;
+    request[TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandle")] = handle;
+    request[TP_QT_IFACE_CHANNEL + QLatin1String(".InitiatorHandle")] = handle;
+
+    ensureChannel(request, yours, false, &error);
+
     if(error.isValid()) {
         qWarning() << "Error creating channel for incoming message" << error.name() << error.message();
         return;
@@ -872,7 +886,14 @@ void oFonoConnection::ensureTextChannel(const QString &message, const QVariantMa
     QVariantMap hints;
     hints[TP_QT_IFACE_CHANNEL_INTERFACE_SMS + QLatin1String(".Flash")] = flash;
     uint handle = newHandle(normalizedNumber);
-    ensureChannel(TP_QT_IFACE_CHANNEL_TYPE_TEXT,Tp::HandleTypeContact, handle, yours, handle, false, hints, &error);
+
+    QVariantMap request;
+    request[TP_QT_IFACE_CHANNEL + QLatin1String(".ChannelType")] = TP_QT_IFACE_CHANNEL_TYPE_TEXT;
+    request[TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandleType")] = Tp::HandleTypeContact;
+    request[TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandle")] = handle;
+    request[TP_QT_IFACE_CHANNEL + QLatin1String(".InitiatorHandle")] = handle;
+
+    ensureChannel(request, yours, false, &error);
     if(error.isValid()) {
         qWarning() << "Error creating channel for incoming message" << error.name() << error.message();
         return;
@@ -927,24 +948,10 @@ uint oFonoConnection::ensureHandle(const QString &phoneNumber)
     return newHandle(normalizedNumber);
 }
 
-Tp::BaseChannelPtr oFonoConnection::ensureChannel(const QString &channelType, uint targetHandleType,
-        uint targetHandle, bool &yours, uint initiatorHandle,
-        bool suppressHandler,
-        const QVariantMap &hints,
-        Tp::DBusError* error)
+bool oFonoConnection::matchChannel(const Tp::BaseChannelPtr &channel, const QVariantMap &request, Tp::DBusError *error)
 {
-    // we only reuse old text channels
-    if (channelType == TP_QT_IFACE_CHANNEL_TYPE_TEXT) {
-        Q_FOREACH(oFonoTextChannel *channel, mTextChannels) {
-            if (channel->baseChannel()->targetHandleType() == targetHandleType
-                    && channel->baseChannel()->targetHandle() == targetHandle) {
-                yours = false;
-                return channel->baseChannel();
-            }
-        }
-    }
-    yours = true;
-    return Tp::BaseConnection::createChannel(channelType, targetHandleType, targetHandle, initiatorHandle, suppressHandler, hints, error);
+    // we only match text channels
+    return (request.value(TP_QT_IFACE_CHANNEL + QLatin1String(".ChannelType")).toString() == TP_QT_IFACE_CHANNEL_TYPE_TEXT) && BaseConnection::matchChannel(channel, request, error);
 }
 
 void oFonoConnection::onOfonoCallAdded(const QString &call, const QVariantMap &properties)
@@ -986,9 +993,15 @@ void oFonoConnection::onOfonoCallAdded(const QString &call, const QVariantMap &p
     qDebug() << "initiatorHandle " <<initiatorHandle;
     qDebug() << "handle" << handle;
 
-    QVariantMap hints;
-    hints["ofonoObjPath"] = call;
-    Tp::BaseChannelPtr channel  = ensureChannel(TP_QT_IFACE_CHANNEL_TYPE_CALL, Tp::HandleTypeContact, handle, yours, initiatorHandle, false, hints, &error);
+    QVariantMap request;
+    request[TP_QT_IFACE_CHANNEL + QLatin1String(".ChannelType")] = TP_QT_IFACE_CHANNEL_TYPE_CALL;
+    request[TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandleType")] = Tp::HandleTypeContact;
+    request[TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandle")] = handle;
+    request[TP_QT_IFACE_CHANNEL + QLatin1String(".InitiatorHandle")] = initiatorHandle;
+    request["ofonoObjPath"] = call;
+
+    Tp::BaseChannelPtr channel = ensureChannel(request, yours, false, &error);
+
     if (error.isValid() || channel.isNull()) {
         qWarning() << "error creating the channel " << error.name() << error.message();
         return;

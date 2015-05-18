@@ -40,7 +40,7 @@ Protocol::Protocol(const QDBusConnection &dbusConnection, const QString &name)
 
 Tp::BaseConnectionPtr Protocol::createConnection(const QVariantMap &parameters, Tp::DBusError *error) {
     Q_UNUSED(error);
-    Tp::BaseConnectionPtr connection_ptr = Tp::BaseConnection::create<oFonoConnection>(QDBusConnection::sessionBus(), "ofono", name().toLatin1(), parameters);
+    Tp::BaseConnectionPtr connection_ptr = Tp::BaseConnection::create<oFonoConnection>("ofono", name().toLatin1(), parameters);
     connect(
         static_cast<oFonoConnection*>(connection_ptr.data()), &oFonoConnection::activeAudioOutputChanged,
         Tp::memFun(&mAudioModeMediator, &PowerDAudioModeMediator::audioModeChanged)
