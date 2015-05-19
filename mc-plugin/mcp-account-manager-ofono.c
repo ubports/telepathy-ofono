@@ -79,6 +79,7 @@ static void mcp_account_manager_ofono_init(McpAccountManagerOfono *self)
 
     if (force_num_modems) {
         num_modems = atoi(force_num_modems);
+        g_debug("forced number of modems: %d", num_modems);
     } else {
         if (!g_file_test ("/usr/bin/getprop", G_FILE_TEST_IS_EXECUTABLE)) {
             return;
@@ -117,29 +118,32 @@ static void mcp_account_manager_ofono_init(McpAccountManagerOfono *self)
         g_hash_table_insert(account->params, g_strdup("ConnectAutomatically"), g_strdup("true"));
         g_hash_table_insert(account->params, g_strdup("always_dispatch"), g_strdup("true"));
         g_hash_table_insert(account->params, g_strdup("param-modem-objpath"), g_strdup(ril_modem));
-        GVariant *sim_names = g_settings_get_value(settings, "sim-names");
-        if (sim_names) {
-            GVariantIter iter;
-            GVariant *value;
-            gchar *key;
+        if (settings) {
+            GVariant *sim_names = g_settings_get_value(settings, "sim-names");
+            if (sim_names) {
+                GVariantIter iter;
+                GVariant *value;
+                gchar *key;
 
-            g_variant_iter_init (&iter, sim_names);
-            while (g_variant_iter_next (&iter, "{ss}", &key, &value)) {
-                if (!strcmp(key, ril_modem)) {
-                    g_hash_table_insert(account->params, g_strdup("DisplayName"), g_strdup((char *)value));
+                g_variant_iter_init (&iter, sim_names);
+                while (g_variant_iter_next (&iter, "{ss}", &key, &value)) {
+                    if (!strcmp(key, ril_modem)) {
+                        g_hash_table_insert(account->params, g_strdup("DisplayName"), g_strdup((char *)value));
+                    }
+                    g_free (key);
+                    g_free (value);
                 }
-                g_free (key);
-                g_free (value);
             }
-        }
-        if (sim_names) {
-            g_variant_unref(sim_names);
+            if (sim_names) {
+                g_variant_unref(sim_names);
+            }
         }
 
         self->priv->accounts = g_list_append(self->priv->accounts, account);
     }
-    g_object_unref (settings);
-
+    if (settings) {
+        g_object_unref (settings);
+    }
     if (output) {
         g_free(output);
     }
