@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -x
 
 # export the home folder to somewhere in /tmp
 TMPDIR=/tmp/tpofono_test_home
