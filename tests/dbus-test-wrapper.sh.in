@@ -19,9 +19,11 @@ export PA_DISABLED=1
 # start telepathy-ofono with the ofono-qt mock library
 LD_PRELOAD=@CMAKE_CURRENT_BINARY_DIR@/mock/libofono-qt.so ${CMAKE_BINARY_DIR}/telepathy-ofono &
 TP_OFONO_PID=$!
+sleep 2
 
 FORCE_RIL_NUM_MODEMS=1 MC_FILTER_PLUGIN_DIR=$TMPDIR G_MESSAGES_DEBUG=all MCP_DEBUG=all /usr/lib/telepathy/mission-control-5 &
 MC_CONTROL_PID=$!
+sleep 2
 
 mc-tool update ofono/ofono/account0 string:modem-objpath=/OfonoModem
 mc-tool reconnect ofono/ofono/account0
