@@ -102,7 +102,11 @@ static void mcp_account_manager_ofono_init(McpAccountManagerOfono *self)
         }
     }
 
-    GSettings *settings = g_settings_new("com.ubuntu.phone");
+    GSettings *settings = NULL;
+    GSettingsSchemaSource *source = g_settings_schema_source_get_default();
+    if (source != NULL && g_settings_schema_source_lookup(source, "com.ubuntu.phone", TRUE) != NULL) {
+        settings = g_settings_new("com.ubuntu.phone");
+    }
     for (index = 0; index < num_modems; index++) {
         OfonoAccount *account = (OfonoAccount*)malloc(sizeof(OfonoAccount));
         char account_name[30] = {0};
