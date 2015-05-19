@@ -69,68 +69,77 @@ static void mcp_account_manager_ofono_init(McpAccountManagerOfono *self)
     g_debug("MC ril ofono accounts plugin initialized");
     gchar          *output = NULL;
     gchar          *output2 = NULL;
+    const gchar    *force_num_modems = g_getenv("FORCE_RIL_NUM_MODEMS");
     GError         *error = NULL;
+    int            num_modems = 0;
     int index;
 
     self->priv = G_TYPE_INSTANCE_GET_PRIVATE(self, MCP_TYPE_ACCOUNT_MANAGER_OFONO,
             McpAccountManagerOfonoPrivate);
-    if (!g_file_test ("/usr/bin/getprop", G_FILE_TEST_IS_EXECUTABLE)) {
-        return;
-    }
-    if (!g_spawn_command_line_sync("/usr/bin/getprop rild.libpath ''",
-                                    &output, NULL, NULL,
-                                    &error)) {
-        g_debug("%s", error->message);
-        g_error_free (error);
-        return;
-    }
 
-    if (strlen(g_strstrip(output)) != 0) {
-        g_spawn_command_line_sync("/usr/bin/getprop ril.num_slots 1",
-                                   &output2,
-                                   NULL,
-                                   NULL,
-                                   &error);
-        GSettings *settings = g_settings_new("com.ubuntu.phone");
-        int num_modems = atoi(output2);
-        for (index = 0; index < num_modems; index++) {
-            OfonoAccount *account = (OfonoAccount*)malloc(sizeof(OfonoAccount));
-            char account_name[30] = {0};
-            char ril_modem[10] = {0};
-            account->index = index;
-            sprintf(account_name, "ofono/ofono/account%d", index);
-            sprintf(ril_modem, "/ril_%d", index);
-            account->params = g_hash_table_new(g_str_hash, g_str_equal);
-            account->account_name = g_strdup(account_name);
-            g_hash_table_insert(account->params, g_strdup("manager"), g_strdup("ofono"));
-            g_hash_table_insert(account->params, g_strdup("protocol"), g_strdup("ofono"));
-            g_hash_table_insert(account->params, g_strdup("Enabled"), g_strdup("true"));
-            g_hash_table_insert(account->params, g_strdup("ConnectAutomatically"), g_strdup("true"));
-            g_hash_table_insert(account->params, g_strdup("always_dispatch"), g_strdup("true"));
-            g_hash_table_insert(account->params, g_strdup("param-modem-objpath"), g_strdup(ril_modem));
-            GVariant *sim_names = g_settings_get_value(settings, "sim-names");
-            if (sim_names) {
-                GVariantIter iter;
-                GVariant *value;
-                gchar *key;
-
-                g_variant_iter_init (&iter, sim_names);
-                while (g_variant_iter_next (&iter, "{ss}", &key, &value)) {
-                    if (!strcmp(key, ril_modem)) {
-                        g_hash_table_insert(account->params, g_strdup("DisplayName"), g_strdup((char *)value));
-                    }
-                    g_free (key);
-                    g_free (value);
-                }
-            }
-            if (sim_names) {
-                g_variant_unref(sim_names);
-            }
-
-            self->priv->accounts = g_list_append(self->priv->accounts, account);
+    if (force_num_modems) {
+        num_modems = atoi(force_num_modems);
+    } else {
+        if (!g_file_test ("/usr/bin/getprop", G_FILE_TEST_IS_EXECUTABLE)) {
+            return;
         }
-        g_object_unref (settings);
+        if (!g_spawn_command_line_sync("/usr/bin/getprop rild.libpath ''",
+                                        &output, NULL, NULL,
+                                        &error)) {
+            g_debug("%s", error->message);
+            g_error_free (error);
+            return;
+        }
+
+        if (strlen(g_strstrip(output)) != 0) {
+            g_spawn_command_line_sync("/usr/bin/getprop ril.num_slots 1",
+                                       &output2,
+                                       NULL,
+                                       NULL,
+                                       &error);
+            num_modems = atoi(output2);
+        }
     }
+
+    GSettings *settings = g_settings_new("com.ubuntu.phone");
+    for (index = 0; index < num_modems; index++) {
+        OfonoAccount *account = (OfonoAccount*)malloc(sizeof(OfonoAccount));
+        char account_name[30] = {0};
+        char ril_modem[10] = {0};
+        account->index = index;
+        sprintf(account_name, "ofono/ofono/account%d", index);
+        sprintf(ril_modem, "/ril_%d", index);
+        account->params = g_hash_table_new(g_str_hash, g_str_equal);
+        account->account_name = g_strdup(account_name);
+        g_hash_table_insert(account->params, g_strdup("manager"), g_strdup("ofono"));
+        g_hash_table_insert(account->params, g_strdup("protocol"), g_strdup("ofono"));
+        g_hash_table_insert(account->params, g_strdup("Enabled"), g_strdup("true"));
+        g_hash_table_insert(account->params, g_strdup("ConnectAutomatically"), g_strdup("true"));
+        g_hash_table_insert(account->params, g_strdup("always_dispatch"), g_strdup("true"));
+        g_hash_table_insert(account->params, g_strdup("param-modem-objpath"), g_strdup(ril_modem));
+        GVariant *sim_names = g_settings_get_value(settings, "sim-names");
+        if (sim_names) {
+            GVariantIter iter;
+            GVariant *value;
+            gchar *key;
+
+            g_variant_iter_init (&iter, sim_names);
+            while (g_variant_iter_next (&iter, "{ss}", &key, &value)) {
+                if (!strcmp(key, ril_modem)) {
+                    g_hash_table_insert(account->params, g_strdup("DisplayName"), g_strdup((char *)value));
+                }
+                g_free (key);
+                g_free (value);
+            }
+        }
+        if (sim_names) {
+            g_variant_unref(sim_names);
+        }
+
+        self->priv->accounts = g_list_append(self->priv->accounts, account);
+    }
+    g_object_unref (settings);
+
     if (output) {
         g_free(output);
     }
