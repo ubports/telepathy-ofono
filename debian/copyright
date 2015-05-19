@@ -23,6 +23,12 @@ Files: tests/mock/ofono*. tests/mock/libofono*
 Copyright: 2010 Nokia Corporation and/or its subsidiary(-ies).
 License: LGPL-2.1+
 
+Files: mc-plugin/*
+Copyright: 2015 Canonical Ltd
+           2012 Jolla Ltd
+           2012 Collabora Ltd
+License: LGPL-2.1+
+
 License: Apache-2.0
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
