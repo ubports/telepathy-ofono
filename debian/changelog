@@ -1,3 +1,13 @@
+telepathy-ofono (0.2+15.04.20150519.1-0ubuntu1) vivid; urgency=medium
+
+  [ CI Train Bot ]
+  * New rebuild forced.
+
+  [ Tiago Salem Herrmann ]
+  * Add mc-plugin to provision ril modem accounts. (LP: #1442962)
+
+ -- CI Train Bot <ci-train-bot@canonical.com>  Tue, 19 May 2015 15:20:33 +0000
+
 telepathy-ofono (0.2+15.04.20150331-0ubuntu1) vivid; urgency=medium
 
   [ Tiago Salem Herrmann ]
