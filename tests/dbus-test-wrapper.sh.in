@@ -21,7 +21,7 @@ LD_PRELOAD=@CMAKE_CURRENT_BINARY_DIR@/mock/libofono-qt.so ${CMAKE_BINARY_DIR}/te
 TP_OFONO_PID=$!
 sleep 2
 
-FORCE_RIL_NUM_MODEMS=1 MC_FILTER_PLUGIN_DIR=$TMPDIR G_MESSAGES_DEBUG=all MCP_DEBUG=all /usr/lib/telepathy/mission-control-5 &
+FORCE_RIL_NUM_MODEMS=1 MC_FILTER_PLUGIN_DIR=$TMPDIR G_MESSAGES_DEBUG=all MC_DEBUG=all MCP_DEBUG=all /usr/lib/telepathy/mission-control-5 &
 MC_CONTROL_PID=$!
 sleep 2
 
