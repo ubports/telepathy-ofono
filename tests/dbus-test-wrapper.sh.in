@@ -21,6 +21,7 @@ LD_PRELOAD=@CMAKE_CURRENT_BINARY_DIR@/mock/libofono-qt.so ${CMAKE_BINARY_DIR}/te
 TP_OFONO_PID=$!
 
 FORCE_RIL_NUM_MODEMS=1 MC_FILTER_PLUGIN_DIR=$TMPDIR G_MESSAGES_DEBUG=all MCP_DEBUG=all /usr/lib/telepathy/mission-control-5 &
+MC_CONTROL_PID=$!
 
 mc-tool update ofono/ofono/account0 string:modem-objpath=/OfonoModem
 mc-tool reconnect ofono/ofono/account0
@@ -29,7 +30,8 @@ $@
 RESULT=$?
 
 kill -9 $TP_OFONO_PID
+kill -9 $MC_CONTROL_PID
 #FIXME for some reason history-daemon is not being finished, so we have to kill it here
-killall history-daemon
+pgrep history-daemon | xargs kill -9
 
 return $RESULT
