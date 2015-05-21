@@ -938,6 +938,17 @@ Tp::BaseChannelPtr oFonoConnection::ensureChannel(const QString &channelType, ui
         Q_FOREACH(oFonoTextChannel *channel, mTextChannels) {
             if (channel->baseChannel()->targetHandleType() == targetHandleType
                     && channel->baseChannel()->targetHandle() == targetHandle) {
+                if (targetHandleType == Tp::HandleTypeNone) {
+                    // check invitee handles
+                    if (hints.contains(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeHandles"))) {
+                        QStringList phoneNumbers = inspectHandles(Tp::HandleTypeContact, hints[TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeHandles")].value<Tp::UIntList>(), error);
+                        if (channel == textChannelForMembers(phoneNumbers)) {
+                            yours = false;
+                            return channel->baseChannel();
+                        }
+                    }
+                    continue;
+                }
                 yours = false;
                 return channel->baseChannel();
             }
