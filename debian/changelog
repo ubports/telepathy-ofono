@@ -1,3 +1,10 @@
+telepathy-ofono (0.2+15.04.20150521.1-0ubuntu1) vivid; urgency=medium
+
+  [ Tiago Salem Herrmann ]
+  * Check if members match before returning the channel.
+
+ -- CI Train Bot <ci-train-bot@canonical.com>  Thu, 21 May 2015 19:37:30 +0000
+
 telepathy-ofono (0.2+15.04.20150519.1-0ubuntu1) vivid; urgency=medium
 
   [ CI Train Bot ]
