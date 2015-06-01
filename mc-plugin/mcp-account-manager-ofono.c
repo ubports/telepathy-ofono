@@ -127,16 +127,28 @@ static void mcp_account_manager_ofono_init(McpAccountManagerOfono *self)
             if (sim_names) {
                 GVariantIter iter;
                 GVariant *value;
+                GVariantBuilder *builder = g_variant_builder_new(G_VARIANT_TYPE("a(ss)"));
                 gchar *key;
+                int found = 0;
 
                 g_variant_iter_init (&iter, sim_names);
                 while (g_variant_iter_next (&iter, "{ss}", &key, &value)) {
+                    g_variant_builder_add(builder, "(ss)", key, value);
                     if (!strcmp(key, ril_modem)) {
                         g_hash_table_insert(account->params, g_strdup("DisplayName"), g_strdup((char *)value));
+                        found = 1;
                     }
                     g_free (key);
                     g_free (value);
                 }
+                if (!found) {
+                    char sim_name[10] = {0};
+                    sprintf(sim_name, "SIM %d", index+1);
+                    
+                    g_hash_table_insert(account->params, g_strdup("DisplayName"), g_strdup(sim_name));
+                    g_settings_set_value(settings, "sim-names", g_variant_new("a(ss)", builder));
+                }
+                g_variant_builder_unref(builder);
             }
             if (sim_names) {
                 g_variant_unref(sim_names);
