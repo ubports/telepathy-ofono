@@ -153,6 +153,8 @@ static void mcp_account_manager_ofono_init(McpAccountManagerOfono *self)
                     sprintf(sim_index, "%d", index+1);
                     const char *pos = strstr(sim_name, placeholder);
                     if (pos) {
+                        // this is used to replace %1 by the actual index
+                        // FIXME: change telephony-service's string to %d to make everything easier
                         final_sim_name = calloc(1, strlen(sim_name) - strlen(placeholder) + strlen(sim_index) + 1);
                         strncpy(final_sim_name, sim_name, pos - sim_name);
                         strcat(final_sim_name, sim_index);
