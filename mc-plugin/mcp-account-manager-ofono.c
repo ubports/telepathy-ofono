@@ -21,8 +21,11 @@
  * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <libintl.h>
+#include <locale.h>
 #include <string.h>
 #include <stdio.h>
+#include <malloc.h>
 #include "mcp-account-manager-ofono.h"
 
 #define PLUGIN_NAME "ofono-account"
@@ -74,6 +77,7 @@ static void mcp_account_manager_ofono_init(McpAccountManagerOfono *self)
     int            num_modems = 0;
     int index;
 
+    setlocale(LC_ALL, "");
     self->priv = G_TYPE_INSTANCE_GET_PRIVATE(self, MCP_TYPE_ACCOUNT_MANAGER_OFONO,
             McpAccountManagerOfonoPrivate);
 
@@ -142,11 +146,24 @@ static void mcp_account_manager_ofono_init(McpAccountManagerOfono *self)
                     g_free (value);
                 }
                 if (!found) {
-                    char sim_name[10] = {0};
-                    sprintf(sim_name, "SIM %d", index+1);
+                    char *sim_name = dgettext("telephony-service", "SIM %1");
+                    char *final_sim_name = NULL;
+                    char sim_index[10] = {0};
+                    const char *placeholder = "%1";
+                    sprintf(sim_index, "%d", index+1);
+                    const char *pos = strstr(sim_name, placeholder);
+                    if (pos) {
+                        final_sim_name = calloc(1, strlen(sim_name) - strlen(placeholder) + strlen(sim_index) + 1);
+                        strncpy(final_sim_name, sim_name, pos - sim_name);
+                        strcat(final_sim_name, sim_index);
+                        strcat(final_sim_name, pos + strlen(placeholder));
+                    } else {
+                        final_sim_name = sim_name;
+                    }
                     
-                    g_hash_table_insert(account->params, g_strdup("DisplayName"), g_strdup(sim_name));
+                    g_hash_table_insert(account->params, g_strdup("DisplayName"), g_strdup(final_sim_name));
                     g_settings_set_value(settings, "sim-names", g_variant_new("a(ss)", builder));
+                    free(final_sim_name);
                 }
                 g_variant_builder_unref(builder);
             }
