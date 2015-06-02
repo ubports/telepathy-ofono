@@ -160,7 +160,7 @@ static void mcp_account_manager_ofono_init(McpAccountManagerOfono *self)
                         strcat(final_sim_name, sim_index);
                         strcat(final_sim_name, pos + strlen(placeholder));
                     } else {
-                        final_sim_name = sim_name;
+                        final_sim_name = strdup(sim_name);
                     }
                     
                     g_hash_table_insert(account->params, g_strdup("DisplayName"), g_strdup(final_sim_name));
