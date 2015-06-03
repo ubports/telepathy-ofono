@@ -1,3 +1,13 @@
+telepathy-ofono (0.2+15.10.20150603-0ubuntu1) wily; urgency=medium
+
+  [ CI Train Bot ]
+  * New rebuild forced.
+
+  [ Tiago Salem Herrmann ]
+  * Set account display name in gsettings if empty. (LP: #1460111)
+
+ -- CI Train Bot <ci-train-bot@canonical.com>  Wed, 03 Jun 2015 19:28:00 +0000
+
 telepathy-ofono (0.2+15.04.20150521.1-0ubuntu1) vivid; urgency=medium
 
   [ Tiago Salem Herrmann ]
