@@ -36,7 +36,7 @@ Description: telepathy oFono connection manager
  real phone calls and send and receive SMSs.
 
 Package: telepathy-ofono-ril-mc-plugin
-Architecture: any
+Architecture: amd64 i386 armhf
 Depends: telepathy-ofono,
          ${misc:Depends},
          ${shlibs:Depends},
