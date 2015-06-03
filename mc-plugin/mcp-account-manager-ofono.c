@@ -21,8 +21,11 @@
  * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <libintl.h>
+#include <locale.h>
 #include <string.h>
 #include <stdio.h>
+#include <malloc.h>
 #include "mcp-account-manager-ofono.h"
 
 #define PLUGIN_NAME "ofono-account"
@@ -74,6 +77,7 @@ static void mcp_account_manager_ofono_init(McpAccountManagerOfono *self)
     int            num_modems = 0;
     int index;
 
+    setlocale(LC_ALL, "");
     self->priv = G_TYPE_INSTANCE_GET_PRIVATE(self, MCP_TYPE_ACCOUNT_MANAGER_OFONO,
             McpAccountManagerOfonoPrivate);
 
@@ -127,16 +131,43 @@ static void mcp_account_manager_ofono_init(McpAccountManagerOfono *self)
             if (sim_names) {
                 GVariantIter iter;
                 GVariant *value;
+                GVariantBuilder *builder = g_variant_builder_new(G_VARIANT_TYPE("a(ss)"));
                 gchar *key;
+                int found = 0;
 
                 g_variant_iter_init (&iter, sim_names);
                 while (g_variant_iter_next (&iter, "{ss}", &key, &value)) {
+                    g_variant_builder_add(builder, "(ss)", key, value);
                     if (!strcmp(key, ril_modem)) {
                         g_hash_table_insert(account->params, g_strdup("DisplayName"), g_strdup((char *)value));
+                        found = 1;
                     }
                     g_free (key);
                     g_free (value);
                 }
+                if (!found) {
+                    char *sim_name = dgettext("telephony-service", "SIM %1");
+                    char *final_sim_name = NULL;
+                    char sim_index[10] = {0};
+                    const char *placeholder = "%1";
+                    sprintf(sim_index, "%d", index+1);
+                    const char *pos = strstr(sim_name, placeholder);
+                    if (pos) {
+                        // this is used to replace %1 by the actual index
+                        // FIXME: change telephony-service's string to %d to make everything easier
+                        final_sim_name = calloc(1, strlen(sim_name) - strlen(placeholder) + strlen(sim_index) + 1);
+                        strncpy(final_sim_name, sim_name, pos - sim_name);
+                        strcat(final_sim_name, sim_index);
+                        strcat(final_sim_name, pos + strlen(placeholder));
+                    } else {
+                        final_sim_name = strdup(sim_name);
+                    }
+                    
+                    g_hash_table_insert(account->params, g_strdup("DisplayName"), g_strdup(final_sim_name));
+                    g_settings_set_value(settings, "sim-names", g_variant_new("a(ss)", builder));
+                    free(final_sim_name);
+                }
+                g_variant_builder_unref(builder);
             }
             if (sim_names) {
                 g_variant_unref(sim_names);
