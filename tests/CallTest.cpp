@@ -48,6 +48,8 @@ private Q_SLOTS:
     void testCallIncoming();
     void testCallIncomingPrivateNumber();
     void testCallIncomingUnknownNumber();
+    void testNumberNormalization_data();
+    void testNumberNormalization();
     void testCallOutgoing();
     void testCallHold();
     void testCallDTMF();
@@ -157,6 +159,36 @@ void CallTest::testCallIncomingUnknownNumber()
     QDBusObjectPath path = spyOfonoCallAdded.first().first().value<QDBusObjectPath>();
     OfonoMockController::instance()->VoiceCallHangup(path.path());
     QTRY_COMPARE(channel->callState(), Tp::CallStateEnded);
+}
+
+void CallTest::testNumberNormalization_data()
+{
+    QTest::addColumn<QString>("number");
+    QTest::addColumn<QString>("expectedNumber");
+
+    QTest::newRow("simple number") << "12345678" << "12345678";
+    QTest::newRow("number with dash") << "1234-5678" << "12345678"; 
+    QTest::newRow("number with area code") << "(123)12345678" << "12312345678";
+    QTest::newRow("number with slash") << "+421 2/123 456 78" << "+421212345678";
+}
+
+void CallTest::testNumberNormalization()
+{
+    QFETCH(QString, number);
+    QFETCH(QString, expectedNumber);
+
+    Tp::AccountPtr account = TelepathyHelper::instance()->account();
+    QSignalSpy spy(this, SIGNAL(contactsReceived(QList<Tp::ContactPtr>)));
+
+    connect(account->connection()->contactManager()->contactsForIdentifiers(QStringList() << number),
+            SIGNAL(finished(Tp::PendingOperation*)),
+            SLOT(onPendingContactsFinished(Tp::PendingOperation*)));
+
+    QTRY_COMPARE(spy.count(), 1);
+
+    QList<Tp::ContactPtr> contacts = spy.first().first().value<QList<Tp::ContactPtr> >();
+    QCOMPARE(contacts.count(), 1);
+    QCOMPARE(contacts.first()->id(), QString(expectedNumber));
 }
 
 void CallTest::testCallOutgoing()
