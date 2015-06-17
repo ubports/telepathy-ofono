@@ -39,7 +39,7 @@ bool PhoneUtils::comparePhoneNumbers(const QString &number1, const QString &numb
 
 bool PhoneUtils::isPhoneNumber(const QString &identifier) {
     // remove all non diable digits
-    QString finalNumber = QString(identifier).replace(QRegExp("[p+*#(),;-]"),"");
+    QString finalNumber = QString(identifier).replace(QRegExp("[p+*#/(),;-]"),"");
     finalNumber = finalNumber.replace(QRegExp("(\\s+)"), "");
     // if empty, the number is invalid
     if (finalNumber.isEmpty())
@@ -58,7 +58,7 @@ QString PhoneUtils::normalizePhoneNumber(const QString &identifier) {
     }
     QRegExp regexp = QRegExp("(\\s+)");
     QString finalNumber = QString(identifier).replace(regexp,"");
-    finalNumber = finalNumber.replace(QRegExp("[()-]"),"");
+    finalNumber = finalNumber.replace(QRegExp("[()/-]"),"");
     return finalNumber;
 }
 
