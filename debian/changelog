@@ -1,3 +1,13 @@
+telepathy-ofono (0.2+15.10.20150617-0ubuntu1) wily; urgency=medium
+
+  [ CI Train Bot ]
+  * New rebuild forced.
+
+  [ Tiago Salem Herrmann ]
+  * Improve phone number normalization. (LP: #1462090)
+
+ -- CI Train Bot <ci-train-bot@canonical.com>  Wed, 17 Jun 2015 20:39:13 +0000
+
 telepathy-ofono (0.2+15.10.20150603-0ubuntu1) wily; urgency=medium
 
   [ CI Train Bot ]
