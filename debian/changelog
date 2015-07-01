@@ -1,3 +1,11 @@
+telepathy-ofono (0.2+15.10.20150701-0ubuntu1) wily; urgency=medium
+
+  [ Tiago Salem Herrmann ]
+  * Check for mms group chats Set initiatorHandle correctly Improve
+    checks for conference channels
+
+ -- CI Train Bot <ci-train-bot@canonical.com>  Wed, 01 Jul 2015 14:16:19 +0000
+
 telepathy-ofono (0.2+15.10.20150617-0ubuntu1) wily; urgency=medium
 
   [ CI Train Bot ]
