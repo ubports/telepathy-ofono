@@ -33,7 +33,7 @@ oFonoCallChannel::oFonoCallChannel(oFonoConnection *conn, QString phoneNumber, u
     mMultiparty(false)
     
 {
-    Tp::BaseChannelPtr baseChannel = Tp::BaseChannel::create(mConnection, TP_QT_IFACE_CHANNEL_TYPE_CALL, targetHandle, Tp::HandleTypeContact);
+    Tp::BaseChannelPtr baseChannel = Tp::BaseChannel::create(mConnection, TP_QT_IFACE_CHANNEL_TYPE_CALL, Tp::HandleTypeContact, targetHandle);
     Tp::BaseChannelCallTypePtr callType = Tp::BaseChannelCallType::create(baseChannel.data(),
                                                                           true,
                                                                           Tp::StreamTransportTypeUnknown,

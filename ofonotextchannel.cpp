@@ -54,13 +54,11 @@ oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, QStringList phoneNumbe
     if (phoneNumbers.size() == 1) {
         baseChannel = Tp::BaseChannel::create(mConnection,
                                               TP_QT_IFACE_CHANNEL_TYPE_TEXT,
-                                              mConnection->ensureHandle(mPhoneNumbers[0]),
-                                              Tp::HandleTypeContact);
+                                              Tp::HandleTypeContact,
+                                              mConnection->ensureHandle(mPhoneNumbers[0]));
     } else {
         baseChannel = Tp::BaseChannel::create(mConnection,
-                                              TP_QT_IFACE_CHANNEL_TYPE_TEXT,
-                                              0,
-                                              Tp::HandleTypeNone);
+                                              TP_QT_IFACE_CHANNEL_TYPE_TEXT);
     }
     Tp::BaseChannelTextTypePtr textType = Tp::BaseChannelTextType::create(baseChannel.data());
     baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(textType));
