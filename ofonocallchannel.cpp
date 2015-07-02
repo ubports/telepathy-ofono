@@ -125,6 +125,14 @@ void oFonoCallChannel::onHangup(uint reason, const QString &detailedReason, cons
 
 void oFonoCallChannel::onAccept(Tp::DBusError*)
 {
+    QVariantMap stateDetails;
+    Tp::CallStateReason reason;
+    reason.actor =  0;
+    reason.reason = Tp::CallStateChangeReasonUserRequested;
+    reason.message = "";
+    reason.DBusReason = "";
+    mCallChannel->setCallState(Tp::CallStateAccepted, 0, reason, stateDetails);
+
     if (this->state() == "waiting") {
         mConnection->voiceCallManager()->holdAndAnswer();
     } else {
