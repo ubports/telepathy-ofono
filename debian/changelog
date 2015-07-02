@@ -1,4 +1,4 @@
-telepathy-ofono (0.2+15.10.20150617-0ubuntu1) wily; urgency=medium
+telepathy-ofono (0.2+15.04.20150617-0ubuntu1) vivid; urgency=medium
 
   [ CI Train Bot ]
   * New rebuild forced.
