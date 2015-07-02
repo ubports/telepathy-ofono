@@ -1,3 +1,10 @@
+telepathy-ofono (0.2+15.04.20150702-0ubuntu1) vivid; urgency=medium
+
+  [ Gustavo Pichorim Boiko ]
+  * Set the status to accepted once a call is accepted.
+
+ -- CI Train Bot <ci-train-bot@canonical.com>  Thu, 02 Jul 2015 21:43:06 +0000
+
 telepathy-ofono (0.2+15.04.20150617-0ubuntu1) vivid; urgency=medium
 
   [ CI Train Bot ]
