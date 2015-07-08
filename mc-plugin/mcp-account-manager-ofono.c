@@ -239,7 +239,7 @@ static gboolean account_manager_ofono_get(const McpAccountStorage *storage, cons
         g_debug("%s: %s, %s %s", G_STRFUNC, account_name, (char*)key, (char*)value);
         mcp_account_manager_set_value(am, account_name, key, value);
     }
-    return FALSE;
+    return TRUE;
 }
 
 static gboolean account_manager_ofono_set(const McpAccountStorage *storage, const McpAccountManager *am,
