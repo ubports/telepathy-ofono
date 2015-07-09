@@ -1,3 +1,11 @@
+telepathy-ofono (0.2+15.10.20150709-0ubuntu1) wily; urgency=medium
+
+  [ Gustavo Pichorim Boiko ]
+  * Sync the fix that was applied on OTA5: [ Gustavo Pichorim Boiko ]
+    Set the status to accepted once a call is accepted.
+
+ -- CI Train Bot <ci-train-bot@canonical.com>  Thu, 09 Jul 2015 13:45:39 +0000
+
 telepathy-ofono (0.2+15.10.20150701-0ubuntu1) wily; urgency=medium
 
   [ Tiago Salem Herrmann ]
