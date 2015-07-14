@@ -61,12 +61,8 @@ public:
     pa_threaded_mainloop *mainloop() { return m_mainLoop; }
     pa_context *context() { return m_context; }
     void createPulseContext(void);
-
     int setupVoiceCall(void);
     void restoreVoiceCall(void);
-    void setCallMode(CallStatus callstatus, AudioMode audiomode);
-    void setMicMute(bool muted); /* True if muted, false if unmuted */
-
     /* Callbacks to be used internally */
     void cardInfoCallback(const pa_card_info *card);
     void sinkInfoCallback(const pa_sink_info *sink);
@@ -82,6 +78,8 @@ Q_SIGNALS:
 
 public Q_SLOTS:
     void handleCardEvent(const int evt, const unsigned int idx);
+    void setCallMode(CallStatus callstatus, AudioMode audiomode);
+    void setMicMute(bool muted); /* True if muted, false if unmuted */
 
 private:
     pa_mainloop_api *m_mainLoopApi;
