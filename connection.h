@@ -145,6 +145,7 @@ private Q_SLOTS:
     void onMultipartyCallHeld();
     void onMultipartyCallActive();
     void updateOnlineStatus();
+    void onDisconnected();
 
 #ifdef USE_PULSEAUDIO
     void onAudioModeChanged(AudioMode mode);
