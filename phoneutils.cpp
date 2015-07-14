@@ -1,8 +1,9 @@
 /*
- * Copyright (C) 2012-2013 Canonical, Ltd.
+ * Copyright (C) 2015 Canonical, Ltd.
  *
  * Authors:
  *  Gustavo Pichorim Boiko <gustavo.boiko@canonical.com>
+ *  Renato Araujo Oliveira Filho <renato.filho@canonical.com>
  *  Tiago Salem Herrmann <tiago.herrmann@canonical.com>
  *
  * This file is part of telepathy-ofono.
@@ -20,46 +21,72 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <QRegExp>
 #include "phoneutils_p.h"
-#include "phonenumberutils_p.h"
+
+#include <QtCore/QDebug>
+#include <QRegExp>
+
+#include <phonenumbers/phonenumbermatch.h>
+#include <phonenumbers/phonenumbermatcher.h>
+#include <phonenumbers/phonenumberutil.h>
+
 
 PhoneUtils::PhoneUtils(QObject *parent) :
     QObject(parent)
 {
 }
 
-bool PhoneUtils::comparePhoneNumbers(const QString &number1, const QString &number2)
+PhoneUtils::~PhoneUtils()
 {
-    if (isPhoneNumber(number1) && isPhoneNumber(number2)) {
-        return PhoneNumberUtils::compareLoosely(number1, number2);
-    }
-    return number1 == number2;
 }
 
-bool PhoneUtils::isPhoneNumber(const QString &identifier) {
-    // remove all non diable digits
-    QString finalNumber = QString(identifier).replace(QRegExp("[p+*#/(),;-]"),"");
-    finalNumber = finalNumber.replace(QRegExp("(\\s+)"), "");
-    // if empty, the number is invalid
-    if (finalNumber.isEmpty())
+QString PhoneUtils::normalizePhoneNumber(const QString &phoneNumber)
+{
+    static i18n::phonenumbers::PhoneNumberUtil *phonenumberUtil = i18n::phonenumbers::PhoneNumberUtil::GetInstance();
+    if (!isPhoneNumber(phoneNumber)) {
+        return phoneNumber;
+    }
+    std::string number = phoneNumber.toStdString();
+    phonenumberUtil->NormalizeDiallableCharsOnly(&number);
+    return QString::fromStdString(number);
+}
+
+bool PhoneUtils::comparePhoneNumbers(const QString &phoneNumberA, const QString &phoneNumberB)
+{
+    static i18n::phonenumbers::PhoneNumberUtil *phonenumberUtil = i18n::phonenumbers::PhoneNumberUtil::GetInstance();
+    // if any of the number isn't a phone number, just do a simple string comparison
+    if (!isPhoneNumber(phoneNumberA) || !isPhoneNumber(phoneNumberB)) {
+        return phoneNumberA == phoneNumberB;
+    }
+    i18n::phonenumbers::PhoneNumberUtil::MatchType match = phonenumberUtil->
+            IsNumberMatchWithTwoStrings(phoneNumberA.toStdString(),
+                                        phoneNumberB.toStdString());
+    return (match > i18n::phonenumbers::PhoneNumberUtil::NO_MATCH);
+}
+
+bool PhoneUtils::isPhoneNumber(const QString &phoneNumber)
+{
+    static i18n::phonenumbers::PhoneNumberUtil *phonenumberUtil = i18n::phonenumbers::PhoneNumberUtil::GetInstance();
+    QString region = QLocale::system().name().split("_").last();
+    std::string formattedNumber;
+    i18n::phonenumbers::PhoneNumber number;
+    i18n::phonenumbers::PhoneNumberUtil::ErrorType error;
+    error = phonenumberUtil->Parse(phoneNumber.toStdString(), region.toStdString(), &number);
+
+    switch(error) {
+    case i18n::phonenumbers::PhoneNumberUtil::INVALID_COUNTRY_CODE_ERROR:
+        qWarning() << "Invalid country code for:" << phoneNumber;
         return false;
-
-    finalNumber = finalNumber.replace(QRegExp("(\\d+)"), "");
-    return finalNumber.isEmpty();
-}
-
-// TODO improve this normalization algorithm. More complex numbers 
-// like "+1 234 234-1234 w 12345678#" should be normalizd to "+12342341234"
-QString PhoneUtils::normalizePhoneNumber(const QString &identifier) {
-    if (!isPhoneNumber(identifier)) {
-        // do not normalize non phone numbers
-        return identifier;
+    case i18n::phonenumbers::PhoneNumberUtil::NOT_A_NUMBER:
+        qWarning() << "The phone number is not a valid number:" << phoneNumber;
+        return false;
+    case i18n::phonenumbers::PhoneNumberUtil::TOO_SHORT_AFTER_IDD:
+    case i18n::phonenumbers::PhoneNumberUtil::TOO_SHORT_NSN:
+    case i18n::phonenumbers::PhoneNumberUtil::TOO_LONG_NSN:
+        qWarning() << "Invalid phone number" << phoneNumber;
+        return false;
+    default:
+        break;
     }
-    QRegExp regexp = QRegExp("(\\s+)");
-    QString finalNumber = QString(identifier).replace(regexp,"");
-    finalNumber = finalNumber.replace(QRegExp("[()/-]"),"");
-    return finalNumber;
+    return true;
 }
-
-
