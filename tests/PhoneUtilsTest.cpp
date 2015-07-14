@@ -47,6 +47,7 @@ void PhoneUtilsTest::testIsPhoneNumber_data()
     QTest::newRow("number with semicolon") << "33333333;1" << false;
     QTest::newRow("short/emergency number") << "190" << true;
     QTest::newRow("non phone numbers") << "abcdefg" << false;
+    QTest::newRow("phone number with dots") << "+31 (475) 12.34.56" << true;
 }
 
 void PhoneUtilsTest::testIsPhoneNumber()
@@ -75,6 +76,7 @@ void PhoneUtilsTest::testComparePhoneNumbers_data()
     QTest::newRow("both non phone numbers") << "abcdefg" << "abcdefg" << true;
     QTest::newRow("different non phone numbers") << "abcdefg" << "bcdefg" << false;
     QTest::newRow("phone number and custom string") << "abc12345678" << "12345678" << true;
+    QTest::newRow("phone number with dots") << "+31 (475) 12.34.56" << "+31 (475) 12 34 56" << true;
     // FIXME: check what other cases we need to test here"
 }
 
