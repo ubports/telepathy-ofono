@@ -23,14 +23,14 @@
 
 #include "phoneutils_p.h"
 
-#include <QtCore/QDebug>
-#include <QRegExp>
 
 #include <phonenumbers/phonenumbermatch.h>
 #include <phonenumbers/phonenumbermatcher.h>
 #include <phonenumbers/phonenumberutil.h>
 #include <phonenumbers/shortnumberutil.h>
 
+#include <QLocale>
+#include <QDebug>
 
 PhoneUtils::PhoneUtils(QObject *parent) :
     QObject(parent)
