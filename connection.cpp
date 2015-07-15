@@ -496,6 +496,9 @@ bool oFonoConnection::isNetworkRegistered()
 
 bool oFonoConnection::isEmergencyNumber(const QString &number)
 {
+    if (PhoneUtils::isEmergencyNumber(number)) {
+        return true;
+    }
     Q_FOREACH (const QString &emergencyNumber, mOfonoVoiceCallManager->emergencyNumbers()) {
         if (PhoneUtils::comparePhoneNumbers(emergencyNumber, number)) {
             return true;

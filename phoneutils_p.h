@@ -44,6 +44,7 @@ public:
     static QString normalizePhoneNumber(const QString &phoneNumber);
     static bool comparePhoneNumbers(const QString &phoneNumberA,const QString &phoneNumberB);
     static bool isPhoneNumber(const QString &identifier);
+    static bool isEmergencyNumber(const QString &phoneNumber);
 };
 
 #endif
