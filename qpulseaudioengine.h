@@ -22,6 +22,7 @@
 
 #include <QtCore/qmap.h>
 #include <QtCore/qbytearray.h>
+#include <QThread>
 #include <pulse/pulseaudio.h>
 
 enum AudioMode {
@@ -33,37 +34,35 @@ enum AudioMode {
     AudioModeWiredOrEarpiece = AudioModeWiredHeadset | AudioModeEarpiece,
     AudioModeWiredOrSpeaker = AudioModeWiredHeadset | AudioModeSpeaker
 };
+
 Q_DECLARE_METATYPE(AudioMode)
 
 typedef QList<AudioMode> AudioModes;
 Q_DECLARE_METATYPE(AudioModes)
 
+enum CallStatus {
+    CallRinging,
+    CallActive,
+    CallEnded
+};
+
+Q_DECLARE_METATYPE(CallStatus)
+
 QT_BEGIN_NAMESPACE
 
-class QPulseAudioEngine : public QObject
+class QPulseAudioEngineWorker : public QObject
 {
     Q_OBJECT
 
 public:
-    enum CallStatus {
-        CallRinging,
-        CallActive,
-        CallEnded
-    };
+    QPulseAudioEngineWorker(QObject *parent = 0);
+    ~QPulseAudioEngineWorker();
 
-    QPulseAudioEngine(QObject *parent = 0);
-    ~QPulseAudioEngine();
-
-    static QPulseAudioEngine *instance();
     pa_threaded_mainloop *mainloop() { return m_mainLoop; }
     pa_context *context() { return m_context; }
     void createPulseContext(void);
-
     int setupVoiceCall(void);
     void restoreVoiceCall(void);
-    void setCallMode(CallStatus callstatus, AudioMode audiomode);
-    void setMicMute(bool muted); /* True if muted, false if unmuted */
-
     /* Callbacks to be used internally */
     void cardInfoCallback(const pa_card_info *card);
     void sinkInfoCallback(const pa_sink_info *sink);
@@ -79,6 +78,8 @@ Q_SIGNALS:
 
 public Q_SLOTS:
     void handleCardEvent(const int evt, const unsigned int idx);
+    void setCallMode(CallStatus callstatus, AudioMode audiomode);
+    void setMicMute(bool muted); /* True if muted, false if unmuted */
 
 private:
     pa_mainloop_api *m_mainLoopApi;
@@ -97,7 +98,26 @@ private:
 
     bool handleOperation(pa_operation *operation, const char *func_name);
     void releasePulseContext(void);
- };
+};
+
+class QPulseAudioEngine : public QObject
+{
+    Q_OBJECT
+public:
+    explicit QPulseAudioEngine(QObject *parent = 0);
+    ~QPulseAudioEngine();
+    static QPulseAudioEngine *instance();
+
+    void setCallMode(CallStatus callstatus, AudioMode audiomode);
+    void setMicMute(bool muted); /* True if muted, false if unmuted */
+
+Q_SIGNALS:
+    void audioModeChanged(const AudioMode mode);
+    void availableAudioModesChanged(const AudioModes modes);
+private:
+    QPulseAudioEngineWorker *mWorker;
+    QThread mThread;
+};
 
 QT_END_NAMESPACE
 

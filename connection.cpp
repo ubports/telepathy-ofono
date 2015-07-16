@@ -43,7 +43,7 @@
 static void enable_earpiece()
 {
 #ifdef USE_PULSEAUDIO
-    QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallActive, AudioModeBtOrWiredOrEarpiece);
+    QPulseAudioEngine::instance()->setCallMode(CallActive, AudioModeBtOrWiredOrEarpiece);
 #endif
 }
 
@@ -54,7 +54,7 @@ static void enable_normal()
     timer->setSingleShot(true);
     QObject::connect(timer, &QTimer::timeout, [=](){
         QPulseAudioEngine::instance()->setMicMute(false);
-        QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallEnded, AudioModeWiredOrSpeaker);
+        QPulseAudioEngine::instance()->setCallMode(CallEnded, AudioModeWiredOrSpeaker);
         timer->deleteLater();
     });
     timer->start(2000);
@@ -64,14 +64,14 @@ static void enable_normal()
 static void enable_speaker()
 {
 #ifdef USE_PULSEAUDIO
-    QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallActive, AudioModeSpeaker);
+    QPulseAudioEngine::instance()->setCallMode(CallActive, AudioModeSpeaker);
 #endif
 }
 
 static void enable_ringtone()
 {
 #ifdef USE_PULSEAUDIO
-    QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallRinging, AudioModeWiredOrSpeaker);
+    QPulseAudioEngine::instance()->setCallMode(CallRinging, AudioModeWiredOrSpeaker);
 #endif
 }
 

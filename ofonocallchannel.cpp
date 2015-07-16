@@ -98,7 +98,7 @@ void oFonoCallChannel::onSetActiveAudioOutput(const QString &id, Tp::DBusError *
         mode = AudioModeSpeaker;
     }
     if (mHasPulseAudio)
-        QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallActive, mode);
+        QPulseAudioEngine::instance()->setCallMode(CallActive, mode);
 #endif
 }
 
