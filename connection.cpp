@@ -101,8 +101,6 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     mOfonoSimManager = new OfonoSimManager(setting, mModemPath);
     mOfonoModem = mOfonoSimManager->modem();
 
-    PhoneUtils::setMcc(mOfonoNetworkRegistration->mcc());
-
     if (mOfonoSimManager->subscriberNumbers().size() > 0) {
         setSelfHandle(newHandle(mOfonoSimManager->subscriberNumbers()[0]));
     } else {
@@ -230,7 +228,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     QObject::connect(mOfonoSimManager, SIGNAL(subscriberNumbersChanged(QStringList)), SLOT(updateOnlineStatus()));
     QObject::connect(mOfonoNetworkRegistration, SIGNAL(statusChanged(QString)), SLOT(updateOnlineStatus()));
     QObject::connect(mOfonoNetworkRegistration, SIGNAL(nameChanged(QString)), SLOT(updateOnlineStatus()));
-    QObject::connect(mOfonoNetworkRegistration, SIGNAL(mccChanged(QString)), SLOT(onMccChanged(QString)));
+    QObject::connect(mOfonoNetworkRegistration, SIGNAL(mccChanged(QString)), SLOT(updateOnlineStatus(QString)));
     QObject::connect(mOfonoNetworkRegistration, SIGNAL(validityChanged(bool)), SLOT(onValidityChanged(bool)));
     QObject::connect(mOfonoMessageWaiting, SIGNAL(voicemailMessageCountChanged(int)), voicemailIface.data(), SLOT(setVoicemailCount(int)));
     QObject::connect(mOfonoMessageWaiting, SIGNAL(voicemailWaitingChanged(bool)), voicemailIface.data(), SLOT(setVoicemailIndicator(bool)));
@@ -304,8 +302,15 @@ void oFonoConnection::onCheckMMSServices()
     }
 }
 
-void oFonoConnection::onMccChanged(const QString &mcc)
+void oFonoConnection::updateMcc()
 {
+    QString mcc;
+    // check if the network mcc is available first, then try the sim card mcc
+    if (!mOfonoNetworkRegistration->mcc().isEmpty()) {
+        mcc = mOfonoNetworkRegistration->mcc();
+    } else if (!mOfonoSimManager->mobileCountryCode().isEmpty()) {
+        mcc = mOfonoSimManager->mobileCountryCode();
+    }
     PhoneUtils::setMcc(mcc);
     emergencyModeIface->setCountryCode(PhoneUtils::countryCodeForMCC(mcc));
 }
@@ -599,6 +604,8 @@ void oFonoConnection::updateOnlineStatus()
 
     presences[selfHandle()] = mSelfPresence;
     simplePresenceIface->setPresences(presences);
+
+    updateMcc();
 }
 
 uint oFonoConnection::newHandle(const QString &identifier)

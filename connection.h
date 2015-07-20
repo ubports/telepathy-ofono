@@ -136,7 +136,6 @@ private Q_SLOTS:
     void onMMSDServiceRemoved(const QString&);
     void onMMSAdded(const QString &, const QVariantMap&);
     void onMMSRemoved(const QString &);
-    void onMccChanged(const QString &);
     void onCheckMMSServices();
     void onMessageRead(const QString &id);
     void onDeliveryReportReceived(const QString &messageId, const QVariantMap &info);
@@ -153,6 +152,7 @@ private Q_SLOTS:
 #endif
 
 private:
+    void updateMcc();
     bool isNetworkRegistered();
     bool isEmergencyNumber(const QString &number);
     void addMMSToService(const QString &path, const QVariantMap &properties, const QString &servicePath);

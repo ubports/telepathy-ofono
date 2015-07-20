@@ -34,8 +34,6 @@
 #include <QTextStream>
 #include <QFile>
 
-QString PhoneUtils::mMcc = "0";
-
 void PhoneUtils::setMcc(const QString &mcc)
 {
     mMcc = mcc;
