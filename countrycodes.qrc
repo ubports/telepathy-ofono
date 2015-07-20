@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file>countrycodes.txt</file>
+    </qresource>
+</RCC>

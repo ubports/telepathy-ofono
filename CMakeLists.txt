@@ -67,7 +67,7 @@ find_library(TELEPATHY_QT5_LIBRARIES telepathy-qt5)
 find_library(TELEPATHY_QT5_SERVICE_LIBRARIES telepathy-qt5-service)
 find_library(OFONO_QT_LIBRARIES ofono-qt)
 
-qt5_add_resources(telepathyfono_RES sqlitetelepathyofono.qrc)
+qt5_add_resources(telepathyfono_RES sqlitetelepathyofono.qrc countrycodes.qrc)
 
 # update the .qrc file automatically when there are new schema files
 file(GLOB QRC_RESOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/schema/*.sql ${CMAKE_CURRENT_SOURCE_DIR}/schema/*.info)
