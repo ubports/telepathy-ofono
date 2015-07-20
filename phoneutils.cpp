@@ -31,14 +31,46 @@
 
 #include <QLocale>
 #include <QDebug>
+#include <QTextStream>
+#include <QFile>
 
-PhoneUtils::PhoneUtils(QObject *parent) :
-    QObject(parent)
+QString PhoneUtils::mMcc = "0";
+
+void PhoneUtils::setMcc(const QString &mcc)
 {
+    mMcc = mcc;
 }
 
-PhoneUtils::~PhoneUtils()
+QString PhoneUtils::countryCodeForMCC(const QString &mcc, bool useFallback)
 {
+    static QMap<QString, QString> countryCodes;
+    if (countryCodes.isEmpty()) {
+        QFile countryCodesFile(":/countrycodes.txt");
+        if (!countryCodesFile.open(QFile::ReadOnly)) {
+            qCritical() << "Failed to open " << countryCodesFile.fileName();
+            if (useFallback) {
+                return region();
+            }
+            return QString();
+        }
+        QTextStream stream(&countryCodesFile);
+        while (!stream.atEnd()) {
+            QString line = stream.readLine();
+            QStringList tuple = line.split(":");
+            if (tuple.size() != 2) {
+                qCritical() << "Failed to parse line" << line;
+                if (useFallback) {
+                    return region();
+                }
+                return QString();
+            }
+            countryCodes[tuple[0]] = tuple[1];
+        }
+    }
+    if (!countryCodes.contains(mcc) && useFallback) {
+        return region();
+    }
+    return countryCodes[mcc];
 }
 
 QString PhoneUtils::region()
@@ -82,7 +114,7 @@ bool PhoneUtils::isPhoneNumber(const QString &phoneNumber)
     std::string formattedNumber;
     i18n::phonenumbers::PhoneNumber number;
     i18n::phonenumbers::PhoneNumberUtil::ErrorType error;
-    error = phonenumberUtil->Parse(phoneNumber.toStdString(), region().toStdString(), &number);
+    error = phonenumberUtil->Parse(phoneNumber.toStdString(), countryCodeForMCC(mMcc, true).toStdString(), &number);
 
     switch(error) {
     case i18n::phonenumbers::PhoneNumberUtil::INVALID_COUNTRY_CODE_ERROR:
@@ -105,5 +137,5 @@ bool PhoneUtils::isPhoneNumber(const QString &phoneNumber)
 bool PhoneUtils::isEmergencyNumber(const QString &phoneNumber)
 {
     static const i18n::phonenumbers::ShortNumberUtil short_util;
-    return short_util.ConnectsToEmergencyNumber(phoneNumber.toStdString(), region().toStdString());
+    return short_util.ConnectsToEmergencyNumber(phoneNumber.toStdString(), countryCodeForMCC(mMcc, true).toStdString());
 }

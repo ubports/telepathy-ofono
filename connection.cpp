@@ -101,6 +101,8 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     mOfonoSimManager = new OfonoSimManager(setting, mModemPath);
     mOfonoModem = mOfonoSimManager->modem();
 
+    PhoneUtils::setMcc(mOfonoNetworkRegistration->mcc());
+
     if (mOfonoSimManager->subscriberNumbers().size() > 0) {
         setSelfHandle(newHandle(mOfonoSimManager->subscriberNumbers()[0]));
     } else {
@@ -228,6 +230,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     QObject::connect(mOfonoSimManager, SIGNAL(subscriberNumbersChanged(QStringList)), SLOT(updateOnlineStatus()));
     QObject::connect(mOfonoNetworkRegistration, SIGNAL(statusChanged(QString)), SLOT(updateOnlineStatus()));
     QObject::connect(mOfonoNetworkRegistration, SIGNAL(nameChanged(QString)), SLOT(updateOnlineStatus()));
+    QObject::connect(mOfonoNetworkRegistration, SIGNAL(mccChanged(QString)), SLOT(onMccChanged(QString)));
     QObject::connect(mOfonoNetworkRegistration, SIGNAL(validityChanged(bool)), SLOT(onValidityChanged(bool)));
     QObject::connect(mOfonoMessageWaiting, SIGNAL(voicemailMessageCountChanged(int)), voicemailIface.data(), SLOT(setVoicemailCount(int)));
     QObject::connect(mOfonoMessageWaiting, SIGNAL(voicemailWaitingChanged(bool)), voicemailIface.data(), SLOT(setVoicemailIndicator(bool)));
@@ -299,6 +302,12 @@ void oFonoConnection::onCheckMMSServices()
     Q_FOREACH(QString servicePath, mMmsdManager->services()) {
         onMMSDServiceAdded(servicePath);
     }
+}
+
+void oFonoConnection::onMccChanged(const QString &mcc)
+{
+    PhoneUtils::setMcc(mcc);
+    emergencyModeIface->setCountryCode(PhoneUtils::countryCodeForMCC(mcc));
 }
 
 void oFonoConnection::onMMSDServiceAdded(const QString &path)

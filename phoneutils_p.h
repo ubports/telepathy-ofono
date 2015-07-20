@@ -38,15 +38,18 @@ public:
         Auto
     };
 
-    PhoneUtils(QObject *parent = 0);
-    ~PhoneUtils();
+    //PhoneUtils(QObject *parent = 0);
+    //~PhoneUtils();
 
     static QString normalizePhoneNumber(const QString &phoneNumber);
     static bool comparePhoneNumbers(const QString &phoneNumberA,const QString &phoneNumberB);
     static bool isPhoneNumber(const QString &identifier);
     static bool isEmergencyNumber(const QString &phoneNumber);
+    static QString countryCodeForMCC(const QString &mcc, bool useFallback = true);
+    static void setMcc(const QString &mcc);
 private:
     static QString region();
+    static QString mMcc;
 };
 
 #endif

@@ -136,6 +136,7 @@ private Q_SLOTS:
     void onMMSDServiceRemoved(const QString&);
     void onMMSAdded(const QString &, const QVariantMap&);
     void onMMSRemoved(const QString &);
+    void onMccChanged(const QString &);
     void onCheckMMSServices();
     void onMessageRead(const QString &id);
     void onDeliveryReportReceived(const QString &messageId, const QVariantMap &info);
