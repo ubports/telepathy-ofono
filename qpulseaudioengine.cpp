@@ -749,6 +749,7 @@ QPulseAudioEngine::QPulseAudioEngine(QObject *parent) :
 {
     qRegisterMetaType<CallStatus>();
     qRegisterMetaType<AudioMode>();
+    qRegisterMetaType<AudioModes>();
     mWorker = new QPulseAudioEngineWorker();
     QObject::connect(mWorker, SIGNAL(audioModeChanged(const AudioMode)), this, SIGNAL(audioModeChanged(const AudioMode)), Qt::QueuedConnection);
     QObject::connect(mWorker, SIGNAL(availableAudioModesChanged(const AudioModes)), this, SIGNAL(availableAudioModesChanged(const AudioModes)), Qt::QueuedConnection);
