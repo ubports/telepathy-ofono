@@ -53,8 +53,8 @@ static void enable_normal()
     QTimer* timer = new QTimer();
     timer->setSingleShot(true);
     QObject::connect(timer, &QTimer::timeout, [=](){
-        QPulseAudioEngine::instance()->setCallMode(CallEnded, AudioModeWiredOrSpeaker);
         QPulseAudioEngine::instance()->setMicMute(false);
+        QPulseAudioEngine::instance()->setCallMode(CallEnded, AudioModeWiredOrSpeaker);
         timer->deleteLater();
     });
     timer->start(2000);
