@@ -137,5 +137,5 @@ bool PhoneUtils::isPhoneNumber(const QString &phoneNumber)
 bool PhoneUtils::isEmergencyNumber(const QString &phoneNumber)
 {
     static const i18n::phonenumbers::ShortNumberUtil short_util;
-    return short_util.ConnectsToEmergencyNumber(phoneNumber.toStdString(), countryCodeForMCC(mMcc, true).toStdString());
+    return short_util.IsEmergencyNumber(normalizePhoneNumber(phoneNumber).toStdString(), countryCodeForMCC(mMcc, true).toStdString());
 }
