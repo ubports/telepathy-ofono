@@ -284,9 +284,15 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
 
     QObject::connect(mOfonoSupplementaryServices, SIGNAL(respondComplete(bool, const QString &)), supplementaryServicesIface.data(), SLOT(RespondComplete(bool, const QString &)));
 
+    QObject::connect(this, SIGNAL(disconnected()), this, SLOT(onDisconnected()));
     // workaround: we can't add services here as tp-ofono interfaces are not exposed on dbus
     // todo: use QDBusServiceWatcher
     QTimer::singleShot(1000, this, SLOT(onCheckMMSServices()));
+}
+
+void oFonoConnection::onDisconnected()
+{
+    setStatus(Tp::ConnectionStatusDisconnected, Tp::ConnectionStatusReasonRequested);
 }
 
 QMap<QString, oFonoCallChannel*> oFonoConnection::callChannels()
@@ -468,15 +474,22 @@ void oFonoConnection::onMMSRemoved(const QString &path)
 }
 
 oFonoConnection::~oFonoConnection() {
+    dbusConnection().unregisterObject(objectPath(), QDBusConnection::UnregisterTree);
+    dbusConnection().unregisterService(busName());
+
     mOfonoModemManager->deleteLater();
     mOfonoMessageManager->deleteLater();
     mOfonoVoiceCallManager->deleteLater();
     mOfonoCallVolume->deleteLater();
+    mOfonoMessageWaiting->deleteLater();
     mOfonoNetworkRegistration->deleteLater();
+    mOfonoSupplementaryServices->deleteLater();
+    mOfonoSimManager->deleteLater();
+    mMmsdManager->deleteLater();
+ 
     Q_FOREACH(MMSDService *service, mMmsdServices) {
         onMMSDServiceRemoved(service->path());
     }
-   
 }
 
 bool oFonoConnection::isNetworkRegistered()
