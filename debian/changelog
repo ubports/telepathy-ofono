@@ -1,3 +1,15 @@
+telepathy-ofono (0.2+15.10.20150721-0ubuntu1) wily; urgency=medium
+
+  [ Tiago Salem Herrmann ]
+  * Improve oFonoConnection cleanup Unregister object path/service from
+    dbus Delete instances dynamically created on destructor
+  * Move pulseaudio operations to a separate thread.
+  * Return true if all properties were correctly set.
+  * Unmute before setting the state as CallEnded, otherwise the request
+    is ignored. (LP: #1474511)
+
+ -- CI Train Bot <ci-train-bot@canonical.com>  Tue, 21 Jul 2015 13:51:54 +0000
+
 telepathy-ofono (0.2+15.10.20150709-0ubuntu1) wily; urgency=medium
 
   [ Gustavo Pichorim Boiko ]
