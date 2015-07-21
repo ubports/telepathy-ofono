@@ -31,7 +31,7 @@ QT_BEGIN_NAMESPACE
 static void contextStateCallbackInit(pa_context *context, void *userdata)
 {
     Q_UNUSED(context);
-    QPulseAudioEngine *pulseEngine = reinterpret_cast<QPulseAudioEngine*>(userdata);
+    QPulseAudioEngineWorker *pulseEngine = reinterpret_cast<QPulseAudioEngineWorker*>(userdata);
     pa_threaded_mainloop_signal(pulseEngine->mainloop(), 0);
 }
 
@@ -43,14 +43,14 @@ static void contextStateCallback(pa_context *context, void *userdata)
 
 static void success_cb(pa_context *context, int success, void *userdata)
 {
-    QPulseAudioEngine *pulseEngine = reinterpret_cast<QPulseAudioEngine*>(userdata);
+    QPulseAudioEngineWorker *pulseEngine = reinterpret_cast<QPulseAudioEngineWorker*>(userdata);
     pa_threaded_mainloop_signal(pulseEngine->mainloop(), 0);
 }
 
 /* Callbacks used when handling events from PulseAudio */
 static void plug_card_cb(pa_context *c, const pa_card_info *info, int isLast, void *userdata)
 {
-    QPulseAudioEngine *pulseEngine = static_cast<QPulseAudioEngine*>(userdata);
+    QPulseAudioEngineWorker *pulseEngine = static_cast<QPulseAudioEngineWorker*>(userdata);
     if (isLast != 0 || !pulseEngine || !info) {
         pa_threaded_mainloop_signal(pulseEngine->mainloop(), 0);
         return;
@@ -60,7 +60,7 @@ static void plug_card_cb(pa_context *c, const pa_card_info *info, int isLast, vo
 
 static void update_card_cb(pa_context *c, const pa_card_info *info, int isLast, void *userdata)
 {
-    QPulseAudioEngine *pulseEngine = static_cast<QPulseAudioEngine*>(userdata);
+    QPulseAudioEngineWorker *pulseEngine = static_cast<QPulseAudioEngineWorker*>(userdata);
     if (isLast != 0 || !pulseEngine || !info) {
         pa_threaded_mainloop_signal(pulseEngine->mainloop(), 0);
         return;
@@ -70,7 +70,7 @@ static void update_card_cb(pa_context *c, const pa_card_info *info, int isLast, 
 
 static void unplug_card_cb(pa_context *c, const pa_card_info *info, int isLast, void *userdata)
 {
-    QPulseAudioEngine *pulseEngine = static_cast<QPulseAudioEngine*>(userdata);
+    QPulseAudioEngineWorker *pulseEngine = static_cast<QPulseAudioEngineWorker*>(userdata);
     if (!pulseEngine) {
         pa_threaded_mainloop_signal(pulseEngine->mainloop(), 0);
         return;
@@ -87,21 +87,19 @@ static void subscribeCallback(pa_context *context, pa_subscription_event_type_t 
     /* For card change events (slot plug/unplug and add/remove card) */
     if ((t & PA_SUBSCRIPTION_EVENT_FACILITY_MASK) == PA_SUBSCRIPTION_EVENT_CARD) {
         if ((t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) == PA_SUBSCRIPTION_EVENT_CHANGE) {
-            QMetaObject::invokeMethod((QPulseAudioEngine *) userdata, "handleCardEvent",
+            QMetaObject::invokeMethod((QPulseAudioEngineWorker *) userdata, "handleCardEvent",
                     Qt::QueuedConnection, Q_ARG(int, PA_SUBSCRIPTION_EVENT_CHANGE), Q_ARG(unsigned int, idx));
         } else if ((t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) == PA_SUBSCRIPTION_EVENT_NEW) {
-            QMetaObject::invokeMethod((QPulseAudioEngine *) userdata, "handleCardEvent",
+            QMetaObject::invokeMethod((QPulseAudioEngineWorker *) userdata, "handleCardEvent",
                     Qt::QueuedConnection, Q_ARG(int, PA_SUBSCRIPTION_EVENT_NEW), Q_ARG(unsigned int, idx));
         } else if ((t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) == PA_SUBSCRIPTION_EVENT_REMOVE) {
-            QMetaObject::invokeMethod((QPulseAudioEngine *) userdata, "handleCardEvent",
+            QMetaObject::invokeMethod((QPulseAudioEngineWorker *) userdata, "handleCardEvent",
                     Qt::QueuedConnection, Q_ARG(int, PA_SUBSCRIPTION_EVENT_REMOVE), Q_ARG(unsigned int, idx));
         }
     }
 }
 
-Q_GLOBAL_STATIC(QPulseAudioEngine, pulseEngine);
-
-QPulseAudioEngine::QPulseAudioEngine(QObject *parent)
+QPulseAudioEngineWorker::QPulseAudioEngineWorker(QObject *parent)
     : QObject(parent)
     , m_mainLoopApi(0)
     , m_context(0)
@@ -133,7 +131,7 @@ QPulseAudioEngine::QPulseAudioEngine(QObject *parent)
     createPulseContext();
 }
 
-void QPulseAudioEngine::createPulseContext()
+void QPulseAudioEngineWorker::createPulseContext()
 {
     bool keepGoing = true;
     bool ok = true;
@@ -208,7 +206,7 @@ void QPulseAudioEngine::createPulseContext()
 }
 
 
-void QPulseAudioEngine::releasePulseContext()
+void QPulseAudioEngineWorker::releasePulseContext()
 {
     if (m_context) {
         pa_threaded_mainloop_lock(m_mainLoop);
@@ -220,7 +218,7 @@ void QPulseAudioEngine::releasePulseContext()
 
 }
 
-QPulseAudioEngine::~QPulseAudioEngine()
+QPulseAudioEngineWorker::~QPulseAudioEngineWorker()
 {
     releasePulseContext();
 
@@ -231,16 +229,7 @@ QPulseAudioEngine::~QPulseAudioEngine()
     }
 }
 
-QPulseAudioEngine *QPulseAudioEngine::instance()
-{
-    QPulseAudioEngine *engine = pulseEngine();
-
-    /* Make sure context is also available, otherwise everything fails */
-    engine->createPulseContext();
-    return engine;
-}
-
-void QPulseAudioEngine::cardInfoCallback(const pa_card_info *info)
+void QPulseAudioEngineWorker::cardInfoCallback(const pa_card_info *info)
 {
     pa_card_profile_info *voice_call = NULL, *highest = NULL;
     pa_card_profile_info *hsp = NULL, *a2dp = NULL;
@@ -276,7 +265,7 @@ void QPulseAudioEngine::cardInfoCallback(const pa_card_info *info)
     }
 }
 
-void QPulseAudioEngine::sinkInfoCallback(const pa_sink_info *info)
+void QPulseAudioEngineWorker::sinkInfoCallback(const pa_sink_info *info)
 {
     pa_sink_port_info *earpiece = NULL, *speaker = NULL;
     pa_sink_port_info *wired_headset = NULL, *wired_headphone = NULL;
@@ -344,7 +333,7 @@ void QPulseAudioEngine::sinkInfoCallback(const pa_sink_info *info)
         m_availableAudioModes = modes;
 }
 
-void QPulseAudioEngine::sourceInfoCallback(const pa_source_info *info)
+void QPulseAudioEngineWorker::sourceInfoCallback(const pa_source_info *info)
 {
     pa_source_port_info *builtin_mic = NULL, *preferred = NULL;
     pa_source_port_info *wired_headset = NULL, *bluetooth_sco = NULL;
@@ -378,19 +367,19 @@ void QPulseAudioEngine::sourceInfoCallback(const pa_source_info *info)
         m_valuetoset = preferred->name;
 }
 
-void QPulseAudioEngine::serverInfoCallback(const pa_server_info *info)
+void QPulseAudioEngineWorker::serverInfoCallback(const pa_server_info *info)
 {
     /* Saving default sink/source to restore after call hangup */
     m_defaultsink = info->default_sink_name;
     m_defaultsource = info->default_source_name;
 
     /* In the case of a server callback we need to signal the mainloop */
-    pa_threaded_mainloop_signal(pulseEngine->mainloop(), 0);
+    pa_threaded_mainloop_signal(mainloop(), 0);
 }
 
 static void cardinfo_cb(pa_context *context, const pa_card_info *info, int isLast, void *userdata)
 {
-    QPulseAudioEngine *pulseEngine = static_cast<QPulseAudioEngine*>(userdata);
+    QPulseAudioEngineWorker *pulseEngine = static_cast<QPulseAudioEngineWorker*>(userdata);
     if (isLast != 0 || !pulseEngine || !info) {
         pa_threaded_mainloop_signal(pulseEngine->mainloop(), 0);
         return;
@@ -400,7 +389,7 @@ static void cardinfo_cb(pa_context *context, const pa_card_info *info, int isLas
 
 static void sinkinfo_cb(pa_context *context, const pa_sink_info *info, int isLast, void *userdata)
 {
-    QPulseAudioEngine *pulseEngine = static_cast<QPulseAudioEngine*>(userdata);
+    QPulseAudioEngineWorker *pulseEngine = static_cast<QPulseAudioEngineWorker*>(userdata);
     if (isLast != 0 || !pulseEngine || !info) {
         pa_threaded_mainloop_signal(pulseEngine->mainloop(), 0);
         return;
@@ -410,7 +399,7 @@ static void sinkinfo_cb(pa_context *context, const pa_sink_info *info, int isLas
 
 static void sourceinfo_cb(pa_context *context, const pa_source_info *info, int isLast, void *userdata)
 {
-    QPulseAudioEngine *pulseEngine = static_cast<QPulseAudioEngine*>(userdata);
+    QPulseAudioEngineWorker *pulseEngine = static_cast<QPulseAudioEngineWorker*>(userdata);
     if (isLast != 0 || !pulseEngine || !info) {
         pa_threaded_mainloop_signal(pulseEngine->mainloop(), 0);
         return;
@@ -420,7 +409,7 @@ static void sourceinfo_cb(pa_context *context, const pa_source_info *info, int i
 
 static void serverinfo_cb(pa_context *context, const pa_server_info *info, void *userdata)
 {
-    QPulseAudioEngine *pulseEngine = static_cast<QPulseAudioEngine*>(userdata);
+    QPulseAudioEngineWorker *pulseEngine = static_cast<QPulseAudioEngineWorker*>(userdata);
     if (!pulseEngine || !info) {
         pa_threaded_mainloop_signal(pulseEngine->mainloop(), 0);
         return;
@@ -428,7 +417,7 @@ static void serverinfo_cb(pa_context *context, const pa_server_info *info, void 
     pulseEngine->serverInfoCallback(info);
 }
 
-bool QPulseAudioEngine::handleOperation(pa_operation *operation, const char *func_name)
+bool QPulseAudioEngineWorker::handleOperation(pa_operation *operation, const char *func_name)
 {
     if (!operation) {
         qCritical("'%s' failed (lost PulseAudio connection?)", func_name);
@@ -444,7 +433,7 @@ bool QPulseAudioEngine::handleOperation(pa_operation *operation, const char *fun
     return true;
 }
 
-int QPulseAudioEngine::setupVoiceCall()
+int QPulseAudioEngineWorker::setupVoiceCall()
 {
     pa_operation *o;
 
@@ -483,7 +472,7 @@ int QPulseAudioEngine::setupVoiceCall()
     return 0;
 }
 
-void QPulseAudioEngine::restoreVoiceCall()
+void QPulseAudioEngineWorker::restoreVoiceCall()
 {
     pa_operation *o;
 
@@ -519,7 +508,7 @@ void QPulseAudioEngine::restoreVoiceCall()
     pa_threaded_mainloop_unlock(m_mainLoop);
 }
 
-void QPulseAudioEngine::setCallMode(CallStatus callstatus, AudioMode audiomode)
+void QPulseAudioEngineWorker::setCallMode(CallStatus callstatus, AudioMode audiomode)
 {
     CallStatus p_callstatus = m_callstatus;
     AudioMode p_audiomode = m_audiomode;
@@ -623,7 +612,7 @@ void QPulseAudioEngine::setCallMode(CallStatus callstatus, AudioMode audiomode)
         setMicMute(m_micmute);
 }
 
-void QPulseAudioEngine::setMicMute(bool muted)
+void QPulseAudioEngineWorker::setMicMute(bool muted)
 {
     m_micmute = muted;
 
@@ -649,7 +638,7 @@ void QPulseAudioEngine::setMicMute(bool muted)
     pa_threaded_mainloop_unlock(m_mainLoop);
 }
 
-void QPulseAudioEngine::plugCardCallback(const pa_card_info *info)
+void QPulseAudioEngineWorker::plugCardCallback(const pa_card_info *info)
 {
     qDebug("Notified about card (%s) add event from PulseAudio", info->name);
 
@@ -666,7 +655,7 @@ void QPulseAudioEngine::plugCardCallback(const pa_card_info *info)
     }
 }
 
-void QPulseAudioEngine::updateCardCallback(const pa_card_info *info)
+void QPulseAudioEngineWorker::updateCardCallback(const pa_card_info *info)
 {
     qDebug("Notified about card (%s) changes event from PulseAudio", info->name);
 
@@ -695,14 +684,14 @@ void QPulseAudioEngine::updateCardCallback(const pa_card_info *info)
     }
 }
 
-void QPulseAudioEngine::unplugCardCallback()
+void QPulseAudioEngineWorker::unplugCardCallback()
 {
     if (m_callstatus != CallEnded) {
         m_handleevent = true;
     }
 }
 
-void QPulseAudioEngine::handleCardEvent(const int evt, const unsigned int idx)
+void QPulseAudioEngineWorker::handleCardEvent(const int evt, const unsigned int idx)
 {
     pa_operation *o = NULL;
 
@@ -751,6 +740,44 @@ void QPulseAudioEngine::handleCardEvent(const int evt, const unsigned int idx)
             setCallMode(m_callstatus, AudioModeWiredOrEarpiece);
         }
     }
+}
+
+Q_GLOBAL_STATIC(QPulseAudioEngine, pulseEngine);
+
+QPulseAudioEngine::QPulseAudioEngine(QObject *parent) :
+    QObject(parent)
+{
+    qRegisterMetaType<CallStatus>();
+    qRegisterMetaType<AudioMode>();
+    qRegisterMetaType<AudioModes>();
+    mWorker = new QPulseAudioEngineWorker();
+    QObject::connect(mWorker, SIGNAL(audioModeChanged(const AudioMode)), this, SIGNAL(audioModeChanged(const AudioMode)), Qt::QueuedConnection);
+    QObject::connect(mWorker, SIGNAL(availableAudioModesChanged(const AudioModes)), this, SIGNAL(availableAudioModesChanged(const AudioModes)), Qt::QueuedConnection);
+    mWorker->createPulseContext();
+    mWorker->moveToThread(&mThread);
+    mThread.start();
+}
+
+QPulseAudioEngine::~QPulseAudioEngine()
+{
+    mThread.quit();
+    mThread.wait();
+}
+
+QPulseAudioEngine *QPulseAudioEngine::instance()
+{
+    QPulseAudioEngine *engine = pulseEngine();
+    return engine;
+}
+
+void QPulseAudioEngine::setCallMode(CallStatus callstatus, AudioMode audiomode)
+{
+    QMetaObject::invokeMethod(mWorker, "setCallMode", Qt::QueuedConnection, Q_ARG(CallStatus, callstatus), Q_ARG(AudioMode, audiomode));
+}
+
+void QPulseAudioEngine::setMicMute(bool muted)
+{
+    QMetaObject::invokeMethod(mWorker, "setMicMute", Qt::QueuedConnection, Q_ARG(bool, muted));
 }
 
 QT_END_NAMESPACE

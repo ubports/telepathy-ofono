@@ -133,7 +133,7 @@ void oFonoConferenceCallChannel::onSetActiveAudioOutput(const QString &id, Tp::D
     } else if (id == "speaker") {
         mode = AudioModeSpeaker;
     }
-    QPulseAudioEngine::instance()->setCallMode(QPulseAudioEngine::CallActive, mode);
+    QPulseAudioEngine::instance()->setCallMode(CallActive, mode);
 #endif
 }
 
