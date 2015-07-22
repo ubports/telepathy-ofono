@@ -98,6 +98,9 @@ void BaseConnectionEmergencyModeInterface::setEmergencyNumbers(const QStringList
 
 void BaseConnectionEmergencyModeInterface::setCountryCode(const QString &countryCode)
 {
+    if (mPriv->countryCode == countryCode) {
+        return;
+    }
     mPriv->countryCode = countryCode;
     Q_EMIT mPriv->adaptee->countryCodeChanged(mPriv->countryCode);
 }
