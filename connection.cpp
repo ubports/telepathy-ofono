@@ -508,20 +508,6 @@ bool oFonoConnection::isNetworkRegistered()
               status.isEmpty());
 }
 
-bool oFonoConnection::isEmergencyNumber(const QString &number)
-{
-    if (PhoneUtils::isEmergencyNumber(number)) {
-        return true;
-    }
-    Q_FOREACH (const QString &emergencyNumber, mOfonoVoiceCallManager->emergencyNumbers()) {
-        if (PhoneUtils::comparePhoneNumbers(emergencyNumber, number)) {
-            return true;
-            break;
-        }
-    }
-    return false;
-}
-
 uint oFonoConnection::setPresence(const QString& status, const QString& statusMessage, Tp::DBusError *error)
 {
     qDebug() << "setPresence" << status;
@@ -725,7 +711,7 @@ Tp::BaseChannelPtr oFonoConnection::createCallChannel(const QVariantMap &request
                          (!request.contains(TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandleType")) || request[TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandleType")] == Tp::HandleTypeNone) &&
                          (!request.contains(TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandle")) || request[TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandle")] == 0));
 
-    if (!available && (isConference || !isEmergencyNumber(newPhoneNumber))) {
+    if (!available && isConference) {
         error->set(TP_QT_ERROR_NETWORK_ERROR, "No network available");
         return Tp::BaseChannelPtr();
     }
