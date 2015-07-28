@@ -131,13 +131,13 @@ QPulseAudioEngineWorker::QPulseAudioEngineWorker(QObject *parent)
     createPulseContext();
 }
 
-void QPulseAudioEngineWorker::createPulseContext()
+bool QPulseAudioEngineWorker::createPulseContext()
 {
     bool keepGoing = true;
     bool ok = true;
 
     if (m_context)
-        return;
+        return true;
 
     m_mainLoopApi = pa_threaded_mainloop_get_api(m_mainLoop);
 
@@ -149,14 +149,14 @@ void QPulseAudioEngineWorker::createPulseContext()
     if (!m_context) {
         qWarning("Unable to create new pulseaudio context");
         pa_threaded_mainloop_unlock(m_mainLoop);
-        return;
+        return false;
     }
 
     if (pa_context_connect(m_context, NULL, PA_CONTEXT_NOAUTOSPAWN, NULL) < 0) {
         qWarning("Unable to create a connection to the pulseaudio context");
         pa_threaded_mainloop_unlock(m_mainLoop);
         releasePulseContext();
-        return;
+        return false;
     }
 
     pa_threaded_mainloop_wait(m_mainLoop);
@@ -203,6 +203,7 @@ void QPulseAudioEngineWorker::createPulseContext()
     }
 
     pa_threaded_mainloop_unlock(m_mainLoop);
+    return true;
 }
 
 
@@ -510,6 +511,9 @@ void QPulseAudioEngineWorker::restoreVoiceCall()
 
 void QPulseAudioEngineWorker::setCallMode(CallStatus callstatus, AudioMode audiomode)
 {
+    if (!createPulseContext()) {
+       return;
+    }
     CallStatus p_callstatus = m_callstatus;
     AudioMode p_audiomode = m_audiomode;
     AudioModes p_availableAudioModes = m_availableAudioModes;
@@ -614,6 +618,10 @@ void QPulseAudioEngineWorker::setCallMode(CallStatus callstatus, AudioMode audio
 
 void QPulseAudioEngineWorker::setMicMute(bool muted)
 {
+    if (!createPulseContext()) {
+       return;
+    }
+ 
     m_micmute = muted;
 
     if (m_callstatus == CallEnded)

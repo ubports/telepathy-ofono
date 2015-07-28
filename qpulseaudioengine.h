@@ -60,7 +60,7 @@ public:
 
     pa_threaded_mainloop *mainloop() { return m_mainLoop; }
     pa_context *context() { return m_context; }
-    void createPulseContext(void);
+    bool createPulseContext(void);
     int setupVoiceCall(void);
     void restoreVoiceCall(void);
     /* Callbacks to be used internally */
