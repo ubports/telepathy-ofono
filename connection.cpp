@@ -1203,6 +1203,6 @@ void oFonoConnection::updateAudioRouteToEarpiece()
 QString oFonoConnection::uniqueName() const
 {
     QString timestamp(QString::number(QDateTime::currentMSecsSinceEpoch()));
-    QString md5(QCryptographicHash::hash(timestamp.toLatin1(), QCryptographicHash::Md5));
+    QString md5(QCryptographicHash::hash(timestamp.toLatin1(), QCryptographicHash::Md5).toHex());
     return QString(QLatin1String("connection_%1")).arg(md5);
 }
