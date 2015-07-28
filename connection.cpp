@@ -18,6 +18,7 @@
  */
 
 #include <QDebug>
+#include <QCryptographicHash>
 
 #include <TelepathyQt/Constants>
 #include <TelepathyQt/BaseChannel>
@@ -1197,4 +1198,11 @@ void oFonoConnection::updateAudioRouteToEarpiece()
     if (mOfonoVoiceCallManager->getCalls().size() == 1) {
         enable_earpiece();
     }
+}
+
+QString oFonoConnection::uniqueName() const
+{
+    QString timestamp(QString::number(QDateTime::currentMSecsSinceEpoch()));
+    QString md5(QCryptographicHash::hash(timestamp.toLatin1(), QCryptographicHash::Md5));
+    return QString(QLatin1String("connection_%1")).arg(md5);
 }
