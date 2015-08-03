@@ -1,3 +1,12 @@
+telepathy-ofono (0.2+15.10.20150803-0ubuntu1) wily; urgency=medium
+
+  [ Tiago Salem Herrmann ]
+  * Check and create PA context before using it. (LP: #1478999)
+  * Ensure uniqueName() is really unique. Using the object pointer is
+    error-prone. (LP: #1473761)
+
+ -- CI Train Bot <ci-train-bot@canonical.com>  Mon, 03 Aug 2015 13:33:32 +0000
+
 telepathy-ofono (0.2+15.10.20150721-0ubuntu2~gcc5.1) wily; urgency=medium
 
   * No-change test rebuild for g++5 ABI transition
