@@ -106,6 +106,7 @@ public:
     Tp::BaseChannelPtr createCallChannel(const QVariantMap &request, Tp::DBusError *error);
 
     bool matchChannel(const Tp::BaseChannelPtr &channel, const QVariantMap &request, Tp::DBusError *error);
+    QString uniqueName() const;
 
     QDBusObjectPath sendMMS(const QStringList &numbers, const OutgoingAttachmentList& attachments);
 
