@@ -27,7 +27,6 @@
 #include <phonenumbers/phonenumbermatch.h>
 #include <phonenumbers/phonenumbermatcher.h>
 #include <phonenumbers/phonenumberutil.h>
-#include <phonenumbers/shortnumberutil.h>
 
 #include <QLocale>
 #include <QDebug>
