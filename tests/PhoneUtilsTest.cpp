@@ -48,6 +48,7 @@ void PhoneUtilsTest::testIsPhoneNumber_data()
     QTest::newRow("short/emergency number") << "190" << true;
     QTest::newRow("non phone numbers") << "abcdefg" << false;
     QTest::newRow("phone number with dots") << "+31 (475) 12.34.56" << true;
+    QTest::newRow("number with slash") << "+421 2/123 456 78" << true;
 }
 
 void PhoneUtilsTest::testIsPhoneNumber()
@@ -77,6 +78,7 @@ void PhoneUtilsTest::testComparePhoneNumbers_data()
     QTest::newRow("different non phone numbers") << "abcdefg" << "bcdefg" << false;
     QTest::newRow("phone number and custom string") << "abc12345678" << "12345678" << true;
     QTest::newRow("phone number with dots") << "+31 (475) 12.34.56" << "+31 (475) 12 34 56" << true;
+    QTest::newRow("phone number with slash") << "+421 2/123 456 78" << "212345678" << true;
     // FIXME: check what other cases we need to test here"
 }
 
