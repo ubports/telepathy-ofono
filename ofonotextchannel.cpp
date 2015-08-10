@@ -177,7 +177,7 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
     Tp::MessagePart body = message.at(1);
     QString objpath;
 
-    bool mms = header["mms"].variant().toBool();
+    bool mms = header["x-canonical-mms"].variant().toBool();
 
     if (mms) {
         // pop header out
