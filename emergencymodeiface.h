@@ -56,6 +56,7 @@ public:
 
 public Q_SLOTS:
     void setEmergencyNumbers(const QStringList &numbers);
+    void setCountryCode(const QString &countryCode);
 
 protected:
     BaseConnectionEmergencyModeInterface();
@@ -83,6 +84,12 @@ class TP_QT_EXPORT ConnectionInterfaceEmergencyModeAdaptor : public Tp::Abstract
 "    <signal name=\"EmergencyNumbersChanged\">\n"
 "      <arg type=\"as\" name=\"numbers\"/>\n"
 "    </signal>\n"
+"    <method name=\"CountryCode\">\n"
+"      <arg direction=\"out\" type=\"s\" name=\"countryCode\"/>\n"
+"    </method>\n"
+"    <signal name=\"CountryCodeChanged\">\n"
+"      <arg type=\"s\" name=\"countryCode\"/>\n"
+"    </signal>\n"
 "  </interface>\n"
 "")
 
@@ -91,12 +98,15 @@ public:
     virtual ~ConnectionInterfaceEmergencyModeAdaptor();
 
     typedef Tp::MethodInvocationContextPtr< QStringList > EmergencyNumbersContextPtr;
+    typedef Tp::MethodInvocationContextPtr< QString > CountryCodeContextPtr;
 
 public Q_SLOTS: // METHODS
     QStringList EmergencyNumbers(const QDBusMessage& dbusMessage);
+    QString CountryCode(const QDBusMessage& dbusMessage);
 
 Q_SIGNALS: // SIGNALS
     void EmergencyNumbersChanged(const QStringList &numbers);
+    void CountryCodeChanged(const QString &countryCode);
 };
 
 
@@ -110,9 +120,11 @@ public:
 
 private Q_SLOTS:
     void emergencyNumbers(const ConnectionInterfaceEmergencyModeAdaptor::EmergencyNumbersContextPtr &context);
+    void countryCode(const ConnectionInterfaceEmergencyModeAdaptor::CountryCodeContextPtr &context);
 
 Q_SIGNALS:
     void emergencyNumbersChanged(const QStringList &numbers);
+    void countryCodeChanged(const QString &countryCode);
 
 public:
     BaseConnectionEmergencyModeInterface *mInterface;

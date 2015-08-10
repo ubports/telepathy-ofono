@@ -26,12 +26,14 @@ macro(generate_test TESTNAME USE_DBUS)
                           XDG_DATA_DIRS=${TMPDIR};
                           MC_ACCOUNT_DIR=${TMPDIR};
                           MC_MANAGER_DIR=${TMPDIR};
+                          MC_CLIENTS_DIR=${TMPDIR};
                           PA_DISABLED=1")
     set_tests_properties(${TESTNAME} PROPERTIES
                           ENVIRONMENT "${TEST_ENVIRONMENT}"
                           TIMEOUT 30)
     target_link_libraries(${TESTNAME}
                           ${TP_QT5_LIBRARIES}
+                          ${LibPhoneNumber_LIBRARIES}
                          )
 endmacro(generate_test)
 

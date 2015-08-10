@@ -229,6 +229,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     QObject::connect(mOfonoSimManager, SIGNAL(subscriberNumbersChanged(QStringList)), SLOT(updateOnlineStatus()));
     QObject::connect(mOfonoNetworkRegistration, SIGNAL(statusChanged(QString)), SLOT(updateOnlineStatus()));
     QObject::connect(mOfonoNetworkRegistration, SIGNAL(nameChanged(QString)), SLOT(updateOnlineStatus()));
+    QObject::connect(mOfonoNetworkRegistration, SIGNAL(mccChanged(QString)), SLOT(updateOnlineStatus(QString)));
     QObject::connect(mOfonoNetworkRegistration, SIGNAL(validityChanged(bool)), SLOT(onValidityChanged(bool)));
     QObject::connect(mOfonoMessageWaiting, SIGNAL(voicemailMessageCountChanged(int)), voicemailIface.data(), SLOT(setVoicemailCount(int)));
     QObject::connect(mOfonoMessageWaiting, SIGNAL(voicemailWaitingChanged(bool)), voicemailIface.data(), SLOT(setVoicemailIndicator(bool)));
@@ -306,6 +307,19 @@ void oFonoConnection::onCheckMMSServices()
     Q_FOREACH(QString servicePath, mMmsdManager->services()) {
         onMMSDServiceAdded(servicePath);
     }
+}
+
+void oFonoConnection::updateMcc()
+{
+    QString mcc;
+    // check if the network mcc is available first, then try the sim card mcc
+    if (!mOfonoNetworkRegistration->mcc().isEmpty()) {
+        mcc = mOfonoNetworkRegistration->mcc();
+    } else if (!mOfonoSimManager->mobileCountryCode().isEmpty()) {
+        mcc = mOfonoSimManager->mobileCountryCode();
+    }
+    PhoneUtils::setMcc(mcc);
+    emergencyModeIface->setCountryCode(PhoneUtils::countryCodeForMCC(mcc));
 }
 
 void oFonoConnection::onMMSDServiceAdded(const QString &path)
@@ -508,17 +522,6 @@ bool oFonoConnection::isNetworkRegistered()
               status.isEmpty());
 }
 
-bool oFonoConnection::isEmergencyNumber(const QString &number)
-{
-    Q_FOREACH (const QString &emergencyNumber, mOfonoVoiceCallManager->emergencyNumbers()) {
-        if (PhoneUtils::comparePhoneNumbers(emergencyNumber, number)) {
-            return true;
-            break;
-        }
-    }
-    return false;
-}
-
 uint oFonoConnection::setPresence(const QString& status, const QString& statusMessage, Tp::DBusError *error)
 {
     qDebug() << "setPresence" << status;
@@ -601,6 +604,8 @@ void oFonoConnection::updateOnlineStatus()
 
     presences[selfHandle()] = mSelfPresence;
     simplePresenceIface->setPresences(presences);
+
+    updateMcc();
 }
 
 uint oFonoConnection::newHandle(const QString &identifier)
@@ -720,7 +725,7 @@ Tp::BaseChannelPtr oFonoConnection::createCallChannel(const QVariantMap &request
                          (!request.contains(TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandleType")) || request[TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandleType")] == Tp::HandleTypeNone) &&
                          (!request.contains(TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandle")) || request[TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandle")] == 0));
 
-    if (!available && (isConference || !isEmergencyNumber(newPhoneNumber))) {
+    if (!available && isConference) {
         error->set(TP_QT_ERROR_NETWORK_ERROR, "No network available");
         return Tp::BaseChannelPtr();
     }

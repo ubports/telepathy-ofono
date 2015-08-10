@@ -30,6 +30,7 @@ IF(CMAKE_BUILD_TYPE MATCHES [cC][oO][vV][eE][rR][aA][gG][eE])
   ENABLE_COVERAGE_REPORT(TARGETS ${TELEPATHY_OFONO})
 ENDIF(CMAKE_BUILD_TYPE MATCHES [cC][oO][vV][eE][rR][aA][gG][eE])
 
+find_package(LibPhoneNumber REQUIRED)
 find_package(Qt5Core)
 find_package(Qt5DBus)
 add_definitions(-DQT_NO_KEYWORDS)
@@ -58,6 +59,7 @@ include_directories(${TP_QT5_INCLUDE_DIRS})
 include_directories(${Qt5Core_INCLUDE_DIRS})
 include_directories(${Qt5DBus_INCLUDE_DIRS})
 include_directories(${SQLITE3_INCLUDE_DIRS})
+include_directories(${LibPhoneNumber_INCLUDE_DIRS})
 include_directories(/usr/include/telepathy-qt5/)
 include_directories(/usr/include/ofono-qt/)
 
@@ -65,7 +67,7 @@ find_library(TELEPATHY_QT5_LIBRARIES telepathy-qt5)
 find_library(TELEPATHY_QT5_SERVICE_LIBRARIES telepathy-qt5-service)
 find_library(OFONO_QT_LIBRARIES ofono-qt)
 
-qt5_add_resources(telepathyfono_RES sqlitetelepathyofono.qrc)
+qt5_add_resources(telepathyfono_RES sqlitetelepathyofono.qrc countrycodes.qrc)
 
 # update the .qrc file automatically when there are new schema files
 file(GLOB QRC_RESOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/schema/*.sql ${CMAKE_CURRENT_SOURCE_DIR}/schema/*.info)
@@ -109,7 +111,7 @@ add_dependencies(${TELEPATHY_OFONO} schema_update qrc_update)
 
 enable_testing()
 
-target_link_libraries(${TELEPATHY_OFONO} ${Qt5Core_LIBRARIES} ${Qt5DBus_LIBRARIES} ${WAUDIO_LIBRARIES} -ltelepathy-qt5 ${TELEPATHY_QT5_SERVICE_LIBRARIES} ${OFONO_QT_LIBRARIES} ${PULSEAUDIO_LIBRARIES} ${SQLITE3_LIBRARIES})
+target_link_libraries(${TELEPATHY_OFONO} ${Qt5Core_LIBRARIES} ${Qt5DBus_LIBRARIES} ${WAUDIO_LIBRARIES} -ltelepathy-qt5 ${TELEPATHY_QT5_SERVICE_LIBRARIES} ${OFONO_QT_LIBRARIES} ${PULSEAUDIO_LIBRARIES} ${SQLITE3_LIBRARIES} ${LibPhoneNumber_LIBRARIES})
 install(TARGETS ${TELEPATHY_OFONO} DESTINATION ${DAEMON_DIR})
 
 configure_file(ofono.service.in org.freedesktop.Telepathy.ConnectionManager.ofono.service)
