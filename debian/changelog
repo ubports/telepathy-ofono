@@ -1,3 +1,11 @@
+telepathy-ofono (0.2+15.10.20150810-0ubuntu1) wily; urgency=medium
+
+  [ Tiago Salem Herrmann ]
+  * Use libphonenumber for phone number validation, normalization and
+    comparison. (LP: #1471545, #1444883, #1334860)
+
+ -- CI Train Bot <ci-train-bot@canonical.com>  Mon, 10 Aug 2015 21:06:40 +0000
+
 telepathy-ofono (0.2+15.10.20150803-0ubuntu1) wily; urgency=medium
 
   [ Tiago Salem Herrmann ]

@@ -1,8 +1,9 @@
 /*
- * Copyright (C) 2012 Canonical, Ltd.
+ * Copyright (C) 2015 Canonical, Ltd.
  *
  * Authors:
  *  Gustavo Pichorim Boiko <gustavo.boiko@canonical.com>
+ *  Renato Araujo Oliveira Filho <renato.filho@canonical.com>
  *  Tiago Salem Herrmann <tiago.herrmann@canonical.com>
  *
  * This file is part of telepathy-ofono.
@@ -20,19 +21,31 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef PHONEUTILS_H
-#define PHONEUTILS_H
+#ifndef TELEPHONY_PHONEUTILS_H
+#define TELEPHONY_PHONEUTILS_H
 
-#include <QObject>
+#include <QtCore/QObject>
 
 class PhoneUtils : public QObject
 {
     Q_OBJECT
 public:
-    explicit PhoneUtils(QObject *parent = 0);
-    Q_INVOKABLE static bool comparePhoneNumbers(const QString &number1, const QString &number2);
-    Q_INVOKABLE static bool isPhoneNumber(const QString &identifier);
-    Q_INVOKABLE static QString normalizePhoneNumber(const QString &identifier);
+    enum PhoneNumberFormat {
+        E164 = 0,
+        International,
+        National,
+        RFC3966,
+        Auto
+    };
+
+    static QString normalizePhoneNumber(const QString &phoneNumber);
+    static bool comparePhoneNumbers(const QString &phoneNumberA,const QString &phoneNumberB);
+    static bool isPhoneNumber(const QString &identifier);
+    static QString countryCodeForMCC(const QString &mcc, bool useFallback = true);
+    static void setMcc(const QString &mcc);
+private:
+    static QString region();
+    static QString mMcc;
 };
 
-#endif // PHONEUTILS_H
+#endif
