@@ -37,6 +37,7 @@ public:
 
 private:
     Tp::BaseConnectionPtr createConnection(const QVariantMap &parameters, Tp::DBusError *error);
+    Tp::BaseProtocolAddressingInterfacePtr addressingIface;
     PowerDDBus mPowerDDBus;
     PowerDAudioModeMediator mAudioModeMediator;
 };

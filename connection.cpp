@@ -1039,7 +1039,7 @@ void oFonoConnection::onOfonoCallAdded(const QString &call, const QVariantMap &p
     request[TP_QT_IFACE_CHANNEL + QLatin1String(".InitiatorHandle")] = initiatorHandle;
     request["ofonoObjPath"] = call;
 
-    Tp::BaseChannelPtr channel = ensureChannel(request, yours, false, &error);
+    Tp::BaseChannelPtr channel = ensureChannel(request, yours, initiatorHandle == selfHandle(), &error);
 
     if (error.isValid() || channel.isNull()) {
         qWarning() << "error creating the channel " << error.name() << error.message();
