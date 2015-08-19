@@ -6,4 +6,8 @@ ObjectPath = /org/freedesktop/Telepathy/ConnectionManager/ofono
 [Protocol ofono]
 param-modem-objpath=s
 param-fakeEmergencyNumber=s
-
+AddressableVCardFields=tel
+AddressableURISchemes=tel
+EnglishName=ofono
+Interfaces=org.freedesktop.Telepathy.Protocol.Interface.Addressing;
+ConnectionInterfaces=org.freedesktop.Telepathy.Connection.Interface.Requests;org.freedesktop.Telepathy.Connection.Interface.Contacts;org.freedesktop.Telepathy.Connection.Interface.SimplePresence;
