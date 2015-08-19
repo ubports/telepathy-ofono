@@ -37,7 +37,8 @@ TelepathyHelper::TelepathyHelper(QObject *parent)
 {
     Tp::registerTypes();
 
-    mAccountFeatures << Tp::Account::FeatureCore;
+    mAccountFeatures << Tp::Account::FeatureCore
+                     << Tp::Account::FeatureProtocolInfo;
     mContactFeatures << Tp::Contact::FeatureAlias
                      << Tp::Contact::FeatureAvatarData
                      << Tp::Contact::FeatureAvatarToken
