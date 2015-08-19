@@ -26,6 +26,12 @@
 Protocol::Protocol(const QDBusConnection &dbusConnection, const QString &name)
     : Tp::BaseProtocol(dbusConnection, name), mAudioModeMediator(mPowerDDBus)
 {
+
+    addressingIface = Tp::BaseProtocolAddressingInterface::create();
+    addressingIface->setAddressableVCardFields(QStringList() << QLatin1String("tel"));
+    addressingIface->setAddressableUriSchemes(QStringList() << QLatin1String("tel"));
+    plugInterface(Tp::AbstractProtocolInterfacePtr::dynamicCast(addressingIface));
+
     setRequestableChannelClasses(Tp::RequestableChannelClassSpecList() <<
                                  Tp::RequestableChannelClassSpec::textChat() <<
                                  Tp::RequestableChannelClassSpec::audioCall());
