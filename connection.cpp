@@ -402,23 +402,26 @@ void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &pr
     if (properties["Status"] ==  "received") {
         const QString senderNormalizedNumber = PhoneUtils::normalizePhoneNumber(properties["Sender"].toString());
         QStringList recipientList = properties["Recipients"].toStringList();
-        // remove empty strings if any
-        recipientList.removeAll("");
-        // remove ourselves from the recipient list 
-        Q_FOREACH(const QString &myNumber, mOfonoSimManager->subscriberNumbers()) {
-            Q_FOREACH(const QString &remoteNumber, recipientList) {
-                if (PhoneUtils::comparePhoneNumbers(remoteNumber, myNumber)) {
-                    recipientList.removeAll(remoteNumber);
-                    break;
-                }
-            }
-        }
         QSet<QString> recipients;
         Tp::UIntList initialInviteeHandles;
-        Q_FOREACH(const QString &recipient, recipientList) {
-            recipients << PhoneUtils::normalizePhoneNumber(recipient);
-            initialInviteeHandles << ensureHandle(recipient);
+        // remove empty strings if any
+        recipientList.removeAll("");
+        if (recipientList.size() > 1) {
+            // remove ourselves from the recipient list 
+            Q_FOREACH(const QString &myNumber, mOfonoSimManager->subscriberNumbers()) {
+                Q_FOREACH(const QString &remoteNumber, recipientList) {
+                    if (PhoneUtils::comparePhoneNumbers(remoteNumber, myNumber)) {
+                        recipientList.removeAll(remoteNumber);
+                        break;
+                    }
+                }
+            }
+            Q_FOREACH(const QString &recipient, recipientList) {
+                recipients << PhoneUtils::normalizePhoneNumber(recipient);
+                initialInviteeHandles << ensureHandle(recipient);
+            }
         }
+
         // check if there is an open channel for this number and use it
         oFonoTextChannel *channel = textChannelForMembers(QStringList() << senderNormalizedNumber << recipients.toList());
         if (channel) {
