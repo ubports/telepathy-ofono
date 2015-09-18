@@ -23,8 +23,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define PULSEAUDIO_PROFILE_HSP "hsp"
-#define PULSEAUDIO_PROFILE_A2DP "a2dp"
+#define PULSEAUDIO_PROFILE_HSP "headset_head_unit"
+#define PULSEAUDIO_PROFILE_A2DP "a2dp_sink"
 
 QT_BEGIN_NAMESPACE
 
