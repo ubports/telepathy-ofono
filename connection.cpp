@@ -400,7 +400,7 @@ void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &pr
     MMSDMessage *msg = new MMSDMessage(path, properties);
     mServiceMMSList[servicePath].append(msg);
     if (properties["Status"] ==  "received") {
-        const QString senderNormalizedNumber = PhoneUtils::normalizePhoneNumber(properties["Sender"].toString());
+        QString senderNormalizedNumber = PhoneUtils::normalizePhoneNumber(properties["Sender"].toString());
         QStringList recipientList = properties["Recipients"].toStringList();
         QSet<QString> recipients;
         Tp::UIntList initialInviteeHandles;
@@ -420,6 +420,10 @@ void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &pr
                 recipients << PhoneUtils::normalizePhoneNumber(recipient);
                 initialInviteeHandles << ensureHandle(recipient);
             }
+        } else if (senderNormalizedNumber.isEmpty() && recipientList.size() == 1) {
+            // if this is a message coming from the server (no sender), clear the recipient list;
+            recipientList.clear();
+            senderNormalizedNumber = "x-ofono-unknown";
         }
 
         // check if there is an open channel for this number and use it
