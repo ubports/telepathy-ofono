@@ -906,7 +906,10 @@ void oFonoConnection::onOfonoImmediateMessage(const QString &message, const QVar
 
 void oFonoConnection::ensureTextChannel(const QString &message, const QVariantMap &info, bool flash)
 {
-    const QString normalizedNumber = PhoneUtils::normalizePhoneNumber(info["Sender"].toString());
+    QString normalizedNumber = PhoneUtils::normalizePhoneNumber(info["Sender"].toString()).trimmed();
+    if (normalizedNumber.isEmpty()) {
+        normalizedNumber = "x-ofono-unknown";
+    }
     // check if there is an open channel for this sender and use it
     oFonoTextChannel *channel = textChannelForMembers(QStringList() << normalizedNumber);
     if(channel) {
