@@ -232,19 +232,21 @@ QPulseAudioEngineWorker::~QPulseAudioEngineWorker()
 
 void QPulseAudioEngineWorker::cardInfoCallback(const pa_card_info *info)
 {
-    pa_card_profile_info *voice_call = NULL, *highest = NULL;
-    pa_card_profile_info *hsp = NULL, *a2dp = NULL;
+    pa_card_profile_info2 *voice_call = NULL, *highest = NULL;
+    pa_card_profile_info2 *hsp = NULL, *a2dp = NULL;
 
     /* For now we only support one card with the voicecall feature */
     for (int i = 0; i < info->n_profiles; i++) {
-        if (!highest || info->profiles[i].priority > highest->priority)
-            highest = &info->profiles[i];
-        if (!strcmp(info->profiles[i].name, "voicecall"))
-            voice_call = &info->profiles[i];
-        else if (!strcmp(info->profiles[i].name, PULSEAUDIO_PROFILE_HSP))
-            hsp = &info->profiles[i];
-        else if (!strcmp(info->profiles[i].name, PULSEAUDIO_PROFILE_A2DP))
-            a2dp = &info->profiles[i];
+        if (!highest || info->profiles2[i]->priority > highest->priority)
+            highest = info->profiles2[i];
+        if (!strcmp(info->profiles2[i]->name, "voicecall"))
+            voice_call = info->profiles2[i];
+        else if (!strcmp(info->profiles2[i]->name, PULSEAUDIO_PROFILE_HSP) &&
+                 info->profiles2[i]->available != 0)
+            hsp = info->profiles2[i];
+        else if (!strcmp(info->profiles2[i]->name, PULSEAUDIO_PROFILE_A2DP) &&
+                 info->profiles2[i]->available != 0)
+            a2dp = info->profiles2[i];
     }
 
     /* Record the card that supports voicecall (default one to be used) */
