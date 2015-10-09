@@ -1,3 +1,11 @@
+telepathy-ofono (0.2+15.10.20150819.1-0ubuntu1) wily; urgency=medium
+
+  [ Tiago Salem Herrmann ]
+  * Add addressing interface and set AddressingVCardField property to
+    "tel" (LP: #1485005)
+
+ -- CI Train Bot <ci-train-bot@canonical.com>  Wed, 19 Aug 2015 20:56:52 +0000
+
 telepathy-ofono (0.2+15.10.20150810-0ubuntu1) wily; urgency=medium
 
   [ Tiago Salem Herrmann ]
