@@ -402,6 +402,7 @@ void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &pr
     if (properties["Status"] ==  "received") {
         QString senderNormalizedNumber = PhoneUtils::normalizePhoneNumber(properties["Sender"].toString());
         QStringList recipientList = properties["Recipients"].toStringList();
+        // we use QSet to avoid having duplicate entries
         QSet<QString> recipients;
         Tp::UIntList initialInviteeHandles;
         // remove empty strings if any
