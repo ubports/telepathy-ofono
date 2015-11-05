@@ -272,6 +272,7 @@ void QPulseAudioEngineWorker::sinkInfoCallback(const pa_sink_info *info)
     pa_sink_port_info *wired_headset = NULL, *wired_headphone = NULL;
     pa_sink_port_info *preferred = NULL;
     pa_sink_port_info *bluetooth_sco = NULL;
+    pa_sink_port_info *speaker_and_wired_headphone = NULL;
     AudioMode audiomodetoset;
     AudioModes modes;
 
@@ -288,6 +289,8 @@ void QPulseAudioEngineWorker::sinkInfoCallback(const pa_sink_info *info)
             speaker = info->ports[i];
         else if (!strcmp(info->ports[i]->name, "output-bluetooth_sco"))
             bluetooth_sco = info->ports[i];
+        else if (!strcmp(info->ports[i]->name, "output-speaker+wired_headphone"))
+            speaker_and_wired_headphone = info->ports[i];
     }
 
     if (!earpiece || !speaker)
@@ -318,6 +321,9 @@ void QPulseAudioEngineWorker::sinkInfoCallback(const pa_sink_info *info)
     if ((m_audiomode & AudioModeWiredHeadset) && (modes.contains(AudioModeWiredHeadset))) {
         preferred = wired_headset ? wired_headset : wired_headphone;
         audiomodetoset = AudioModeWiredHeadset;
+    }
+    if (m_callstatus == CallRinging && speaker_and_wired_headphone) {
+        preferred = speaker_and_wired_headphone;
     }
     if ((m_audiomode & AudioModeBluetooth) && (modes.contains(AudioModeBluetooth))) {
         preferred = bluetooth_sco;

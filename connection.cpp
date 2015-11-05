@@ -400,25 +400,33 @@ void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &pr
     MMSDMessage *msg = new MMSDMessage(path, properties);
     mServiceMMSList[servicePath].append(msg);
     if (properties["Status"] ==  "received") {
-        const QString senderNormalizedNumber = PhoneUtils::normalizePhoneNumber(properties["Sender"].toString());
+        QString senderNormalizedNumber = PhoneUtils::normalizePhoneNumber(properties["Sender"].toString());
         QStringList recipientList = properties["Recipients"].toStringList();
-        // remove empty strings if any
-        recipientList.removeAll("");
-        // remove ourselves from the recipient list 
-        Q_FOREACH(const QString &myNumber, mOfonoSimManager->subscriberNumbers()) {
-            Q_FOREACH(const QString &remoteNumber, recipientList) {
-                if (PhoneUtils::comparePhoneNumbers(remoteNumber, myNumber)) {
-                    recipientList.removeAll(remoteNumber);
-                    break;
-                }
-            }
-        }
+        // we use QSet to avoid having duplicate entries
         QSet<QString> recipients;
         Tp::UIntList initialInviteeHandles;
-        Q_FOREACH(const QString &recipient, recipientList) {
-            recipients << PhoneUtils::normalizePhoneNumber(recipient);
-            initialInviteeHandles << ensureHandle(recipient);
+        // remove empty strings if any
+        recipientList.removeAll("");
+        if (recipientList.size() > 1) {
+            // remove ourselves from the recipient list 
+            Q_FOREACH(const QString &myNumber, mOfonoSimManager->subscriberNumbers()) {
+                Q_FOREACH(const QString &remoteNumber, recipientList) {
+                    if (PhoneUtils::comparePhoneNumbers(remoteNumber, myNumber)) {
+                        recipientList.removeAll(remoteNumber);
+                        break;
+                    }
+                }
+            }
+            Q_FOREACH(const QString &recipient, recipientList) {
+                recipients << PhoneUtils::normalizePhoneNumber(recipient);
+                initialInviteeHandles << ensureHandle(recipient);
+            }
+        } else if (senderNormalizedNumber.isEmpty() && recipientList.size() == 1) {
+            // if this is a message coming from the server (no sender), clear the recipient list;
+            recipientList.clear();
+            senderNormalizedNumber = "x-ofono-unknown";
         }
+
         // check if there is an open channel for this number and use it
         oFonoTextChannel *channel = textChannelForMembers(QStringList() << senderNormalizedNumber << recipients.toList());
         if (channel) {
@@ -899,7 +907,10 @@ void oFonoConnection::onOfonoImmediateMessage(const QString &message, const QVar
 
 void oFonoConnection::ensureTextChannel(const QString &message, const QVariantMap &info, bool flash)
 {
-    const QString normalizedNumber = PhoneUtils::normalizePhoneNumber(info["Sender"].toString());
+    QString normalizedNumber = PhoneUtils::normalizePhoneNumber(info["Sender"].toString()).trimmed();
+    if (normalizedNumber.isEmpty()) {
+        normalizedNumber = "x-ofono-unknown";
+    }
     // check if there is an open channel for this sender and use it
     oFonoTextChannel *channel = textChannelForMembers(QStringList() << normalizedNumber);
     if(channel) {

@@ -1,3 +1,17 @@
+telepathy-ofono (0.2+16.04.20151103-0ubuntu1) xenial; urgency=medium
+
+  [ Tiago Salem Herrmann ]
+  * Play ringtone on both speaker and wired headset. (LP: #1483888)
+
+ -- Bill Filler <ci-train-bot@canonical.com>  Tue, 03 Nov 2015 15:43:40 +0000
+
+telepathy-ofono (0.2+15.10.20151013-0ubuntu1) wily; urgency=medium
+
+  [ Tiago Salem Herrmann ]
+  * Force 1-1 chat if there is only one recipient. (LP: #1480815)
+
+ -- CI Train Bot <ci-train-bot@canonical.com>  Tue, 13 Oct 2015 20:35:39 +0000
+
 telepathy-ofono (0.2+15.10.20150819.1-0ubuntu1) wily; urgency=medium
 
   [ Tiago Salem Herrmann ]
