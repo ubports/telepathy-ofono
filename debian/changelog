@@ -1,3 +1,13 @@
+telepathy-ofono (0.2+16.04.20151110-0ubuntu1) xenial; urgency=medium
+
+  [ CI Train Bot ]
+  * New rebuild forced.
+
+  [ Simon Fels ]
+  * Add support for BlueZ 5
+
+ -- Simon Fels <simon.busch@canonical.com>  Tue, 10 Nov 2015 09:54:55 +0000
+
 telepathy-ofono (0.2+16.04.20151103-0ubuntu1) xenial; urgency=medium
 
   [ Tiago Salem Herrmann ]
