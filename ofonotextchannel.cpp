@@ -177,7 +177,7 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
     Tp::MessagePart body = message.at(1);
     QString objpath;
 
-    bool mms = header["mms"].variant().toBool();
+    bool mms = header["x-canonical-mms"].variant().toBool();
 
     if (mms) {
         // pop header out
@@ -426,7 +426,7 @@ void oFonoTextChannel::mmsReceived(const QString &id, uint handle, const QVarian
     header["message-sender"] = QDBusVariant(handle);
     header["message-received"] = QDBusVariant(QDateTime::currentDateTimeUtc().toTime_t());
     header["message-type"] = QDBusVariant(Tp::DeliveryStatusDelivered);
-    header["mms"] = QDBusVariant(true);
+    header["x-canonical-mms"] = QDBusVariant(true);
     if (!subject.isEmpty())
     {
         header["subject"] = QDBusVariant(subject);
