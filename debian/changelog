@@ -1,3 +1,10 @@
+telepathy-ofono (0.2+16.04.20151120-0ubuntu1) xenial; urgency=medium
+
+  [ Tiago Salem Herrmann ]
+  * Rename mms flag set by telephony-service.
+
+ -- Gustavo Pichorim Boiko <gustavo.boiko@canonical.com>  Fri, 20 Nov 2015 19:59:13 +0000
+
 telepathy-ofono (0.2+16.04.20151110-0ubuntu1) xenial; urgency=medium
 
   [ CI Train Bot ]
