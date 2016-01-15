@@ -29,7 +29,6 @@
 #include <ofono-qt/ofonovoicecall.h>
 
 #include "connection.h"
-#include "audiooutputsiface.h"
 
 class oFonoConnection;
 
@@ -47,7 +46,6 @@ public:
     void onHoldStateChanged(const Tp::LocalHoldState &state, const Tp::LocalHoldStateReason &reason, Tp::DBusError *error);
     void onDTMFStartTone(uchar event, Tp::DBusError *error);
     void onDTMFStopTone(Tp::DBusError *error);
-    void onSetActiveAudioOutput(const QString &id, Tp::DBusError *error);
     void onSplit(Tp::DBusError *error);
     Tp::CallState callState();
 
@@ -74,9 +72,6 @@ private Q_SLOTS:
 private:
     QString mObjPath;
     QString mPreviousState;
-#ifdef USE_PULSEAUDIO
-    bool mHasPulseAudio;
-#endif
     bool mIncoming;
     bool mRequestedHangup;
     Tp::BaseChannelPtr mBaseChannel;
@@ -86,7 +81,6 @@ private:
     Tp::BaseChannelHoldInterfacePtr mHoldIface;
     Tp::BaseChannelSplittableInterfacePtr mSplittableIface;
     Tp::BaseCallMuteInterfacePtr mMuteIface;
-    BaseChannelAudioOutputsInterfacePtr mAudioOutputsIface;
     Tp::BaseChannelCallTypePtr mCallChannel;
     Tp::BaseCallContentDTMFInterfacePtr mDTMFIface;
     Tp::BaseCallContentPtr mCallContent;
