@@ -106,33 +106,47 @@ static void mcp_account_manager_ofono_init(McpAccountManagerOfono *self)
         }
     }
 
-    GHashTable *simNames = NULL;
-    GHashTableIter iter;
-    gpointer key, value;
+    GHashTable *sim_names = g_hash_table_new(g_str_hash, g_str_equal);
     char dbus_path[80] = {0};
     sprintf(dbus_path, "/org/freedesktop/Accounts/User%d", getuid());
-    DBusGConnection *bus = dbus_g_bus_get (DBUS_BUS_SYSTEM, NULL);
-    DBusGProxy *props_proxy = NULL;
-    if (bus) {
-        DBusGProxy *props_proxy = dbus_g_proxy_new_for_name (bus,
-                                                             "org.freedesktop.Accounts",
-                                                             dbus_path,
-                                                             "org.freedesktop.DBus.Properties");
-    }
-
-    if (props_proxy) {
-        GError *error = NULL;
+    GError *bus_error = NULL;
+    GDBusConnection *bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &bus_error);
+    if (bus_error) {
+        g_warning("Failed to get system bugs: %s", bus_error->message);
+        g_error_free (bus_error);
+    } else if (bus) {
+        GError *call_error = NULL;
 
         /* Retrieve all SimNames from Accounts Service */
-        if (!dbus_g_proxy_call (props_proxy, "Get", &error,
-                    G_TYPE_STRING, "com.ubuntu.touch.AccountsService.Phone",
-                    G_TYPE_STRING, "SimNames",
-                    G_TYPE_INVALID,
-                    DBUS_TYPE_G_STRING_STRING_HASHTABLE, &simNames,
-                    G_TYPE_INVALID)) {
-            g_warning ("Failed to get SimNames property: %s", error->message);
-            g_error_free (error);
+        GVariant *result = g_dbus_connection_call_sync (bus,
+                                      "org.freedesktop.Accounts",
+                                      dbus_path,
+                                      "org.freedesktop.DBus.Properties",
+                                      "Get",
+                                      g_variant_new ("(ss)", "com.ubuntu.touch.AccountsService.Phone", "SimNames"),
+                                      G_VARIANT_TYPE ("(v)"),
+                                      G_DBUS_CALL_FLAGS_NONE,
+                                      -1,
+                                      NULL,
+                                      &call_error);
+
+
+        if (call_error) {
+            g_warning ("Failed to get SimNames property: %s", call_error->message);
+            g_error_free (call_error);
+        } else {
+            GVariantIter *_iter;
+            gchar *key;
+            gchar *value;
+            GVariant *dict;
+            g_variant_get (result, "(v)", &dict);
+            g_variant_get(dict, "a{ss}", &_iter);
+            while (g_variant_iter_loop (_iter, "{ss}", &key, &value)) {
+                g_hash_table_insert(sim_names, g_strdup(key), g_strdup(value));
+            }
+            g_variant_iter_free(_iter);
         }
+        g_object_unref(bus);
     }
 
     for (index = 0; index < num_modems; index++) {
@@ -151,22 +165,20 @@ static void mcp_account_manager_ofono_init(McpAccountManagerOfono *self)
         g_hash_table_insert(account->params, g_strdup("always_dispatch"), g_strdup("true"));
         g_hash_table_insert(account->params, g_strdup("param-modem-objpath"), g_strdup(ril_modem));
 
-        if (simNames) {
-            g_hash_table_iter_init(&iter, simNames);
-            while (g_hash_table_iter_next(&iter, &key, &value)) {
-                if (!strcmp((char *)key, ril_modem)) {
-                    g_hash_table_insert(account->params, g_strdup("DisplayName"), g_strdup((char*)value));
-                    break;
-                }
+        GHashTableIter iter;
+        gpointer key, value;
+        g_hash_table_iter_init(&iter, sim_names);
+        while (g_hash_table_iter_next(&iter, &key, &value)) {
+            if (!strcmp((char *)key, ril_modem)) {
+                g_hash_table_insert(account->params, g_strdup("DisplayName"), g_strdup((char*)value));
+                break;
             }
         }
 
         self->priv->accounts = g_list_append(self->priv->accounts, account);
     }
 
-    if (simNames) {
-        g_hash_table_unref(simNames);
-    }
+    g_hash_table_unref(sim_names);
 
     if (output) {
         g_free(output);
