@@ -1,3 +1,10 @@
+telepathy-ofono (0.2+16.04.20160324-0ubuntu1) xenial; urgency=medium
+
+  [ Tiago Salem Herrmann ]
+  * Use accounts service to get the sim names. (LP: #1418040)
+
+ -- Alfonso Sanchez-Beato <alfonso.sanchez-beato@canonical.com>  Thu, 24 Mar 2016 19:50:19 +0000
+
 telepathy-ofono (0.2+16.04.20151120-0ubuntu1) xenial; urgency=medium
 
   [ Tiago Salem Herrmann ]
