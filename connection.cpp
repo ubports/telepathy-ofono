@@ -691,7 +691,12 @@ Tp::BaseChannelPtr oFonoConnection::createTextChannel(const QVariantMap &request
     QStringList phoneNumbers;
     bool flash = false;
     if (request.contains(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeIDs"))) {
-        phoneNumbers = qdbus_cast<QStringList>(request[TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeIDs")]);
+        QStringList newPhoneNumbers = qdbus_cast<QStringList>(request[TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeIDs")]);
+        Tp::UIntList handles;
+        Q_FOREACH(const QString& number, newPhoneNumbers) {
+            handles << ensureHandle(number);
+        }
+        phoneNumbers << inspectHandles(Tp::HandleTypeContact, handles, error);
     } else if (request.contains(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeHandles"))) {
         phoneNumbers << inspectHandles(Tp::HandleTypeContact, qdbus_cast<Tp::UIntList>(request[TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeHandles")]), error);
     } else {
