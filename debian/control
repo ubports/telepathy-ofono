@@ -12,7 +12,7 @@ Build-Depends: cmake,
                libphonenumber-dev,
                libqt5sql5-sqlite,
                libtelepathy-qt5-dev (>= 0.9.3),
-               libpulse-dev [armhf],
+               libpulse-dev [armhf arm64],
                libsqlite3-dev,
                pulseaudio,
                qt5-default (>= 5.0),
@@ -37,7 +37,7 @@ Description: telepathy oFono connection manager
  real phone calls and send and receive SMSs.
 
 Package: telepathy-ofono-ril-mc-plugin
-Architecture: amd64 i386 armhf
+Architecture: amd64 i386 armhf arm64
 Depends: telepathy-ofono,
          ${misc:Depends},
          ${shlibs:Depends},
