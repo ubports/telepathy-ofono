@@ -1,3 +1,10 @@
+telepathy-ofono (0.2+16.10.20160719-0ubuntu1) yakkety; urgency=medium
+
+  [ Łukasz 'sil2100' Zemczak ]
+  * Attempt building all telepathy-ofono binaries for arm64 as well.
+
+ -- Łukasz Zemczak <lukasz.zemczak@canonical.com>  Tue, 19 Jul 2016 11:45:24 +0000
+
 telepathy-ofono (0.2+16.04.20160324-0ubuntu1) xenial; urgency=medium
 
   [ Tiago Salem Herrmann ]
