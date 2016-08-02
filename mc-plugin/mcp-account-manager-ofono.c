@@ -106,11 +106,49 @@ static void mcp_account_manager_ofono_init(McpAccountManagerOfono *self)
         }
     }
 
-    GSettings *settings = NULL;
-    GSettingsSchemaSource *source = g_settings_schema_source_get_default();
-    if (source != NULL && g_settings_schema_source_lookup(source, "com.ubuntu.phone", TRUE) != NULL) {
-        settings = g_settings_new("com.ubuntu.phone");
+    GHashTable *sim_names = g_hash_table_new(g_str_hash, g_str_equal);
+    char dbus_path[80] = {0};
+    sprintf(dbus_path, "/org/freedesktop/Accounts/User%d", getuid());
+    GError *bus_error = NULL;
+    GDBusConnection *bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &bus_error);
+    if (bus_error) {
+        g_warning("Failed to get system bugs: %s", bus_error->message);
+        g_error_free (bus_error);
+    } else if (bus) {
+        GError *call_error = NULL;
+
+        /* Retrieve all SimNames from Accounts Service */
+        GVariant *result = g_dbus_connection_call_sync (bus,
+                                      "org.freedesktop.Accounts",
+                                      dbus_path,
+                                      "org.freedesktop.DBus.Properties",
+                                      "Get",
+                                      g_variant_new ("(ss)", "com.ubuntu.touch.AccountsService.Phone", "SimNames"),
+                                      G_VARIANT_TYPE ("(v)"),
+                                      G_DBUS_CALL_FLAGS_NONE,
+                                      -1,
+                                      NULL,
+                                      &call_error);
+
+
+        if (call_error) {
+            g_warning ("Failed to get SimNames property: %s", call_error->message);
+            g_error_free (call_error);
+        } else {
+            GVariantIter *_iter;
+            gchar *key;
+            gchar *value;
+            GVariant *dict;
+            g_variant_get (result, "(v)", &dict);
+            g_variant_get(dict, "a{ss}", &_iter);
+            while (g_variant_iter_loop (_iter, "{ss}", &key, &value)) {
+                g_hash_table_insert(sim_names, g_strdup(key), g_strdup(value));
+            }
+            g_variant_iter_free(_iter);
+        }
+        g_object_unref(bus);
     }
+
     for (index = 0; index < num_modems; index++) {
         OfonoAccount *account = (OfonoAccount*)malloc(sizeof(OfonoAccount));
         char account_name[30] = {0};
@@ -126,62 +164,26 @@ static void mcp_account_manager_ofono_init(McpAccountManagerOfono *self)
         g_hash_table_insert(account->params, g_strdup("ConnectAutomatically"), g_strdup("true"));
         g_hash_table_insert(account->params, g_strdup("always_dispatch"), g_strdup("true"));
         g_hash_table_insert(account->params, g_strdup("param-modem-objpath"), g_strdup(ril_modem));
-        if (settings) {
-            GVariant *sim_names = g_settings_get_value(settings, "sim-names");
-            if (sim_names) {
-                GVariantIter iter;
-                GVariant *value;
-                GVariantBuilder *builder = g_variant_builder_new(G_VARIANT_TYPE("a(ss)"));
-                gchar *key;
-                int found = 0;
 
-                g_variant_iter_init (&iter, sim_names);
-                while (g_variant_iter_next (&iter, "{ss}", &key, &value)) {
-                    g_variant_builder_add(builder, "(ss)", key, value);
-                    if (!strcmp(key, ril_modem)) {
-                        g_hash_table_insert(account->params, g_strdup("DisplayName"), g_strdup((char *)value));
-                        found = 1;
-                    }
-                    g_free (key);
-                    g_free (value);
-                }
-                if (!found) {
-                    char *sim_name = dgettext("telephony-service", "SIM %1");
-                    char *final_sim_name = NULL;
-                    char sim_index[10] = {0};
-                    const char *placeholder = "%1";
-                    sprintf(sim_index, "%d", index+1);
-                    const char *pos = strstr(sim_name, placeholder);
-                    if (pos) {
-                        // this is used to replace %1 by the actual index
-                        // FIXME: change telephony-service's string to %d to make everything easier
-                        final_sim_name = calloc(1, strlen(sim_name) - strlen(placeholder) + strlen(sim_index) + 1);
-                        strncpy(final_sim_name, sim_name, pos - sim_name);
-                        strcat(final_sim_name, sim_index);
-                        strcat(final_sim_name, pos + strlen(placeholder));
-                    } else {
-                        final_sim_name = strdup(sim_name);
-                    }
-                    
-                    g_hash_table_insert(account->params, g_strdup("DisplayName"), g_strdup(final_sim_name));
-                    g_settings_set_value(settings, "sim-names", g_variant_new("a(ss)", builder));
-                    free(final_sim_name);
-                }
-                g_variant_builder_unref(builder);
-            }
-            if (sim_names) {
-                g_variant_unref(sim_names);
+        GHashTableIter iter;
+        gpointer key, value;
+        g_hash_table_iter_init(&iter, sim_names);
+        while (g_hash_table_iter_next(&iter, &key, &value)) {
+            if (!strcmp((char *)key, ril_modem)) {
+                g_hash_table_insert(account->params, g_strdup("DisplayName"), g_strdup((char*)value));
+                break;
             }
         }
 
         self->priv->accounts = g_list_append(self->priv->accounts, account);
     }
-    if (settings) {
-        g_object_unref (settings);
-    }
+
+    g_hash_table_unref(sim_names);
+
     if (output) {
         g_free(output);
     }
+
     if (output2) {
       g_free (output2);
     }
