@@ -1,3 +1,9 @@
+telepathy-ofono (0.2+16.10.20160909-0ubuntu1) yakkety; urgency=medium
+
+  * No change rebuild for libphonenumber7
+
+ -- Ken VanDine <ken.vandine@canonical.com>  Fri, 09 Sep 2016 14:10:28 +0000
+
 telepathy-ofono (0.2+16.10.20160719-0ubuntu1) yakkety; urgency=medium
 
   [ Łukasz 'sil2100' Zemczak ]
