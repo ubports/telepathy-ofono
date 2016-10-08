@@ -11,3 +11,6 @@ add_custom_command(
     )
 
 add_custom_target(schema_update DEPENDS ${SCHEMA_FILE} ${VERSION_FILE})
+
+# just to get the v*sql files to show on QtCreator
+add_custom_target(schema_files_target ALL SOURCES ${SCHEMA_FILES})

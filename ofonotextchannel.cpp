@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 Canonical, Ltd.
+ * Copyright (C) 2013-2016 Canonical, Ltd.
  *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License version 3, as published by
@@ -14,6 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors: Tiago Salem Herrmann <tiago.herrmann@canonical.com>
+ *          Gustavo Pichorim Boiko <gustavo.boiko@canonical.com>
  */
 
 // ofono-qt
@@ -39,6 +40,15 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, IncomingAttachmen
     return argument;
 }
 
+
+oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, QString targetId, QStringList phoneNumbers, QObject *parent)
+{
+    /* FIXME(MMSGroup): implement
+        - for existing groups, the phoneNumbers are populated from the cache directly in the connection,
+          so nothing needs to be done here, the list is correct at this point.
+        - we need to explicitly set the TargetHandleType as Room here
+     */
+}
 
 oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, QStringList phoneNumbers, bool flash, QObject *parent):
     QObject(parent),
@@ -81,6 +91,7 @@ oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, QStringList phoneNumbe
     baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mMessagesIface));
 
     mGroupIface = Tp::BaseChannelGroupInterface::create(Tp::ChannelGroupFlagCanAdd, conn->selfHandle());
+    // FIXME(MMSGroup): check if there is a way to inform it is not possible to add/remove members in MMS groups
     mGroupIface->setAddMembersCallback(Tp::memFun(this,&oFonoTextChannel::onAddMembers));
     mGroupIface->setRemoveMembersCallback(Tp::memFun(this,&oFonoTextChannel::onRemoveMembers));
 
@@ -89,6 +100,9 @@ oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, QStringList phoneNumbe
 
     mSMSIface = Tp::BaseChannelSMSInterface::create(flash, true);
     baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mSMSIface));
+
+    // FIXME(MMSGroup): create and plug the Room interface, and maybe the subject or the
+    // roomconfig interface for the subject
 
     mBaseChannel = baseChannel;
     mTextChannel = Tp::BaseChannelTextTypePtr::dynamicCast(mBaseChannel->interface(TP_QT_IFACE_CHANNEL_TYPE_TEXT));
@@ -177,13 +191,14 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
     Tp::MessagePart body = message.at(1);
     QString objpath;
 
+    // FIXME(MMSGroup): in case of multiple recipients, we have to check if this channel is a group MMS channel
+    // and also switch to use MMS. This x-canonical-mms thing might be obsolete, double check that.
     bool mms = header["x-canonical-mms"].variant().toBool();
 
     if (mms) {
         // pop header out
         message.removeFirst();
         OutgoingAttachmentList attachments;
-        // FIXME group chat
         QString phoneNumber = mPhoneNumbers[0];
         uint handle = mConnection->ensureHandle(phoneNumber);
         QStringList temporaryFiles;

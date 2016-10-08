@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 Canonical, Ltd.
+ * Copyright (C) 2013-2016 Canonical, Ltd.
  *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License version 3, as published by
@@ -14,6 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors: Tiago Salem Herrmann <tiago.herrmann@canonical.com>
+ *          Gustavo Pichorim Boiko <gustavo.boiko@canonical.com>
  */
 
 #ifndef OFONOTEXTCHANNEL_H
@@ -34,7 +35,12 @@ class oFonoTextChannel : public QObject
 {
     Q_OBJECT
 public:
+    /** @brief Constructs a text channel to send/receive MMS GroupChat messages */
+    oFonoTextChannel(oFonoConnection *conn, QString targetId, QStringList phoneNumbers, QObject *parent = 0);
+
+    /** @brief Constructs a text channel to be used in 1-1 or SMS broadcast conversations */
     oFonoTextChannel(oFonoConnection *conn, QStringList phoneNumbers, bool flash = false, QObject *parent = 0);
+
     QString sendMessage(Tp::MessagePartList message, uint flags, Tp::DBusError* error);
     void messageReceived(const QString & message, uint handle, const QVariantMap &info);
     Tp::BaseChannelPtr baseChannel();
