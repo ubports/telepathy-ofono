@@ -786,6 +786,8 @@ Tp::BaseChannelPtr oFonoConnection::createTextChannel(const QVariantMap &request
         phoneNumbers = group.members;
         isRoom = true;
         // FIXME(MMSGroup): add support for MMS group subject
+    } else if (targetHandleType == Tp::HandleTypeContact && targetHandle != 0) {
+        targetId = mHandles.value(targetHandle);
     }
 
     // now get the appropriate handle
