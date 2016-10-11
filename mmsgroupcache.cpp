@@ -21,6 +21,7 @@
 #include "sqlitedatabase.h"
 #include <QSqlQuery>
 #include <QVariant>
+#include <QCryptographicHash>
 
 MMSGroupCache::MMSGroupCache(QObject *parent) : QObject(parent)
 {
@@ -137,4 +138,9 @@ bool MMSGroupCache::saveGroup(const MMSGroup &group)
     }
     SQLiteDatabase::instance()->finishTransaction();
     return true;
+}
+
+QString MMSGroupCache::generateId(const QStringList &phoneNumbers)
+{
+    return QString(QCryptographicHash::hash(phoneNumbers.join(";").toLocal8Bit(),QCryptographicHash::Md5).toHex());
 }

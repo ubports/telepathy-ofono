@@ -20,6 +20,7 @@
 #define MMSGROUPCACHE_H
 
 #include <QObject>
+#include <QStringList>
 
 typedef struct {
     QString groupId;
@@ -34,6 +35,7 @@ public:
     static MMSGroup existingGroup(const QStringList &members);
     static MMSGroup existingGroup(const QString &groupId);
     static bool saveGroup(const MMSGroup &group);
+    static QString generateId(const QStringList &phoneNumbers);
 
 private:
     explicit MMSGroupCache(QObject *parent = 0);

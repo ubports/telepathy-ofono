@@ -41,16 +41,7 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, IncomingAttachmen
 }
 
 
-oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, QString targetId, QStringList phoneNumbers, QObject *parent)
-{
-    /* FIXME(MMSGroup): implement
-        - for existing groups, the phoneNumbers are populated from the cache directly in the connection,
-          so nothing needs to be done here, the list is correct at this point.
-        - we need to explicitly set the TargetHandleType as Room here
-     */
-}
-
-oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, QStringList phoneNumbers, bool flash, QObject *parent):
+oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, const QString &targetId, QStringList phoneNumbers, bool flash, QObject *parent):
     QObject(parent),
     mConnection(conn),
     mPhoneNumbers(phoneNumbers),
@@ -59,14 +50,21 @@ oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, QStringList phoneNumbe
 {
     qDBusRegisterMetaType<IncomingAttachmentStruct>();
     qDBusRegisterMetaType<IncomingAttachmentList>();
+    bool mmsGroupChat = !targetId.isEmpty();
 
     Tp::BaseChannelPtr baseChannel;
-    if (phoneNumbers.size() == 1) {
+    if (mmsGroupChat) {
+        baseChannel = Tp::BaseChannel::create(mConnection,
+                                              TP_QT_IFACE_CHANNEL_TYPE_TEXT,
+                                              Tp::HandleTypeRoom,
+                                              mConnection->ensureGroupHandle(targetId));
+    } else if (phoneNumbers.size() == 1) {
         baseChannel = Tp::BaseChannel::create(mConnection,
                                               TP_QT_IFACE_CHANNEL_TYPE_TEXT,
                                               Tp::HandleTypeContact,
                                               mConnection->ensureHandle(mPhoneNumbers[0]));
     } else {
+        // sms broadcast
         baseChannel = Tp::BaseChannel::create(mConnection,
                                               TP_QT_IFACE_CHANNEL_TYPE_TEXT);
     }
@@ -90,13 +88,24 @@ oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, QStringList phoneNumbe
 
     baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mMessagesIface));
 
-    mGroupIface = Tp::BaseChannelGroupInterface::create(Tp::ChannelGroupFlagCanAdd, conn->selfHandle());
-    // FIXME(MMSGroup): check if there is a way to inform it is not possible to add/remove members in MMS groups
-    mGroupIface->setAddMembersCallback(Tp::memFun(this,&oFonoTextChannel::onAddMembers));
-    mGroupIface->setRemoveMembersCallback(Tp::memFun(this,&oFonoTextChannel::onRemoveMembers));
+    Tp::ChannelGroupFlags groupFlags = Tp::ChannelGroupFlagHandleOwnersNotAvailable |
+                                       Tp::ChannelGroupFlagMembersChangedDetailed |
+                                       Tp::ChannelGroupFlagProperties;
+
+    mGroupIface = Tp::BaseChannelGroupInterface::create();
+    mGroupIface->setGroupFlags(groupFlags);
+    mGroupIface->setSelfHandle(mConnection->selfHandle());
 
     baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mGroupIface));
-    addMembers(phoneNumbers);
+
+    Q_FOREACH(const QString &phoneNumber, phoneNumbers) {
+        uint handle = mConnection->ensureHandle(phoneNumber);
+        if (!mMembers.contains(handle)) {
+            mMembers << handle;
+        }
+    }
+
+    mGroupIface->setMembers(mMembers, QVariantMap());
 
     mSMSIface = Tp::BaseChannelSMSInterface::create(flash, true);
     baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mSMSIface));
@@ -108,38 +117,6 @@ oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, QStringList phoneNumbe
     mTextChannel = Tp::BaseChannelTextTypePtr::dynamicCast(mBaseChannel->interface(TP_QT_IFACE_CHANNEL_TYPE_TEXT));
     mTextChannel->setMessageAcknowledgedCallback(Tp::memFun(this,&oFonoTextChannel::messageAcknowledged));
     QObject::connect(mBaseChannel.data(), SIGNAL(closed()), this, SLOT(deleteLater()));
-}
-
-void oFonoTextChannel::onAddMembers(const Tp::UIntList& handles, const QString& message, Tp::DBusError* error)
-{
-    addMembers(mConnection->inspectHandles(Tp::HandleTypeContact, handles, error));
-}
-
-void oFonoTextChannel::onRemoveMembers(const Tp::UIntList& handles, const QString& message, Tp::DBusError* error)
-{
-    Q_FOREACH(uint handle, handles) {
-        Q_FOREACH(const QString &phoneNumber, mConnection->inspectHandles(Tp::HandleTypeContact, Tp::UIntList() << handle, error)) {
-            mPhoneNumbers.removeAll(phoneNumber);
-        }
-        mMembers.removeAll(handle);
-    }
-    mGroupIface->removeMembers(handles);
-}
-
-void oFonoTextChannel::addMembers(QStringList phoneNumbers)
-{
-    Tp::UIntList handles;
-    Q_FOREACH(const QString &phoneNumber, phoneNumbers) {
-        uint handle = mConnection->ensureHandle(phoneNumber);
-        handles << handle;
-        if (!mPhoneNumbers.contains(phoneNumber)) {
-            mPhoneNumbers << phoneNumber;
-        }
-        if (!mMembers.contains(handle)) {
-            mMembers << handle;
-        }
-    }
-    mGroupIface->addMembers(handles, phoneNumbers);
 }
 
 Tp::UIntList oFonoTextChannel::members()
@@ -191,9 +168,8 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
     Tp::MessagePart body = message.at(1);
     QString objpath;
 
-    // FIXME(MMSGroup): in case of multiple recipients, we have to check if this channel is a group MMS channel
-    // and also switch to use MMS. This x-canonical-mms thing might be obsolete, double check that.
-    bool mms = header["x-canonical-mms"].variant().toBool();
+    // FIXME check what to do with attachments on sms broadcast
+    bool mms = baseChannel()->targetHandleType() == Tp::HandleTypeRoom;
 
     if (mms) {
         // pop header out

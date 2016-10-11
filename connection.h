@@ -104,6 +104,7 @@ public:
 
     uint ensureHandle(const QString &phoneNumber);
     uint ensureGroupHandle(const QString &groupId);
+    oFonoTextChannel* textChannelForId(const QString &id);
     oFonoTextChannel* textChannelForMembers(const QStringList &members);
     Tp::BaseChannelPtr createTextChannel(const QVariantMap &request, Tp::DBusError *error);
     Tp::BaseChannelPtr createCallChannel(const QVariantMap &request, Tp::DBusError *error);

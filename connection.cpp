@@ -155,7 +155,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     call.allowedProperties.append(TP_QT_IFACE_CHANNEL_TYPE_CALL+".HardwareStreaming");
     call.allowedProperties.append(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialChannels"));
 
-    requestsIface->requestableChannelClasses << text << call;
+    requestsIface->requestableChannelClasses << text << call << existingGroupChat << newGroupChat;
 
     plugInterface(Tp::AbstractConnectionInterfacePtr::dynamicCast(requestsIface));
 
@@ -383,6 +383,16 @@ void oFonoConnection::onMMSDServiceRemoved(const QString &path)
     qDebug() << "oFonoConnection::onMMSServiceRemoved" << path;
 }
 
+oFonoTextChannel* oFonoConnection::textChannelForId(const QString &id)
+{
+    Q_FOREACH(oFonoTextChannel* channel, mTextChannels) {
+        if (channel->baseChannel()->targetID() == id) {
+            return channel;
+        }
+    }
+    return NULL;
+}
+
 oFonoTextChannel* oFonoConnection::textChannelForMembers(const QStringList &members)
 {
     Q_FOREACH(oFonoTextChannel* channel, mTextChannels) {
@@ -443,10 +453,19 @@ void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &pr
             senderNormalizedNumber = "x-ofono-unknown";
         }
 
-        // FIXME(MMSGroup): change both the lookup and the creation to use the MMS group text channels
-
-        // check if there is an open channel for this number and use it
-        oFonoTextChannel *channel = textChannelForMembers(QStringList() << senderNormalizedNumber << recipients.toList());
+        oFonoTextChannel *channel = NULL;
+        MMSGroup group;
+        if (initialInviteeHandles.size() > 0) {
+            group = MMSGroupCache::existingGroup(QStringList() << senderNormalizedNumber << recipients.toList());
+            if (!group.groupId.isEmpty()) {
+                // check if there is an open channel for this group and use it
+                channel = textChannelForId(group.groupId);
+            }
+        } else {
+            // check if there is an open channel for these numbers and use it (probably 1-1 chat here)
+            channel = textChannelForMembers(QStringList() << senderNormalizedNumber << recipients.toList());
+        }
+        
         if (channel) {
             channel->mmsReceived(path, ensureHandle(senderNormalizedNumber), properties);
             return;
@@ -461,9 +480,15 @@ void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &pr
 
         request[TP_QT_IFACE_CHANNEL + QLatin1String(".ChannelType")] = TP_QT_IFACE_CHANNEL_TYPE_TEXT;
         request[TP_QT_IFACE_CHANNEL + QLatin1String(".InitiatorHandle")] = handle;
+        bool isRoom = initialInviteeHandles.size() > 0;
 
-        if (initialInviteeHandles.size() > 0) {
+        if (isRoom) {
             initialInviteeHandles << handle;
+            request[TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandleType")] = Tp::HandleTypeRoom;
+            // if the group exists, fill the targetId with the existing id
+            if (!group.groupId.isEmpty()) {
+                request[TP_QT_IFACE_CHANNEL + QLatin1String(".TargetID")] = group.groupId;
+            }
             request[TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeHandles")] = QVariant::fromValue(initialInviteeHandles);
             ensureChannel(request, yours, false, &error);
         } else {
@@ -472,13 +497,19 @@ void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &pr
             ensureChannel(request, yours, false, &error);
         }
 
-        if(error.isValid()) {
+        if (error.isValid()) {
             qCritical() << "Error creating channel for incoming message " << error.name() << error.message();
             return;
         }
-        channel = textChannelForMembers(QStringList() << senderNormalizedNumber << recipients.toList());
+        if (isRoom) {
+            channel = textChannelForId(group.groupId);
+        } else {
+            channel = textChannelForMembers(QStringList() << senderNormalizedNumber << recipients.toList());
+        }
         if (channel) {
             channel->mmsReceived(path, handle, properties);
+        } else {
+            qCritical() << "Failed to create channel for incoming mms" << "isRoom" << isRoom << "groupId" << group.groupId;
         }
     }
 }
@@ -662,7 +693,7 @@ QStringList oFonoConnection::inspectHandles(uint handleType, const Tp::UIntList&
             }
         }
         break;
-    case Tp::HandleTypeGroup:
+    case Tp::HandleTypeRoom:
         qDebug() << "oFonoConnection::inspectHandles group" << handles;
         Q_FOREACH(uint handle, handles) {
             if (mGroupHandles.keys().contains(handle)) {
@@ -747,12 +778,13 @@ Tp::BaseChannelPtr oFonoConnection::createTextChannel(const QVariantMap &request
             targetId = mGroupHandles.value(targetHandle);
         }
         // we got the groupId, now lookup the members and subject in the cache
-        MMSGroup group = MMSGroupCache::existingGroup(phoneNumbers);
+        MMSGroup group = MMSGroupCache::existingGroup(targetId);
         if (group.groupId.isEmpty()) {
             error->set(TP_QT_ERROR_INVALID_HANDLE, "MMS Group not found in cache.");
             return Tp::BaseChannelPtr();
         }
         phoneNumbers = group.members;
+        isRoom = true;
         // FIXME(MMSGroup): add support for MMS group subject
     }
 
@@ -779,9 +811,13 @@ Tp::BaseChannelPtr oFonoConnection::createTextChannel(const QVariantMap &request
         // FIXME(MMSGroup): if targetId is empty, this means this is a new group, so we need to
         // generate the group ID, probably something like "mms:<hash of member IDs>".
         // Also, we need to call MMSGroupCache::saveGroup() to save the group in the cache
+        MMSGroup group;
+        group.groupId = MMSGroupCache::generateId(phoneNumbers);
+        group.members = phoneNumbers;
+        MMSGroupCache::saveGroup(group);
         channel = new oFonoTextChannel(this, targetId, phoneNumbers);
     } else {
-        channel = new oFonoTextChannel(this, phoneNumbers, flash);
+        channel = new oFonoTextChannel(this, QString(), phoneNumbers, flash);
     }
     mTextChannels << channel;
     QObject::connect(channel, SIGNAL(messageRead(QString)), SLOT(onMessageRead(QString)));

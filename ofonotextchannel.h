@@ -35,11 +35,8 @@ class oFonoTextChannel : public QObject
 {
     Q_OBJECT
 public:
-    /** @brief Constructs a text channel to send/receive MMS GroupChat messages */
-    oFonoTextChannel(oFonoConnection *conn, QString targetId, QStringList phoneNumbers, QObject *parent = 0);
-
     /** @brief Constructs a text channel to be used in 1-1 or SMS broadcast conversations */
-    oFonoTextChannel(oFonoConnection *conn, QStringList phoneNumbers, bool flash = false, QObject *parent = 0);
+    oFonoTextChannel(oFonoConnection *conn, const QString &targetId, QStringList phoneNumbers, bool flash = false, QObject *parent = 0);
 
     QString sendMessage(Tp::MessagePartList message, uint flags, Tp::DBusError* error);
     void messageReceived(const QString & message, uint handle, const QVariantMap &info);
@@ -48,10 +45,7 @@ public:
     void mmsReceived(const QString &id, uint handle, const QVariantMap &properties);
     void deliveryReportReceived(const QString& messageId, uint handle, bool success);
     void sendDeliveryReport(const QString &messageId, uint handle, Tp::DeliveryStatus status);
-    void addMembers(QStringList phoneNumbers);
     Tp::UIntList members();
-    void onAddMembers(const Tp::UIntList& handles, const QString& message, Tp::DBusError* error);
-    void onRemoveMembers(const Tp::UIntList& handles, const QString& message, Tp::DBusError* error);
 
 private Q_SLOTS:
     void onMMSPropertyChanged(QString property, QVariant value);
