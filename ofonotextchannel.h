@@ -47,6 +47,9 @@ public:
     void sendDeliveryReport(const QString &messageId, uint handle, Tp::DeliveryStatus status);
     Tp::UIntList members();
 
+protected:
+    bool isMultiPartMessage(const Tp::MessagePartList &message) const;
+
 private Q_SLOTS:
     void onMMSPropertyChanged(QString property, QVariant value);
     void onOfonoMessageStateChanged(QString status);

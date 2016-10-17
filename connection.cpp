@@ -423,6 +423,7 @@ oFonoTextChannel* oFonoConnection::textChannelForMembers(const QStringList &memb
 void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &properties, const QString &servicePath)
 {
     qDebug() << "addMMSToService " << path << properties << servicePath;
+    bool isRoom = false;
     MMSDMessage *msg = new MMSDMessage(path, properties);
     mServiceMMSList[servicePath].append(msg);
     if (properties["Status"] ==  "received") {
@@ -434,6 +435,7 @@ void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &pr
         // remove empty strings if any
         recipientList.removeAll("");
         if (recipientList.size() > 1) {
+            isRoom = true;
             // remove ourselves from the recipient list 
             Q_FOREACH(const QString &myNumber, mOfonoSimManager->subscriberNumbers()) {
                 Q_FOREACH(const QString &remoteNumber, recipientList) {
@@ -455,14 +457,14 @@ void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &pr
 
         oFonoTextChannel *channel = NULL;
         MMSGroup group;
-        if (initialInviteeHandles.size() > 0) {
+        if (isRoom) {
             group = MMSGroupCache::existingGroup(QStringList() << senderNormalizedNumber << recipients.toList());
             if (!group.groupId.isEmpty()) {
                 // check if there is an open channel for this group and use it
                 channel = textChannelForId(group.groupId);
             }
         } else {
-            // check if there is an open channel for these numbers and use it (probably 1-1 chat here)
+            // check if there is an open channel for these numbers and use it (1-1 chat here)
             channel = textChannelForMembers(QStringList() << senderNormalizedNumber << recipients.toList());
         }
         
@@ -480,7 +482,6 @@ void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &pr
 
         request[TP_QT_IFACE_CHANNEL + QLatin1String(".ChannelType")] = TP_QT_IFACE_CHANNEL_TYPE_TEXT;
         request[TP_QT_IFACE_CHANNEL + QLatin1String(".InitiatorHandle")] = handle;
-        bool isRoom = initialInviteeHandles.size() > 0;
 
         if (isRoom) {
             initialInviteeHandles << handle;

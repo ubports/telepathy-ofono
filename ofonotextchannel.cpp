@@ -122,6 +122,20 @@ Tp::UIntList oFonoTextChannel::members()
     return mMembers;
 }
 
+
+bool oFonoTextChannel::isMultiPartMessage(const Tp::MessagePartList &message) const
+{
+    // multi-part messages happen in two cases:
+    // - if it has more than two parts
+    // - if the second part (the first is the header) is not text
+    if (message.size() > 2 ||
+        (message.size() == 2 && !message[1]["content-type"].variant().toString().startsWith("text/")) {
+        return true;
+    }
+
+    return false;
+}
+
 oFonoTextChannel::~oFonoTextChannel()
 {
     Q_FOREACH(const QStringList &fileList, mFilesToRemove) {
@@ -167,7 +181,8 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
     QString objpath;
 
     // FIXME check what to do with attachments on sms broadcast
-    bool mms = baseChannel()->targetHandleType() == Tp::HandleTypeRoom;
+    bool mms = baseChannel()->targetHandleType() == Tp::HandleTypeRoom ||
+               isMultiPartMessage(message);
 
     if (mms) {
         // pop header out
