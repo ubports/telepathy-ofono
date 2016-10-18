@@ -142,5 +142,5 @@ bool MMSGroupCache::saveGroup(const MMSGroup &group)
 
 QString MMSGroupCache::generateId(const QStringList &phoneNumbers)
 {
-    return QString("mms:%1").arg(QCryptographicHash::hash(phoneNumbers.join(";").toLocal8Bit(),QCryptographicHash::Md5).toHex());
+    return QString("mms:%1").arg(QString(QCryptographicHash::hash(phoneNumbers.join(";").toLocal8Bit(),QCryptographicHash::Md5).toHex()));
 }

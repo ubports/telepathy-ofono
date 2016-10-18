@@ -129,7 +129,7 @@ bool oFonoTextChannel::isMultiPartMessage(const Tp::MessagePartList &message) co
     // - if it has more than two parts
     // - if the second part (the first is the header) is not text
     if (message.size() > 2 ||
-        (message.size() == 2 && !message[1]["content-type"].variant().toString().startsWith("text/")) {
+        (message.size() == 2 && !message[1]["content-type"].variant().toString().startsWith("text/"))) {
         return true;
     }
 
