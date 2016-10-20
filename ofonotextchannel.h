@@ -73,6 +73,8 @@ private:
     QMap<QString, uint> mPendingDeliveryReportAccepted;
     QMap<QString, uint> mPendingDeliveryReportDelivered;
     QMap<QString, uint> mPendingDeliveryReportUnknown;
+    QMap<QString, QString> mPendingBroadcastMMS;
+    QMap<QString, bool> mPendingBroadcastFinalResult;
     Tp::UIntList mMembers;
     QMap<QString, QStringList> mFilesToRemove;
     bool mFlash;

@@ -180,11 +180,11 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
     Tp::MessagePart body = message.at(1);
     QString objpath;
 
-    // FIXME check what to do with attachments on sms broadcast
-    bool mms = baseChannel()->targetHandleType() == Tp::HandleTypeRoom ||
-               isMultiPartMessage(message);
+    bool isRoom = baseChannel()->targetHandleType() == Tp::HandleTypeRoom;
+    bool isMMS = isRoom || isMultiPartMessage(message);
 
-    if (mms) {
+    // any mms, either 1-1, group or broadcast
+    if (isMMS || isRoom) {
         // pop header out
         message.removeFirst();
         OutgoingAttachmentList attachments;
@@ -222,6 +222,23 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
             attachment.filePath = file.fileName();
             attachments << attachment;
         }
+        // if this is a broadcast, send multiple mms
+        if (!isRoom) {
+            // generate an id to this broadcast operation and its delivery reports
+            objpath = QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + "-" + QString::number(mMessageCounter++);
+            Q_FOREACH(const QString &phoneNumber, mPhoneNumbers) {
+                QString realObjpath = mConnection->sendMMS(QStringList() << phoneNumber, attachments).path();
+                MMSDMessage *msg = new MMSDMessage(realObjpath, QVariantMap(), this);
+                QObject::connect(msg, SIGNAL(propertyChanged(QString,QVariant)), SLOT(onMMSPropertyChanged(QString,QVariant)));
+                mPendingBroadcastMMS[realObjpath] = objpath;
+                mPendingDeliveryReportUnknown[objpath] = handle;
+                QTimer::singleShot(0, this, SLOT(onProcessPendingDeliveryReport()));
+            }
+            if (temporaryFiles.size() > 0 && !mFilesToRemove.contains(objpath)) {
+                mFilesToRemove[objpath] = temporaryFiles;
+            }
+            return objpath;
+        }
         objpath = mConnection->sendMMS(mPhoneNumbers, attachments).path();
         if (objpath.isEmpty()) {
             Q_FOREACH(const QString& file, temporaryFiles) {
@@ -245,6 +262,7 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
         return objpath;
     }
 
+    // 1-1 sms
     if (mPhoneNumbers.size() == 1) {
         QString phoneNumber = mPhoneNumbers[0];
         uint handle = mConnection->ensureHandle(phoneNumber);
@@ -274,13 +292,13 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
         QObject::connect(msg, SIGNAL(stateChanged(QString)), SLOT(onOfonoMessageStateChanged(QString)));
         return objpath;
     } else {
+        // Broadcast sms
         bool someMessageSent = false;
         QString lastPhoneNumber;
         Q_FOREACH(const QString &phoneNumber, mPhoneNumbers) {
-            uint handle = mConnection->ensureHandle(mPhoneNumbers[0]);
             objpath = mConnection->messageManager()->sendMessage(phoneNumber, body["content"].variant().toString(), success).path();
             lastPhoneNumber = phoneNumber;
-            // dont fail if this is a group chat as we cannot track individual messages
+            // dont fail if this is a broadcast chat as we cannot track individual messages
             if (objpath.isEmpty() || !success) {
                 if (!success) {
                     qWarning() << mConnection->messageManager()->errorName() << mConnection->messageManager()->errorMessage();
@@ -317,12 +335,14 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
 void oFonoTextChannel::onMMSPropertyChanged(QString property, QVariant value)
 {
     qDebug() << "oFonoTextChannel::onMMSPropertyChanged" << property << value;
+    bool canRemoveFiles = true;
     MMSDMessage *msg = qobject_cast<MMSDMessage*>(sender());
     // FIXME - mms groupchat
     uint handle = mConnection->ensureHandle(mPhoneNumbers[0]);
     if (!msg) {
         return;
     }
+    QString objectPath = msg->path();
     if (property == "Status") {
         Tp::DeliveryStatus status = Tp::DeliveryStatusUnknown;
         if (value == "Sent") {
@@ -335,11 +355,38 @@ void oFonoTextChannel::onMMSPropertyChanged(QString property, QVariant value)
             // while it is draft we dont actually send a delivery report
             return;
         }
-        Q_FOREACH(const QString& file, mFilesToRemove[msg->path()]) {
+        if (mPendingBroadcastMMS.contains(objectPath)) {
+            // if this is the last outstanding mms, we can now remove the files
+            objectPath = mPendingBroadcastMMS.take(objectPath);
+            QStringList originalObjPaths = mPendingBroadcastMMS.keys(objectPath);
+            canRemoveFiles = originalObjPaths.size() == 0;
+
+            if (status == Tp::DeliveryStatusAccepted) {
+                // if we get at least one sucess, we notify sucess no matter if the others fail
+                mPendingBroadcastFinalResult[objectPath] = true;
+            }
+
+            if (canRemoveFiles) {
+                if (mPendingBroadcastFinalResult[objectPath]) {
+                    status = Tp::DeliveryStatusAccepted;
+                } else {
+                    status = Tp::DeliveryStatusPermanentlyFailed;
+                }
+                Q_FOREACH(const QString& file, mFilesToRemove[objectPath]) {
+                    QFile::remove(file);
+                }
+                mFilesToRemove.remove(objectPath);
+                sendDeliveryReport(objectPath, handle, status);
+                mPendingBroadcastFinalResult.remove(objectPath);
+            }
+            return;
+        }
+
+        Q_FOREACH(const QString& file, mFilesToRemove[objectPath]) {
             QFile::remove(file);
         }
-        mFilesToRemove.remove(msg->path());
-        sendDeliveryReport(msg->path(), handle, status);
+        mFilesToRemove.remove(objectPath);
+        sendDeliveryReport(objectPath, handle, status);
     }
 }
 
