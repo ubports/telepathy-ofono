@@ -123,6 +123,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     text.allowedProperties.append(TP_QT_IFACE_CHANNEL+".TargetHandle");
     text.allowedProperties.append(TP_QT_IFACE_CHANNEL+".TargetID");
     text.allowedProperties.append(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeHandles"));
+    text.allowedProperties.append(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeIDs"));
 
     // set requestable call channel properties
     Tp::RequestableChannelClass call;
@@ -676,15 +677,27 @@ Tp::UIntList oFonoConnection::requestHandles(uint handleType, const QStringList&
 Tp::BaseChannelPtr oFonoConnection::createTextChannel(const QVariantMap &request, Tp::DBusError *error)
 {
     uint targetHandle = request.value(TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandle")).toUInt();
+    const QString targetId = request.value(TP_QT_IFACE_CHANNEL + QLatin1String(".TargetID")).toString();
 
     if (mSelfPresence.type != Tp::ConnectionPresenceTypeAvailable) {
         error->set(TP_QT_ERROR_NETWORK_ERROR, "No network available");
         return Tp::BaseChannelPtr();
     }
 
+    if (!targetId.isEmpty()) {
+        targetHandle = ensureHandle(targetId);
+    }
+
     QStringList phoneNumbers;
     bool flash = false;
-    if (request.contains(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeHandles"))) {
+    if (request.contains(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeIDs"))) {
+        QStringList newPhoneNumbers = qdbus_cast<QStringList>(request[TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeIDs")]);
+        Tp::UIntList handles;
+        Q_FOREACH(const QString& number, newPhoneNumbers) {
+            handles << ensureHandle(number);
+        }
+        phoneNumbers << inspectHandles(Tp::HandleTypeContact, handles, error);
+    } else if (request.contains(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeHandles"))) {
         phoneNumbers << inspectHandles(Tp::HandleTypeContact, qdbus_cast<Tp::UIntList>(request[TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeHandles")]), error);
     } else {
         phoneNumbers << mHandles.value(targetHandle);
@@ -725,9 +738,15 @@ Tp::BaseChannelPtr oFonoConnection::createCallChannel(const QVariantMap &request
 {
     uint targetHandle = request.value(TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandle")).toUInt();
     uint initiatorHandle = request.value(TP_QT_IFACE_CHANNEL + QLatin1String(".InitiatorHandle")).toUInt();
+    QString newPhoneNumber = request.value(TP_QT_IFACE_CHANNEL + QLatin1String(".TargetID")).toString();
+
+    if (!newPhoneNumber.isEmpty()) {
+        targetHandle = ensureHandle(newPhoneNumber);
+    } else {
+        newPhoneNumber = mHandles.value(targetHandle);
+    }
 
     bool success = true;
-    QString newPhoneNumber = mHandles.value(targetHandle);
     bool available = (mSelfPresence.type == Tp::ConnectionPresenceTypeAvailable);
     bool isConference = (request.contains(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialChannels")) &&
                          (!request.contains(TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandleType")) || request[TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandleType")] == Tp::HandleTypeNone) &&
