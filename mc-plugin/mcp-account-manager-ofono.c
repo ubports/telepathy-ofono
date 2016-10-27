@@ -25,6 +25,7 @@
 #include <locale.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <malloc.h>
 #include "mcp-account-manager-ofono.h"
 
