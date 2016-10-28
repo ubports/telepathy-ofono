@@ -747,7 +747,7 @@ Tp::BaseChannelPtr oFonoConnection::createTextChannel(const QVariantMap &request
     uint targetHandleType = request.value(TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandleType")).toUInt();
     uint targetHandle = request.value(TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandle")).toUInt();
     QString targetId = request.value(TP_QT_IFACE_CHANNEL + QLatin1String(".TargetID")).toString();
-    bool isRoom = request.contains(TP_QT_IFACE_CHANNEL_INTERFACE_ROOM + ".RoomName");
+    bool isRoom = request.contains(TP_QT_IFACE_CHANNEL_INTERFACE_ROOM + QLatin1String(".RoomName"));
 
     if (mSelfPresence.type != Tp::ConnectionPresenceTypeAvailable) {
         error->set(TP_QT_ERROR_NETWORK_ERROR, "No network available");

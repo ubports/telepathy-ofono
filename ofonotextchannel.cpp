@@ -108,8 +108,10 @@ oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, const QString &targetI
     mSMSIface = Tp::BaseChannelSMSInterface::create(flash, true);
     baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mSMSIface));
 
-    // FIXME(MMSGroup): create and plug the Room interface, and maybe the subject or the
-    // roomconfig interface for the subject
+    if (mmsGroupChat) {
+        mRoomIface = Tp::BaseChannelRoomInterface::create("", "", "", 0, QDateTime());
+        baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mRoomIface));
+    }
 
     mBaseChannel = baseChannel;
     mTextChannel = Tp::BaseChannelTextTypePtr::dynamicCast(mBaseChannel->interface(TP_QT_IFACE_CHANNEL_TYPE_TEXT));
