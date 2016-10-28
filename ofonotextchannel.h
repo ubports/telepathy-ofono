@@ -66,6 +66,7 @@ private:
     Tp::BaseChannelMessagesInterfacePtr mMessagesIface;
     Tp::BaseChannelGroupInterfacePtr mGroupIface;
     Tp::BaseChannelSMSInterfacePtr mSMSIface;
+    Tp::BaseChannelRoomInterfacePtr mRoomIface;
     Tp::BaseChannelTextTypePtr mTextChannel;
     uint mMessageCounter;
     QMap<QString, uint> mPendingDeliveryReportTemporarilyFailed;
