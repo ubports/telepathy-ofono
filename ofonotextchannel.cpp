@@ -92,8 +92,9 @@ oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, const QString &targetI
                                        Tp::ChannelGroupFlagMembersChangedDetailed |
                                        Tp::ChannelGroupFlagProperties;
 
-    mGroupIface = Tp::BaseChannelGroupInterface::create(groupFlags, mConnection->selfHandle());
-
+    mGroupIface = Tp::BaseChannelGroupInterface::create();
+    mGroupIface->setGroupFlags(groupFlags);
+    mGroupIface->setSelfHandle(mConnection->selfHandle());
     baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mGroupIface));
 
     Q_FOREACH(const QString &phoneNumber, phoneNumbers) {
@@ -103,7 +104,7 @@ oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, const QString &targetI
         }
     }
 
-    mGroupIface->addMembers(mMembers, phoneNumbers);
+    mGroupIface->setMembers(mMembers, QVariantMap());
 
     mSMSIface = Tp::BaseChannelSMSInterface::create(flash, true);
     baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mSMSIface));
