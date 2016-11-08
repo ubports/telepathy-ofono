@@ -748,6 +748,17 @@ Tp::BaseChannelPtr oFonoConnection::createTextChannel(const QVariantMap &request
     uint targetHandle = request.value(TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandle")).toUInt();
     QString targetId = request.value(TP_QT_IFACE_CHANNEL + QLatin1String(".TargetID")).toString();
     bool isRoom = request.contains(TP_QT_IFACE_CHANNEL_INTERFACE_ROOM + QLatin1String(".RoomName"));
+    QStringList initialInviteeIDs;
+    if (request.contains(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeIDs"))) {
+         initialInviteeIDs = qdbus_cast<QStringList>(request[TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeIDs")]);
+    } else if (targetHandleType == Tp::HandleTypeRoom && !targetId.isEmpty()) {
+        // workaround to fill participants when not provided on new groups
+        // this case can happen on existing groups automatically transformed from None to Room 
+        MMSGroup group = MMSGroupCache::existingGroup(targetId);
+        if (group.members.isEmpty() && targetId.contains("%")) {
+            initialInviteeIDs = targetId.split("%");
+        }
+    }
 
     if (mSelfPresence.type != Tp::ConnectionPresenceTypeAvailable) {
         error->set(TP_QT_ERROR_NETWORK_ERROR, "No network available");
@@ -756,31 +767,35 @@ Tp::BaseChannelPtr oFonoConnection::createTextChannel(const QVariantMap &request
 
     QStringList phoneNumbers;
     bool flash = false;
-    if (request.contains(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeIDs"))) {
-        QStringList newPhoneNumbers = qdbus_cast<QStringList>(request[TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeIDs")]);
+    if (!initialInviteeIDs.isEmpty()) {
         Tp::UIntList handles;
-        Q_FOREACH(const QString& number, newPhoneNumbers) {
+        Q_FOREACH(const QString& number, initialInviteeIDs) {
             handles << ensureHandle(number);
         }
         phoneNumbers << inspectHandles(Tp::HandleTypeContact, handles, error);
     } else if (request.contains(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeHandles"))) {
         phoneNumbers << inspectHandles(Tp::HandleTypeContact, qdbus_cast<Tp::UIntList>(request[TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeHandles")]), error);
-    };
+    }
 
     // if the handle type is none and RoomName is present, we should try to find an existing MMS group
     if (targetHandleType == Tp::HandleTypeNone && isRoom) {
         MMSGroup group = MMSGroupCache::existingGroup(phoneNumbers);
         if (!group.groupId.isEmpty()) {
             targetId = group.groupId;
-            targetHandleType = Tp::HandleTypeRoom;
         }
+        targetHandleType = Tp::HandleTypeRoom;
     } else if (targetHandleType == Tp::HandleTypeRoom) {
         if (targetId.isEmpty()) {
             targetId = mGroupHandles.value(targetHandle);
         }
         // we got the groupId, now lookup the members and subject in the cache
         MMSGroup group = MMSGroupCache::existingGroup(targetId);
-        if (group.groupId.isEmpty()) {
+        if (group.groupId.isEmpty() && !initialInviteeIDs.isEmpty()) {
+            // save new group if we have initial invitee ids and no group is found in cache
+            group.groupId = targetId;
+            group.members = phoneNumbers;
+            MMSGroupCache::saveGroup(group);
+        } else if (group.groupId.isEmpty()) {
             error->set(TP_QT_ERROR_INVALID_HANDLE, "MMS Group not found in cache.");
             return Tp::BaseChannelPtr();
         }
@@ -814,10 +829,13 @@ Tp::BaseChannelPtr oFonoConnection::createTextChannel(const QVariantMap &request
         // FIXME(MMSGroup): if targetId is empty, this means this is a new group, so we need to
         // generate the group ID, probably something like "mms:<hash of member IDs>".
         // Also, we need to call MMSGroupCache::saveGroup() to save the group in the cache
-        MMSGroup group;
-        group.groupId = MMSGroupCache::generateId(phoneNumbers);
-        group.members = phoneNumbers;
-        MMSGroupCache::saveGroup(group);
+        if (targetId.isEmpty()) {
+            MMSGroup group;
+            group.groupId = MMSGroupCache::generateId(phoneNumbers);
+            group.members = phoneNumbers;
+            targetId = group.groupId;
+            MMSGroupCache::saveGroup(group);
+        }
         channel = new oFonoTextChannel(this, targetId, phoneNumbers);
     } else {
         channel = new oFonoTextChannel(this, QString(), phoneNumbers, flash);
