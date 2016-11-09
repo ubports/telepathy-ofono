@@ -755,7 +755,7 @@ Tp::BaseChannelPtr oFonoConnection::createTextChannel(const QVariantMap &request
         // workaround to fill participants when not provided on new groups
         // this case can happen on existing groups automatically transformed from None to Room 
         MMSGroup group = MMSGroupCache::existingGroup(targetId);
-        if (group.members.isEmpty() && targetId.contains("%")) {
+        if (group.members.isEmpty() && targetId.contains("%") && !targetId.startsWith("mms:")) {
             initialInviteeIDs = targetId.split("%");
         }
     }
