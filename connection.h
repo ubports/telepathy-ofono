@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 Canonical, Ltd.
+ * Copyright (C) 2013-2016 Canonical, Ltd.
  *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License version 3, as published by
@@ -14,6 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authors: Tiago Salem Herrmann <tiago.herrmann@canonical.com>
+ *          Gustavo Pichorim Boiko <gustavo.boiko@canonical.com>
  */
 
 #ifndef OFONOCONNECTION_H
@@ -94,6 +95,7 @@ public:
     BaseConnectionVoicemailInterfacePtr voicemailIface;
     BaseConnectionUSSDInterfacePtr supplementaryServicesIface;
     uint newHandle(const QString &identifier);
+    uint newGroupHandle(const QString &identifier);
 
     OfonoMessageManager *messageManager();
     OfonoVoiceCallManager *voiceCallManager();
@@ -101,6 +103,8 @@ public:
     QMap<QString, oFonoCallChannel*> callChannels();
 
     uint ensureHandle(const QString &phoneNumber);
+    uint ensureGroupHandle(const QString &groupId);
+    oFonoTextChannel* textChannelForId(const QString &id);
     oFonoTextChannel* textChannelForMembers(const QStringList &members);
     Tp::BaseChannelPtr createTextChannel(const QVariantMap &request, Tp::DBusError *error);
     Tp::BaseChannelPtr createCallChannel(const QVariantMap &request, Tp::DBusError *error);
@@ -159,6 +163,9 @@ private:
     void addMMSToService(const QString &path, const QVariantMap &properties, const QString &servicePath);
     void ensureTextChannel(const QString &message, const QVariantMap &info, bool flash);
     QMap<uint, QString> mHandles;
+    uint mHandleCount;
+    QMap<uint, QString> mGroupHandles;
+    uint mGroupHandleCount;
 
 #ifdef USE_PULSEAUDIO
     bool mHasPulseAudio;
@@ -177,7 +184,6 @@ private:
     OfonoSupplementaryServices *mOfonoSupplementaryServices;
     OfonoSimManager *mOfonoSimManager;
     OfonoModem *mOfonoModem;
-    uint mHandleCount;
     Tp::SimplePresence mSelfPresence;
     MMSDManager *mMmsdManager;
     QMap<QString, MMSDService*> mMmsdServices;

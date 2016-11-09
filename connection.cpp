@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 Canonical, Ltd.
+ * Copyright (C) 2013-2016 Canonical, Ltd.
  *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License version 3, as published by
@@ -32,6 +32,7 @@
 
 #include "mmsdmessage.h"
 #include "mmsdservice.h"
+#include "mmsgroupcache.h"
 
 #ifdef USE_PULSEAUDIO
 #include "qpulseaudioengine.h"
@@ -83,6 +84,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     Tp::BaseConnection(dbusConnection, cmName, protocolName, parameters),
     mOfonoModemManager(new OfonoModemManager(this)),
     mHandleCount(0),
+    mGroupHandleCount(0),
     mMmsdManager(new MMSDManager(this)),
     mConferenceCall(NULL)
 {
@@ -123,6 +125,20 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     text.allowedProperties.append(TP_QT_IFACE_CHANNEL+".TargetHandle");
     text.allowedProperties.append(TP_QT_IFACE_CHANNEL+".TargetID");
     text.allowedProperties.append(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeHandles"));
+    text.allowedProperties.append(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeIDs"));
+
+    Tp::RequestableChannelClass existingGroupChat;
+    existingGroupChat.fixedProperties[TP_QT_IFACE_CHANNEL + QLatin1String(".ChannelType")] = TP_QT_IFACE_CHANNEL_TYPE_TEXT;
+    existingGroupChat.fixedProperties[TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandleType")]  = Tp::HandleTypeRoom;
+    existingGroupChat.allowedProperties.append(TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandle"));
+    existingGroupChat.allowedProperties.append(TP_QT_IFACE_CHANNEL + QLatin1String(".TargetID"));
+
+    Tp::RequestableChannelClass newGroupChat;
+    newGroupChat.fixedProperties[TP_QT_IFACE_CHANNEL + QLatin1String(".ChannelType")] = TP_QT_IFACE_CHANNEL_TYPE_TEXT;
+    newGroupChat.fixedProperties[TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandleType")]  = Tp::HandleTypeNone;
+    newGroupChat.allowedProperties.append(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeHandles"));
+    newGroupChat.allowedProperties.append(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeIDs"));
+    newGroupChat.allowedProperties.append(TP_QT_IFACE_CHANNEL_INTERFACE_ROOM + QLatin1String(".RoomName"));
 
     // set requestable call channel properties
     Tp::RequestableChannelClass call;
@@ -139,7 +155,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     call.allowedProperties.append(TP_QT_IFACE_CHANNEL_TYPE_CALL+".HardwareStreaming");
     call.allowedProperties.append(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialChannels"));
 
-    requestsIface->requestableChannelClasses << text << call;
+    requestsIface->requestableChannelClasses << text << call << existingGroupChat << newGroupChat;
 
     plugInterface(Tp::AbstractConnectionInterfacePtr::dynamicCast(requestsIface));
 
@@ -367,6 +383,16 @@ void oFonoConnection::onMMSDServiceRemoved(const QString &path)
     qDebug() << "oFonoConnection::onMMSServiceRemoved" << path;
 }
 
+oFonoTextChannel* oFonoConnection::textChannelForId(const QString &id)
+{
+    Q_FOREACH(oFonoTextChannel* channel, mTextChannels) {
+        if (channel->baseChannel()->targetID() == id) {
+            return channel;
+        }
+    }
+    return NULL;
+}
+
 oFonoTextChannel* oFonoConnection::textChannelForMembers(const QStringList &members)
 {
     Q_FOREACH(oFonoTextChannel* channel, mTextChannels) {
@@ -397,6 +423,7 @@ oFonoTextChannel* oFonoConnection::textChannelForMembers(const QStringList &memb
 void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &properties, const QString &servicePath)
 {
     qDebug() << "addMMSToService " << path << properties << servicePath;
+    bool isRoom = false;
     MMSDMessage *msg = new MMSDMessage(path, properties);
     mServiceMMSList[servicePath].append(msg);
     if (properties["Status"] ==  "received") {
@@ -408,6 +435,7 @@ void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &pr
         // remove empty strings if any
         recipientList.removeAll("");
         if (recipientList.size() > 1) {
+            isRoom = true;
             // remove ourselves from the recipient list 
             Q_FOREACH(const QString &myNumber, mOfonoSimManager->subscriberNumbers()) {
                 Q_FOREACH(const QString &remoteNumber, recipientList) {
@@ -427,8 +455,19 @@ void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &pr
             senderNormalizedNumber = "x-ofono-unknown";
         }
 
-        // check if there is an open channel for this number and use it
-        oFonoTextChannel *channel = textChannelForMembers(QStringList() << senderNormalizedNumber << recipients.toList());
+        oFonoTextChannel *channel = NULL;
+        MMSGroup group;
+        if (isRoom) {
+            group = MMSGroupCache::existingGroup(QStringList() << senderNormalizedNumber << recipients.toList());
+            if (!group.groupId.isEmpty()) {
+                // check if there is an open channel for this group and use it
+                channel = textChannelForId(group.groupId);
+            }
+        } else {
+            // check if there is an open channel for these numbers and use it (1-1 chat here)
+            channel = textChannelForMembers(QStringList() << senderNormalizedNumber << recipients.toList());
+        }
+        
         if (channel) {
             channel->mmsReceived(path, ensureHandle(senderNormalizedNumber), properties);
             return;
@@ -444,8 +483,13 @@ void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &pr
         request[TP_QT_IFACE_CHANNEL + QLatin1String(".ChannelType")] = TP_QT_IFACE_CHANNEL_TYPE_TEXT;
         request[TP_QT_IFACE_CHANNEL + QLatin1String(".InitiatorHandle")] = handle;
 
-        if (initialInviteeHandles.size() > 0) {
+        if (isRoom) {
             initialInviteeHandles << handle;
+            request[TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandleType")] = Tp::HandleTypeRoom;
+            // if the group exists, fill the targetId with the existing id
+            if (!group.groupId.isEmpty()) {
+                request[TP_QT_IFACE_CHANNEL + QLatin1String(".TargetID")] = group.groupId;
+            }
             request[TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeHandles")] = QVariant::fromValue(initialInviteeHandles);
             ensureChannel(request, yours, false, &error);
         } else {
@@ -454,13 +498,19 @@ void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &pr
             ensureChannel(request, yours, false, &error);
         }
 
-        if(error.isValid()) {
+        if (error.isValid()) {
             qCritical() << "Error creating channel for incoming message " << error.name() << error.message();
             return;
         }
-        channel = textChannelForMembers(QStringList() << senderNormalizedNumber << recipients.toList());
+        if (isRoom) {
+            channel = textChannelForId(group.groupId);
+        } else {
+            channel = textChannelForMembers(QStringList() << senderNormalizedNumber << recipients.toList());
+        }
         if (channel) {
             channel->mmsReceived(path, handle, properties);
+        } else {
+            qCritical() << "Failed to create channel for incoming mms" << "isRoom" << isRoom << "groupId" << group.groupId;
         }
     }
 }
@@ -622,23 +672,42 @@ uint oFonoConnection::newHandle(const QString &identifier)
     return mHandleCount;
 }
 
+uint oFonoConnection::newGroupHandle(const QString &identifier)
+{
+    mGroupHandles[++mGroupHandleCount] = identifier;
+    return mGroupHandleCount;
+}
+
 QStringList oFonoConnection::inspectHandles(uint handleType, const Tp::UIntList& handles, Tp::DBusError *error)
 {
     QStringList identifiers;
 
-    if( handleType != Tp::HandleTypeContact ) {
-        error->set(TP_QT_ERROR_INVALID_ARGUMENT,"Not supported");
-        return QStringList();
-    }
-
-    qDebug() << "oFonoConnection::inspectHandles " << handles;
-    Q_FOREACH( uint handle, handles) {
-        if (mHandles.keys().contains(handle)) {
-            identifiers.append(mHandles.value(handle));
-        } else {
-            error->set(TP_QT_ERROR_INVALID_HANDLE, "Handle not found");
-            return QStringList();
+    switch (handleType) {
+    case Tp::HandleTypeContact:
+        qDebug() << "oFonoConnection::inspectHandles contact" << handles;
+        Q_FOREACH(uint handle, handles) {
+            if (mHandles.keys().contains(handle)) {
+                identifiers.append(mHandles.value(handle));
+            } else {
+                error->set(TP_QT_ERROR_INVALID_HANDLE, "Contact handle not found");
+                return QStringList();
+            }
         }
+        break;
+    case Tp::HandleTypeRoom:
+        qDebug() << "oFonoConnection::inspectHandles group" << handles;
+        Q_FOREACH(uint handle, handles) {
+            if (mGroupHandles.keys().contains(handle)) {
+                identifiers.append(mGroupHandles.value(handle));
+            } else {
+                error->set(TP_QT_ERROR_INVALID_HANDLE, "Group handle not found");
+                return QStringList();
+            }
+        }
+        break;
+    default:
+        error->set(TP_QT_ERROR_INVALID_ARGUMENT,"Not supported");
+        break;
     }
     qDebug() << "oFonoConnection::inspectHandles " << identifiers;
     return identifiers;
@@ -675,7 +744,21 @@ Tp::UIntList oFonoConnection::requestHandles(uint handleType, const QStringList&
 
 Tp::BaseChannelPtr oFonoConnection::createTextChannel(const QVariantMap &request, Tp::DBusError *error)
 {
+    uint targetHandleType = request.value(TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandleType")).toUInt();
     uint targetHandle = request.value(TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandle")).toUInt();
+    QString targetId = request.value(TP_QT_IFACE_CHANNEL + QLatin1String(".TargetID")).toString();
+    bool isRoom = request.contains(TP_QT_IFACE_CHANNEL_INTERFACE_ROOM + QLatin1String(".RoomName"));
+    QStringList initialInviteeIDs;
+    if (request.contains(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeIDs"))) {
+         initialInviteeIDs = qdbus_cast<QStringList>(request[TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeIDs")]);
+    } else if (targetHandleType == Tp::HandleTypeRoom && !targetId.isEmpty()) {
+        // workaround to fill participants when not provided on new groups
+        // this case can happen on existing groups automatically transformed from None to Room 
+        MMSGroup group = MMSGroupCache::existingGroup(targetId);
+        if (group.members.isEmpty() && targetId.contains("%") && !targetId.startsWith("mms:")) {
+            initialInviteeIDs = targetId.split("%");
+        }
+    }
 
     if (mSelfPresence.type != Tp::ConnectionPresenceTypeAvailable) {
         error->set(TP_QT_ERROR_NETWORK_ERROR, "No network available");
@@ -684,17 +767,79 @@ Tp::BaseChannelPtr oFonoConnection::createTextChannel(const QVariantMap &request
 
     QStringList phoneNumbers;
     bool flash = false;
-    if (request.contains(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeHandles"))) {
+    if (!initialInviteeIDs.isEmpty()) {
+        Tp::UIntList handles;
+        Q_FOREACH(const QString& number, initialInviteeIDs) {
+            handles << ensureHandle(number);
+        }
+        phoneNumbers << inspectHandles(Tp::HandleTypeContact, handles, error);
+    } else if (request.contains(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeHandles"))) {
         phoneNumbers << inspectHandles(Tp::HandleTypeContact, qdbus_cast<Tp::UIntList>(request[TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialInviteeHandles")]), error);
-    } else {
-        phoneNumbers << mHandles.value(targetHandle);
+    }
+
+    // if the handle type is none and RoomName is present, we should try to find an existing MMS group
+    if (targetHandleType == Tp::HandleTypeNone && isRoom) {
+        MMSGroup group = MMSGroupCache::existingGroup(phoneNumbers);
+        if (!group.groupId.isEmpty()) {
+            targetId = group.groupId;
+        }
+        targetHandleType = Tp::HandleTypeRoom;
+    } else if (targetHandleType == Tp::HandleTypeRoom) {
+        if (targetId.isEmpty()) {
+            targetId = mGroupHandles.value(targetHandle);
+        }
+        // we got the groupId, now lookup the members and subject in the cache
+        MMSGroup group = MMSGroupCache::existingGroup(targetId);
+        if (group.groupId.isEmpty() && !initialInviteeIDs.isEmpty()) {
+            // save new group if we have initial invitee ids and no group is found in cache
+            group.groupId = targetId;
+            group.members = phoneNumbers;
+            MMSGroupCache::saveGroup(group);
+        } else if (group.groupId.isEmpty()) {
+            error->set(TP_QT_ERROR_INVALID_HANDLE, "MMS Group not found in cache.");
+            return Tp::BaseChannelPtr();
+        }
+        phoneNumbers = group.members;
+        isRoom = true;
+        // FIXME(MMSGroup): add support for MMS group subject
+    } else if (targetHandleType == Tp::HandleTypeContact && targetHandle != 0) {
+        targetId = mHandles.value(targetHandle);
+    }
+
+    // now get the appropriate handle
+    if (!targetId.isEmpty()) {
+        switch (targetHandleType) {
+        case Tp::HandleTypeRoom:
+            targetHandle = ensureGroupHandle(targetId);
+            break;
+        case Tp::HandleTypeContact:
+        default:
+            targetHandle = ensureHandle(targetId);
+            phoneNumbers << mHandles.value(targetHandle);
+            break;
+        }
     }
 
     if (request.contains(TP_QT_IFACE_CHANNEL_INTERFACE_SMS + QLatin1String(".Flash"))) {
         flash = request[TP_QT_IFACE_CHANNEL_INTERFACE_SMS + QLatin1String(".Flash")].toBool();
     }
 
-    oFonoTextChannel *channel = new oFonoTextChannel(this, phoneNumbers, flash);
+    oFonoTextChannel *channel = 0;
+    if (isRoom) {
+        // FIXME(MMSGroup): if targetId is empty, this means this is a new group, so we need to
+        // generate the group ID, probably something like "mms:<hash of member IDs>".
+        // Also, we need to call MMSGroupCache::saveGroup() to save the group in the cache
+        if (targetId.isEmpty()) {
+            MMSGroup group;
+            group.groupId = MMSGroupCache::generateId(phoneNumbers);
+            group.members = phoneNumbers;
+            targetId = group.groupId;
+            MMSGroupCache::saveGroup(group);
+        }
+        channel = new oFonoTextChannel(this, targetId, phoneNumbers);
+    } else {
+        channel = new oFonoTextChannel(this, QString(), phoneNumbers, flash);
+    }
     mTextChannels << channel;
     QObject::connect(channel, SIGNAL(messageRead(QString)), SLOT(onMessageRead(QString)));
     QObject::connect(channel, SIGNAL(destroyed()), SLOT(onTextChannelClosed()));
@@ -725,9 +870,15 @@ Tp::BaseChannelPtr oFonoConnection::createCallChannel(const QVariantMap &request
 {
     uint targetHandle = request.value(TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandle")).toUInt();
     uint initiatorHandle = request.value(TP_QT_IFACE_CHANNEL + QLatin1String(".InitiatorHandle")).toUInt();
+    QString newPhoneNumber = request.value(TP_QT_IFACE_CHANNEL + QLatin1String(".TargetID")).toString();
+
+    if (!newPhoneNumber.isEmpty()) {
+        targetHandle = ensureHandle(newPhoneNumber);
+    } else {
+        newPhoneNumber = mHandles.value(targetHandle);
+    }
 
     bool success = true;
-    QString newPhoneNumber = mHandles.value(targetHandle);
     bool available = (mSelfPresence.type == Tp::ConnectionPresenceTypeAvailable);
     bool isConference = (request.contains(TP_QT_IFACE_CHANNEL_INTERFACE_CONFERENCE + QLatin1String(".InitialChannels")) &&
                          (!request.contains(TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandleType")) || request[TP_QT_IFACE_CHANNEL + QLatin1String(".TargetHandleType")] == Tp::HandleTypeNone) &&
@@ -981,6 +1132,14 @@ uint oFonoConnection::ensureHandle(const QString &phoneNumber)
         }
     }
     return newHandle(normalizedNumber);
+}
+
+uint oFonoConnection::ensureGroupHandle(const QString &groupId)
+{
+    if (mGroupHandles.values().contains(groupId)) {
+        return mGroupHandles.key(groupId);
+    }
+    return newGroupHandle(groupId);
 }
 
 bool oFonoConnection::matchChannel(const Tp::BaseChannelPtr &channel, const QVariantMap &request, Tp::DBusError *error)

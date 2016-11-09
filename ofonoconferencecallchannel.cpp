@@ -119,7 +119,10 @@ void oFonoConferenceCallChannel::onChannelSplitted(const QDBusObjectPath &path)
         reason.DBusReason = "";
 
         mCallChannel->setCallState(Tp::CallStateEnded, 0, reason, stateDetails);
-        mBaseChannel->close();
+        // just in case, delay the channel closing by 1 second
+        QTimer::singleShot(1000, [=]() {
+            mBaseChannel->close();
+        });
     }
 }
 
