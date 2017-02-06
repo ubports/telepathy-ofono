@@ -1,3 +1,9 @@
+telepathy-ofono (0.2+17.04.20161109-0ubuntu1) zesty; urgency=medium
+
+  * Group chat fixes.
+
+ -- Gustavo Pichorim Boiko <gustavo.boiko@canonical.com>  Wed, 09 Nov 2016 19:54:03 +0000
+
 telepathy-ofono (0.2+16.10.20160909-0ubuntu1) yakkety; urgency=medium
 
   * No change rebuild for libphonenumber7
