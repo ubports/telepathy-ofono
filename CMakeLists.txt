@@ -41,13 +41,6 @@ pkg_check_modules(TP_QT5 REQUIRED TelepathyQt5)
 pkg_check_modules(SQLITE3 REQUIRED sqlite3)
 pkg_check_modules(MC_PLUGINS REQUIRED mission-control-plugins)
 
-pkg_check_modules(PULSEAUDIO libpulse)
-if (PULSEAUDIO_FOUND)
-    add_definitions(-DUSE_PULSEAUDIO)
-    set(USE_PULSEAUDIO ON)
-    include_directories(${PULSEAUDIO_INCLUDE_DIRS})
-endif (PULSEAUDIO_FOUND)
-
 find_program(DBUS_RUNNER dbus-test-runner)
 
 if(NOT DAEMON_DIR)
@@ -90,30 +83,23 @@ set(TELEPATHY_OFONO_SRC
    ofonoconferencecallchannel.cpp
    emergencymodeiface.cpp
    voicemailiface.cpp
-   audiooutputsiface.cpp
    mmsdmanager.cpp
    mmsdservice.cpp
    mmsdmessage.cpp
    mmsgroupcache.cpp
    pendingmessagesmanager.cpp
    phoneutils.cpp
-   powerdaudiomodemediator.cpp
-   powerddbus.cpp
    sqlitedatabase.cpp
    ussdiface.cpp
    ${telepathyfono_RES})
 
-if(USE_PULSEAUDIO)
-    add_executable(${TELEPATHY_OFONO} qpulseaudioengine.cpp ${TELEPATHY_OFONO_SRC})
-else(USE_PULSEAUDIO)
-    add_executable(${TELEPATHY_OFONO} ${TELEPATHY_OFONO_SRC})
-endif(USE_PULSEAUDIO)
+add_executable(${TELEPATHY_OFONO} ${TELEPATHY_OFONO_SRC})
 qt5_use_modules(${TELEPATHY_OFONO} Core DBus Sql)
 add_dependencies(${TELEPATHY_OFONO} schema_update qrc_update)
 
 enable_testing()
 
-target_link_libraries(${TELEPATHY_OFONO} ${Qt5Core_LIBRARIES} ${Qt5DBus_LIBRARIES} ${WAUDIO_LIBRARIES} -ltelepathy-qt5 ${TELEPATHY_QT5_SERVICE_LIBRARIES}  ${Qt5Network_LIBRARIES} ${OFONO_QT_LIBRARIES} ${PULSEAUDIO_LIBRARIES} ${SQLITE3_LIBRARIES} ${LibPhoneNumber_LIBRARIES})
+target_link_libraries(${TELEPATHY_OFONO} ${Qt5Core_LIBRARIES} ${Qt5DBus_LIBRARIES} -ltelepathy-qt5 ${TELEPATHY_QT5_SERVICE_LIBRARIES}  ${Qt5Network_LIBRARIES} ${OFONO_QT_LIBRARIES} ${SQLITE3_LIBRARIES} ${LibPhoneNumber_LIBRARIES})
 install(TARGETS ${TELEPATHY_OFONO} DESTINATION ${DAEMON_DIR})
 
 configure_file(ofono.service.in org.freedesktop.Telepathy.ConnectionManager.ofono.service)

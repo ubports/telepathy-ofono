@@ -20,12 +20,6 @@
 #define DBUSTYPES
 #include <QDBusObjectPath>
 
-struct AudioOutput {
-    QString id;
-    QString type;
-    QString name;
-};
-
 struct MessageStruct {
     QDBusObjectPath path;
     QVariantMap properties;
@@ -44,11 +38,6 @@ struct OutgoingAttachmentStruct {
     QString contentType;
     QString filePath;
 };
-
-Q_DECLARE_METATYPE(AudioOutput)
-
-typedef QList<AudioOutput> AudioOutputList;
-Q_DECLARE_METATYPE(AudioOutputList)
 
 typedef QList<IncomingAttachmentStruct> IncomingAttachmentList;
 typedef QList<OutgoingAttachmentStruct> OutgoingAttachmentList;

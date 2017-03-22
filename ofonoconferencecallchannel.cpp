@@ -17,9 +17,6 @@
  */
 
 #include "ofonoconferencecallchannel.h"
-#ifdef USE_PULSEAUDIO
-#include "qpulseaudioengine.h"
-#endif
 #include "ofonocallchannel.h"
 
 
@@ -50,9 +47,6 @@ oFonoConferenceCallChannel::oFonoConferenceCallChannel(oFonoConnection *conn, QO
     mMuteIface = Tp::BaseCallMuteInterface::create();
     mMuteIface->setSetMuteStateCallback(Tp::memFun(this,&oFonoConferenceCallChannel::onMuteStateChanged));
 
-    mAudioOutputsIface = BaseChannelAudioOutputsInterface::create();
-    mAudioOutputsIface->setSetActiveAudioOutputCallback(Tp::memFun(this,&oFonoConferenceCallChannel::onSetActiveAudioOutput));
-
     mConferenceIface = Tp::BaseChannelConferenceInterface::create(mCallChannels);
 
     mMergeableIface = Tp::BaseChannelMergeableConferenceInterface::create();
@@ -60,7 +54,6 @@ oFonoConferenceCallChannel::oFonoConferenceCallChannel(oFonoConnection *conn, QO
 
     baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mHoldIface));
     baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mMuteIface));
-    baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mAudioOutputsIface));
     baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mConferenceIface));
     baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mMergeableIface));
 
@@ -126,20 +119,6 @@ void oFonoConferenceCallChannel::onChannelSplitted(const QDBusObjectPath &path)
     }
 }
 
-void oFonoConferenceCallChannel::onSetActiveAudioOutput(const QString &id, Tp::DBusError *error)
-{
-#ifdef USE_PULSEAUDIO
-    // fallback to earpiece/headset
-    AudioMode mode = AudioModeWiredOrEarpiece;
-    if (id == "bluetooth") {
-        mode = AudioModeBluetooth;
-    } else if (id == "speaker") {
-        mode = AudioModeSpeaker;
-    }
-    QPulseAudioEngine::instance()->setCallMode(CallActive, mode);
-#endif
-}
-
 void oFonoConferenceCallChannel::onHangup(uint reason, const QString &detailedReason, const QString &message, Tp::DBusError *error)
 {
     // TODO: use the parameters sent by telepathy
@@ -174,12 +153,7 @@ void oFonoConferenceCallChannel::init()
 
     QObject::connect(mBaseChannel.data(), SIGNAL(closed()), this, SLOT(deleteLater()));
     QObject::connect(mConnection->callVolume(), SIGNAL(mutedChanged(bool)), SLOT(onOfonoMuteChanged(bool)));
-    QObject::connect(mConnection, SIGNAL(activeAudioOutputChanged(QString)), mAudioOutputsIface.data(), SLOT(setActiveAudioOutput(QString)));
-    QObject::connect(mConnection, SIGNAL(audioOutputsChanged(AudioOutputList)), mAudioOutputsIface.data(), SLOT(setAudioOutputs(AudioOutputList)));
     QObject::connect(mConnection->voiceCallManager(), SIGNAL(sendTonesComplete(bool)), SLOT(onDtmfComplete(bool)));
-
-    mAudioOutputsIface->setAudioOutputs(mConnection->audioOutputs());
-    mAudioOutputsIface->setActiveAudioOutput(mConnection->activeAudioOutput());
 
     QObject::connect(mConnection, SIGNAL(channelMerged(const QDBusObjectPath&)), this, SLOT(onChannelMerged(const QDBusObjectPath&)));
     QObject::connect(mConnection, SIGNAL(channelSplitted(const QDBusObjectPath&)), this, SLOT(onChannelSplitted(const QDBusObjectPath&)));
@@ -228,14 +202,8 @@ void oFonoConferenceCallChannel::onMuteStateChanged(const Tp::LocalMuteState &st
 {
     if (state == Tp::LocalMuteStateMuted) {
         mConnection->callVolume()->setMuted(true);
-#ifdef USE_PULSEAUDIO
-        QPulseAudioEngine::instance()->setMicMute(true);
-#endif
     } else if (state == Tp::LocalMuteStateUnmuted) {
         mConnection->callVolume()->setMuted(false);
-#ifdef USE_PULSEAUDIO
-        QPulseAudioEngine::instance()->setMicMute(false);
-#endif
     }
 }
 
