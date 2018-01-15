@@ -1,3 +1,9 @@
+telepathy-ofono (0.3+ubports) xenial; urgency=medium
+
+  * Imported to UBports
+
+ -- UBports auto importer <infra@ubports.com>  Mon, 15 Jan 2018 15:51:52 +0100
+
 telepathy-ofono (0.2+17.04.20161109-0ubuntu1) zesty; urgency=medium
 
   * Group chat fixes.
