@@ -341,10 +341,9 @@ void oFonoCallChannel::onOfonoCallStateChanged(const QString &state)
         }
         mCallChannel->setCallState(Tp::CallStateEnded, 0, reason, stateDetails);
         // just in case, leave the channel opened for one more second before unregistering from bus
-        QTimer::singleShot(1000, [=]() {
-            Q_EMIT closed();
-            mBaseChannel->close();
-        });
+        QThread::msleep(1000);
+        Q_EMIT closed();
+        mBaseChannel->close();
     } else if (state == "active") {
         qDebug() << "active";
         mHoldIface->setHoldState(Tp::LocalHoldStateUnheld, Tp::LocalHoldStateReasonNone);
