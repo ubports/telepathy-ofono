@@ -43,10 +43,6 @@ pkg_check_modules(MC_PLUGINS REQUIRED mission-control-plugins)
 
 find_program(DBUS_RUNNER dbus-test-runner)
 
-if(NOT DAEMON_DIR)
-  set(DAEMON_DIR lib/telepathy)
-endif(NOT DAEMON_DIR)
-
 set(CMAKE_AUTOMOC ON)
 
 include_directories(${TP_QT5_INCLUDE_DIRS})
@@ -100,7 +96,7 @@ add_dependencies(${TELEPATHY_OFONO} schema_update qrc_update)
 enable_testing()
 
 target_link_libraries(${TELEPATHY_OFONO} ${Qt5Core_LIBRARIES} ${Qt5DBus_LIBRARIES} -ltelepathy-qt5 ${TELEPATHY_QT5_SERVICE_LIBRARIES}  ${Qt5Network_LIBRARIES} ${OFONO_QT_LIBRARIES} ${SQLITE3_LIBRARIES} ${LibPhoneNumber_LIBRARIES})
-install(TARGETS ${TELEPATHY_OFONO} DESTINATION ${DAEMON_DIR})
+install(TARGETS ${TELEPATHY_OFONO} DESTINATION ${CMAKE_INSTALL_LIBEXECDIR})
 
 configure_file(ofono.service.in org.freedesktop.Telepathy.ConnectionManager.ofono.service)
 install (FILES ofono.manager DESTINATION share/telepathy/managers)
