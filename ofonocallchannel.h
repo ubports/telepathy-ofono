@@ -26,7 +26,7 @@
 #include <TelepathyQt/BaseCall>
 #include <TelepathyQt/Types>
 
-#include <ofono-qt/ofonovoicecall.h>
+#include <ofonovoicecall.h>
 
 #include "connection.h"
 
