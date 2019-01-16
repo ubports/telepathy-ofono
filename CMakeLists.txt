@@ -40,6 +40,7 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(TP_QT5 REQUIRED TelepathyQt5)
 pkg_check_modules(SQLITE3 REQUIRED sqlite3)
 pkg_check_modules(MC_PLUGINS REQUIRED mission-control-plugins)
+pkg_check_modules(OFONO_QT REQUIRED ofono-qt)
 
 find_program(DBUS_RUNNER dbus-test-runner)
 
@@ -51,11 +52,10 @@ include_directories(${Qt5DBus_INCLUDE_DIRS})
 include_directories(${SQLITE3_INCLUDE_DIRS})
 include_directories(${LibPhoneNumber_INCLUDE_DIRS})
 include_directories(/usr/include/telepathy-qt5/)
-include_directories(/usr/include/ofono-qt/)
+include_directories(${OFONO_QT_INCLUDE_DIRS})
 
 find_library(TELEPATHY_QT5_LIBRARIES telepathy-qt5)
 find_library(TELEPATHY_QT5_SERVICE_LIBRARIES telepathy-qt5-service)
-find_library(OFONO_QT_LIBRARIES ofono-qt)
 
 qt5_add_resources(telepathyfono_RES sqlitetelepathyofono.qrc countrycodes.qrc)
 
