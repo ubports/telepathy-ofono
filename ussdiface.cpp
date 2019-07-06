@@ -256,7 +256,7 @@ ConnectionInterfaceUSSDAdaptor::~ConnectionInterfaceUSSDAdaptor()
 
 void ConnectionInterfaceUSSDAdaptor::Initiate(const QString &command, const QDBusMessage& dbusMessage)
 {
-    if (!adaptee()->metaObject()->indexOfMethod("initiate(const QString &,ConnectionInterfaceUSSDAdaptor::InitiateContextPtr)") == -1) {
+    if (adaptee()->metaObject()->indexOfMethod("initiate(const QString &,ConnectionInterfaceUSSDAdaptor::InitiateContextPtr)") == -1) {
         dbusConnection().send(dbusMessage.createErrorReply(TP_QT_ERROR_NOT_IMPLEMENTED, QLatin1String("Not implemented")));
         return;
     }
@@ -271,7 +271,7 @@ void ConnectionInterfaceUSSDAdaptor::Initiate(const QString &command, const QDBu
 
 void ConnectionInterfaceUSSDAdaptor::Respond(const QString &reply, const QDBusMessage& dbusMessage)
 {
-    if (!adaptee()->metaObject()->indexOfMethod("respond(QConnectionInterfaceUSSDAdaptor::RespondContextPtr)") == -1) {
+    if (adaptee()->metaObject()->indexOfMethod("respond(QConnectionInterfaceUSSDAdaptor::RespondContextPtr)") == -1) {
         dbusConnection().send(dbusMessage.createErrorReply(TP_QT_ERROR_NOT_IMPLEMENTED, QLatin1String("Not implemented")));
         return;
     }
@@ -286,7 +286,7 @@ void ConnectionInterfaceUSSDAdaptor::Respond(const QString &reply, const QDBusMe
 
 void ConnectionInterfaceUSSDAdaptor::Cancel(const QDBusMessage& dbusMessage)
 {
-    if (!adaptee()->metaObject()->indexOfMethod("cancel(ConnectionInterfaceUSSDAdaptor::CancelContextPtr)") == -1) {
+    if (adaptee()->metaObject()->indexOfMethod("cancel(ConnectionInterfaceUSSDAdaptor::CancelContextPtr)") == -1) {
         dbusConnection().send(dbusMessage.createErrorReply(TP_QT_ERROR_NOT_IMPLEMENTED, QLatin1String("Not implemented")));
         return;
     }
