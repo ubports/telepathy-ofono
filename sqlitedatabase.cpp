@@ -108,7 +108,7 @@ bool SQLiteDatabase::reopen()
 
     // make sure the database is up-to-date after reopening.
     // this is mainly required for the memory backend used for testing
-    createOrUpdateDatabase();
+    return createOrUpdateDatabase();
 }
 
 bool SQLiteDatabase::createOrUpdateDatabase()
