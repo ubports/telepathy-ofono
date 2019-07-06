@@ -5,7 +5,6 @@ include_directories(
 
 macro(generate_test TESTNAME USE_DBUS)
     add_executable(${TESTNAME} ${ARGN} ${TESTNAME}.cpp)
-    qt5_use_modules(${TESTNAME} Core DBus Test)
     set(TEST_COMMAND )
     if (${USE_DBUS})
         set(TEST_COMMAND -p ${CMAKE_CURRENT_BINARY_DIR}/${TESTNAME} -p -xunitxml -p -o -p ${CMAKE_BINARY_DIR}/test_${TESTNAME}.xml)
@@ -34,6 +33,7 @@ macro(generate_test TESTNAME USE_DBUS)
     target_link_libraries(${TESTNAME}
                           ${TP_QT5_LIBRARIES}
                           ${LibPhoneNumber_LIBRARIES}
+                          Qt5::Core Qt5::DBus Qt5::Test
                          )
 endmacro(generate_test)
 
