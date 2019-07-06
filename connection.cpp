@@ -47,7 +47,7 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     mHandleCount(0),
     mGroupHandleCount(0),
     mMmsdManager(new MMSDManager(this)),
-    mConferenceCall(NULL)
+    mConferenceCall(nullptr)
 {
     OfonoModem::SelectionSetting setting = OfonoModem::AutomaticSelect;
     mModemPath = parameters["modem-objpath"].toString();
@@ -333,7 +333,7 @@ oFonoTextChannel* oFonoConnection::textChannelForId(const QString &id)
             return channel;
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 oFonoTextChannel* oFonoConnection::textChannelForMembers(const QStringList &members)
@@ -360,7 +360,7 @@ oFonoTextChannel* oFonoConnection::textChannelForMembers(const QStringList &memb
             return channel;
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &properties, const QString &servicePath)
@@ -398,7 +398,7 @@ void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &pr
             senderNormalizedNumber = "x-ofono-unknown";
         }
 
-        oFonoTextChannel *channel = NULL;
+        oFonoTextChannel *channel = nullptr;
         MMSGroup group;
         if (isRoom) {
             group = MMSGroupCache::existingGroup(QStringList() << senderNormalizedNumber << recipients.toList());
@@ -767,7 +767,7 @@ Tp::BaseChannelPtr oFonoConnection::createTextChannel(const QVariantMap &request
         flash = request[TP_QT_IFACE_CHANNEL_INTERFACE_SMS + QLatin1String(".Flash")].toBool();
     }
 
-    oFonoTextChannel *channel = 0;
+    oFonoTextChannel *channel = nullptr;
     if (isRoom) {
         // FIXME(MMSGroup): if targetId is empty, this means this is a new group, so we need to
         // generate the group ID, probably something like "mms:<hash of member IDs>".
@@ -805,7 +805,7 @@ void oFonoConnection::onMessageRead(const QString &id)
 void oFonoConnection::onConferenceCallChannelClosed()
 {
     if (mConferenceCall) {
-        mConferenceCall = NULL;
+        mConferenceCall = nullptr;
     }
 }
 
