@@ -3,6 +3,8 @@ include_directories(
     ${CMAKE_SOURCE_DIR}
     )
 
+find_package(Qt5 REQUIRED COMPONENTS Test)
+
 macro(generate_test TESTNAME USE_DBUS)
     add_executable(${TESTNAME} ${ARGN} ${TESTNAME}.cpp)
     set(TEST_COMMAND )

@@ -33,7 +33,7 @@ IF(CMAKE_BUILD_TYPE MATCHES [cC][oO][vV][eE][rR][aA][gG][eE])
 ENDIF(CMAKE_BUILD_TYPE MATCHES [cC][oO][vV][eE][rR][aA][gG][eE])
 
 find_package(LibPhoneNumber REQUIRED)
-find_package(Qt5 REQUIRED COMPONENTS Core DBus Network Test)
+find_package(Qt5 REQUIRED COMPONENTS Core DBus Network)
 add_definitions(-DQT_NO_KEYWORDS)
 
 find_package(PkgConfig REQUIRED)
