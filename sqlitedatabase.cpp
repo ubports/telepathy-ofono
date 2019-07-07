@@ -33,9 +33,9 @@ Q_DECLARE_METATYPE(sqlite3*)
 // custom sqlite function "comparePhoneNumbers" used to compare IDs if necessary
 void comparePhoneNumbers(sqlite3_context *context, int argc, sqlite3_value **argv)
 {
-    if (argc < 2) {
-        qCritical() << "comparePhoneNumbers called with only" << argc << "arguments but requires two.";
-        sqlite3_result_error(context, "Not enough arguments given", 0);
+    if (argc != 2) {
+        qCritical() << "comparePhoneNumbers called with " << argc << "arguments but requires two.";
+        sqlite3_result_error(context, "Number of arguments needs to be two", 0);
         return;
     }
 
