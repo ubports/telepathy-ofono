@@ -126,8 +126,8 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
     // init custom emergency mode interface (not provided by telepathy
     emergencyModeIface = BaseConnectionEmergencyModeInterface::create();
     emergencyModeIface->setEmergencyNumbersCallback(Tp::memFun(this,&oFonoConnection::emergencyNumbers));
-    QObject::connect(mOfonoVoiceCallManager, SIGNAL(emergencyNumbersChanged(QStringList)),
-                     emergencyModeIface.data(), SLOT(setEmergencyNumbers(QStringList)));
+    QObject::connect(mOfonoVoiceCallManager, &OfonoVoiceCallManager::emergencyNumbersChanged,
+                     emergencyModeIface.data(), &BaseConnectionEmergencyModeInterface::setEmergencyNumbers);
     plugInterface(Tp::AbstractConnectionInterfacePtr::dynamicCast(emergencyModeIface));
     emergencyModeIface->setEmergencyNumbers(mOfonoVoiceCallManager->emergencyNumbers());
     emergencyModeIface->setFakeEmergencyNumber(parameters["fakeEmergencyNumber"].toString());
@@ -190,65 +190,48 @@ oFonoConnection::oFonoConnection(const QDBusConnection &dbusConnection,
                                                  << TP_QT_IFACE_CONNECTION_INTERFACE_SIMPLE_PRESENCE);
     plugInterface(Tp::AbstractConnectionInterfacePtr::dynamicCast(contactsIface));
 
-    QObject::connect(mOfonoModem, SIGNAL(onlineChanged(bool)), SLOT(updateOnlineStatus()));
-    QObject::connect(mOfonoModem, SIGNAL(serialChanged(QString)), supplementaryServicesIface.data(), SLOT(setSerial(QString)));
-    QObject::connect(mOfonoModem, SIGNAL(interfacesChanged(QStringList)), SLOT(updateOnlineStatus()));
-    QObject::connect(mOfonoMessageManager, SIGNAL(incomingMessage(QString,QVariantMap)), this, SLOT(onOfonoIncomingMessage(QString,QVariantMap)));
-    QObject::connect(mOfonoMessageManager, SIGNAL(immediateMessage(QString,QVariantMap)), this, SLOT(onOfonoImmediateMessage(QString,QVariantMap)));
-    QObject::connect(mOfonoMessageManager, SIGNAL(statusReport(QString,QVariantMap)), this, SLOT(onDeliveryReportReceived(QString,QVariantMap)));
-    QObject::connect(mOfonoVoiceCallManager, SIGNAL(callAdded(QString,QVariantMap)), SLOT(onOfonoCallAdded(QString, QVariantMap)));
+    QObject::connect(mOfonoModem, &OfonoModem::onlineChanged, this, &oFonoConnection::updateOnlineStatus);
+    QObject::connect(mOfonoModem, &OfonoModem::serialChanged, supplementaryServicesIface.data(), &BaseConnectionUSSDInterface::setSerial);
+    QObject::connect(mOfonoModem, &OfonoModem::interfacesChanged, this, &oFonoConnection::updateOnlineStatus);
+    QObject::connect(mOfonoMessageManager, &OfonoMessageManager::incomingMessage, this, &oFonoConnection::onOfonoIncomingMessage);
+    QObject::connect(mOfonoMessageManager, &OfonoMessageManager::immediateMessage, this, &oFonoConnection::onOfonoImmediateMessage);
+    QObject::connect(mOfonoMessageManager, &OfonoMessageManager::statusReport, this, &oFonoConnection::onDeliveryReportReceived);
+    QObject::connect(mOfonoVoiceCallManager, &OfonoVoiceCallManager::callAdded, this, &oFonoConnection::onOfonoCallAdded);
+    /// \TODO: this is actually a misnamed slot in ofono-qt/OfonoVoiceCallManager
     QObject::connect(mOfonoVoiceCallManager, SIGNAL(validityChanged(bool)), SLOT(onValidityChanged(bool)));
-    QObject::connect(mOfonoSimManager, SIGNAL(validityChanged(bool)), SLOT(onValidityChanged(bool)));
-    QObject::connect(mOfonoSimManager, SIGNAL(presenceChanged(bool)), SLOT(updateOnlineStatus()));
-    QObject::connect(mOfonoSimManager, SIGNAL(pinRequiredChanged(QString)), SLOT(updateOnlineStatus()));
-    QObject::connect(mOfonoSimManager, SIGNAL(subscriberNumbersChanged(QStringList)), SLOT(updateOnlineStatus()));
-    QObject::connect(mOfonoNetworkRegistration, SIGNAL(statusChanged(QString)), SLOT(updateOnlineStatus()));
-    QObject::connect(mOfonoNetworkRegistration, SIGNAL(nameChanged(QString)), SLOT(updateOnlineStatus()));
-    QObject::connect(mOfonoNetworkRegistration, SIGNAL(mccChanged(QString)), SLOT(updateOnlineStatus(QString)));
-    QObject::connect(mOfonoNetworkRegistration, SIGNAL(validityChanged(bool)), SLOT(onValidityChanged(bool)));
-    QObject::connect(mOfonoMessageWaiting, SIGNAL(voicemailMessageCountChanged(int)), voicemailIface.data(), SLOT(setVoicemailCount(int)));
-    QObject::connect(mOfonoMessageWaiting, SIGNAL(voicemailWaitingChanged(bool)), voicemailIface.data(), SLOT(setVoicemailIndicator(bool)));
-    QObject::connect(mOfonoMessageWaiting, SIGNAL(voicemailMailboxNumberChanged(QString)), voicemailIface.data(), SLOT(setVoicemailNumber(QString)));
+    QObject::connect(mOfonoSimManager, &OfonoSimManager::validityChanged, this, &oFonoConnection::onValidityChanged);
+    QObject::connect(mOfonoSimManager, &OfonoSimManager::presenceChanged, this, &oFonoConnection::updateOnlineStatus);
+    QObject::connect(mOfonoSimManager, &OfonoSimManager::pinRequiredChanged, this, &oFonoConnection::updateOnlineStatus);
+    QObject::connect(mOfonoSimManager, &OfonoSimManager::subscriberNumbersChanged, this, &oFonoConnection::updateOnlineStatus);
+    QObject::connect(mOfonoNetworkRegistration, &OfonoNetworkRegistration::statusChanged, this, &oFonoConnection::updateOnlineStatus);
+    QObject::connect(mOfonoNetworkRegistration, &OfonoNetworkRegistration::nameChanged, this, &oFonoConnection::updateOnlineStatus);
+    QObject::connect(mOfonoNetworkRegistration, &OfonoNetworkRegistration::mccChanged, this, &oFonoConnection::updateOnlineStatus);
+    QObject::connect(mOfonoNetworkRegistration, &OfonoNetworkRegistration::validityChanged, this, &oFonoConnection::onValidityChanged);
+    QObject::connect(mOfonoMessageWaiting, &OfonoMessageWaiting::voicemailMessageCountChanged, voicemailIface.data(), &BaseConnectionVoicemailInterface::setVoicemailCount);
+    QObject::connect(mOfonoMessageWaiting, &OfonoMessageWaiting::voicemailWaitingChanged, voicemailIface.data(), &BaseConnectionVoicemailInterface::setVoicemailIndicator);
+    QObject::connect(mOfonoMessageWaiting, &OfonoMessageWaiting::voicemailMailboxNumberChanged, voicemailIface.data(), &BaseConnectionVoicemailInterface::setVoicemailNumber);
 
-    QObject::connect(mMmsdManager, SIGNAL(serviceAdded(const QString&)), SLOT(onMMSDServiceAdded(const QString&)));
-    QObject::connect(mMmsdManager, SIGNAL(serviceRemoved(const QString&)), SLOT(onMMSDServiceRemoved(const QString&)));
+    QObject::connect(mMmsdManager, &MMSDManager::serviceAdded, this, &oFonoConnection::onMMSDServiceAdded);
+    QObject::connect(mMmsdManager, &MMSDManager::serviceRemoved, this, &oFonoConnection::onMMSDServiceRemoved);
 
-    QObject::connect(mOfonoSupplementaryServices, SIGNAL(notificationReceived(const QString &)), supplementaryServicesIface.data(), SLOT(NotificationReceived(const QString &)));
-    QObject::connect(mOfonoSupplementaryServices, SIGNAL(requestReceived(const QString &)), supplementaryServicesIface.data(), SLOT(RequestReceived(const QString &)));
+    QObject::connect(mOfonoSupplementaryServices, &OfonoSupplementaryServices::notificationReceived, supplementaryServicesIface.data(), &BaseConnectionUSSDInterface::NotificationReceived);
+    QObject::connect(mOfonoSupplementaryServices, &OfonoSupplementaryServices::requestReceived, supplementaryServicesIface.data(), &BaseConnectionUSSDInterface::RequestReceived);
+    QObject::connect(mOfonoSupplementaryServices, &OfonoSupplementaryServices::initiateUSSDComplete, supplementaryServicesIface.data(), &BaseConnectionUSSDInterface::InitiateUSSDComplete);
+    QObject::connect(mOfonoSupplementaryServices, &OfonoSupplementaryServices::barringComplete, supplementaryServicesIface.data(), &BaseConnectionUSSDInterface::BarringComplete);
+    QObject::connect(mOfonoSupplementaryServices, &OfonoSupplementaryServices::forwardingComplete, supplementaryServicesIface.data(), &BaseConnectionUSSDInterface::ForwardingComplete);
+    QObject::connect(mOfonoSupplementaryServices, &OfonoSupplementaryServices::waitingComplete, supplementaryServicesIface.data(), &BaseConnectionUSSDInterface::WaitingComplete);
+    QObject::connect(mOfonoSupplementaryServices, &OfonoSupplementaryServices::callingLinePresentationComplete, supplementaryServicesIface.data(), &BaseConnectionUSSDInterface::CallingLinePresentationComplete);
+    QObject::connect(mOfonoSupplementaryServices, &OfonoSupplementaryServices::connectedLinePresentationComplete, supplementaryServicesIface.data(), &BaseConnectionUSSDInterface::ConnectedLinePresentationComplete);
+    QObject::connect(mOfonoSupplementaryServices, &OfonoSupplementaryServices::callingLineRestrictionComplete, supplementaryServicesIface.data(), &BaseConnectionUSSDInterface::CallingLineRestrictionComplete);
+    QObject::connect(mOfonoSupplementaryServices, &OfonoSupplementaryServices::connectedLineRestrictionComplete, supplementaryServicesIface.data(), &BaseConnectionUSSDInterface::ConnectedLineRestrictionComplete);
+    QObject::connect(mOfonoSupplementaryServices, &OfonoSupplementaryServices::initiateFailed, supplementaryServicesIface.data(), &BaseConnectionUSSDInterface::InitiateFailed);
+    QObject::connect(mOfonoSupplementaryServices, &OfonoSupplementaryServices::stateChanged, supplementaryServicesIface.data(), &BaseConnectionUSSDInterface::StateChanged);
+    QObject::connect(mOfonoSupplementaryServices, &OfonoSupplementaryServices::respondComplete, supplementaryServicesIface.data(), &BaseConnectionUSSDInterface::RespondComplete);
 
-    QObject::connect(mOfonoSupplementaryServices, SIGNAL(initiateUSSDComplete(const QString &)), supplementaryServicesIface.data(), SLOT(InitiateUSSDComplete(const QString &)));
-
-    QObject::connect(mOfonoSupplementaryServices, SIGNAL(barringComplete(const QString &, const QString &, const QVariantMap &)), 
-        supplementaryServicesIface.data(), SLOT(BarringComplete(const QString &, const QString &, const QVariantMap &)));
-
-    QObject::connect(mOfonoSupplementaryServices, SIGNAL(forwardingComplete(const QString &, const QString &, const QVariantMap &)), 
-        supplementaryServicesIface.data(), SLOT(ForwardingComplete(const QString &, const QString &, const QVariantMap &)));
-
-    QObject::connect(mOfonoSupplementaryServices, SIGNAL(waitingComplete(const QString &, const QVariantMap &)), 
-        supplementaryServicesIface.data(), SLOT(WaitingComplete(const QString &, const QVariantMap &)));
-
-    QObject::connect(mOfonoSupplementaryServices, SIGNAL(callingLinePresentationComplete(const QString &, const QString &)), 
-        supplementaryServicesIface.data(), SLOT(CallingLinePresentationComplete(const QString &, const QString &)));
-
-    QObject::connect(mOfonoSupplementaryServices, SIGNAL(connectedLinePresentationComplete(const QString &, const QString &)), 
-        supplementaryServicesIface.data(), SLOT(ConnectedLinePresentationComplete(const QString &, const QString &)));
-
-    QObject::connect(mOfonoSupplementaryServices, SIGNAL(callingLineRestrictionComplete(const QString &, const QString &)), 
-        supplementaryServicesIface.data(), SLOT(CallingLineRestrictionComplete(const QString &, const QString &)));
-
-    QObject::connect(mOfonoSupplementaryServices, SIGNAL(connectedLineRestrictionComplete(const QString &, const QString &)), 
-        supplementaryServicesIface.data(), SLOT(ConnectedLineRestrictionComplete(const QString &, const QString &)));
-
-    QObject::connect(mOfonoSupplementaryServices, SIGNAL(initiateFailed()), supplementaryServicesIface.data(), SLOT(InitiateFailed()));
-
-    QObject::connect(mOfonoSupplementaryServices, SIGNAL(stateChanged(const QString&)), supplementaryServicesIface.data(), SLOT(StateChanged(const QString&)));
-
-    QObject::connect(mOfonoSupplementaryServices, SIGNAL(respondComplete(bool, const QString &)), supplementaryServicesIface.data(), SLOT(RespondComplete(bool, const QString &)));
-
-    QObject::connect(this, SIGNAL(disconnected()), this, SLOT(onDisconnected()));
+    QObject::connect(this, &oFonoConnection::disconnected, this, &oFonoConnection::onDisconnected);
     // workaround: we can't add services here as tp-ofono interfaces are not exposed on dbus
     // todo: use QDBusServiceWatcher
-    QTimer::singleShot(1000, this, SLOT(onCheckMMSServices()));
+    QTimer::singleShot(1000, this, &oFonoConnection::onCheckMMSServices);
 }
 
 void oFonoConnection::onDisconnected()
@@ -290,8 +273,8 @@ void oFonoConnection::onMMSDServiceAdded(const QString &path)
     }
     qDebug() << "oFonoConnection::onMMSServiceAdded" << path;
     mMmsdServices[path] = service;
-    QObject::connect(service, SIGNAL(messageAdded(const QString&, const QVariantMap&)), SLOT(onMMSAdded(const QString&, const QVariantMap&)));
-    QObject::connect(service, SIGNAL(messageRemoved(const QString&)), SLOT(onMMSRemoved(const QString&)));
+    QObject::connect(service, &MMSDService::messageAdded, this, &oFonoConnection::onMMSAdded);
+    QObject::connect(service, &MMSDService::messageRemoved, this, &oFonoConnection::onMMSRemoved);
     Q_FOREACH(MessageStruct message, service->messages()) {
         addMMSToService(message.path.path(), message.properties, service->path());
     }
@@ -784,8 +767,8 @@ Tp::BaseChannelPtr oFonoConnection::createTextChannel(const QVariantMap &request
         channel = new oFonoTextChannel(this, QString(), phoneNumbers, flash);
     }
     mTextChannels << channel;
-    QObject::connect(channel, SIGNAL(messageRead(QString)), SLOT(onMessageRead(QString)));
-    QObject::connect(channel, SIGNAL(destroyed()), SLOT(onTextChannelClosed()));
+    QObject::connect(channel, &oFonoTextChannel::messageRead, this, &oFonoConnection::onMessageRead);
+    QObject::connect(channel, &oFonoTextChannel::destroyed, this, &oFonoConnection::onTextChannelClosed);
     return channel->baseChannel();
 }
 
@@ -846,7 +829,7 @@ Tp::BaseChannelPtr oFonoConnection::createCallChannel(const QVariantMap &request
         QList<QDBusObjectPath> channels = mOfonoVoiceCallManager->createMultiparty();
         if (!channels.isEmpty()) {
             mConferenceCall = new oFonoConferenceCallChannel(this);
-            QObject::connect(mConferenceCall, SIGNAL(destroyed()), SLOT(onConferenceCallChannelClosed()));
+            QObject::connect(mConferenceCall, &oFonoConferenceCallChannel::destroyed, this, &oFonoConnection::onConferenceCallChannelClosed);
             mConferenceCall->baseChannel()->setInitiatorHandle(initiatorHandle);
             return mConferenceCall->baseChannel();
         }
@@ -873,12 +856,12 @@ Tp::BaseChannelPtr oFonoConnection::createCallChannel(const QVariantMap &request
     oFonoCallChannel *channel = new oFonoCallChannel(this, newPhoneNumber, targetHandle, objpath.path());
     channel->baseChannel()->setInitiatorHandle(initiatorHandle);
     mCallChannels[objpath.path()] = channel;
-    QObject::connect(channel, SIGNAL(destroyed()), SLOT(onCallChannelDestroyed()));
-    QObject::connect(channel, SIGNAL(closed()), SLOT(onCallChannelClosed()));
-    QObject::connect(channel, SIGNAL(merged()), SLOT(onCallChannelMerged()));
-    QObject::connect(channel, SIGNAL(splitted()), SLOT(onCallChannelSplitted()));
-    QObject::connect(channel, SIGNAL(multipartyCallHeld()), SLOT(onMultipartyCallHeld()));
-    QObject::connect(channel, SIGNAL(multipartyCallActive()), SLOT(onMultipartyCallActive()));
+    QObject::connect(channel, &oFonoCallChannel::destroyed, this, &oFonoConnection::onCallChannelDestroyed);
+    QObject::connect(channel, &oFonoCallChannel::closed, this, &oFonoConnection::onCallChannelClosed);
+    QObject::connect(channel, &oFonoCallChannel::merged, this, &oFonoConnection::onCallChannelMerged);
+    QObject::connect(channel, &oFonoCallChannel::splitted, this, &oFonoConnection::onCallChannelSplitted);
+    QObject::connect(channel, &oFonoCallChannel::multipartyCallHeld, this, &oFonoConnection::onMultipartyCallHeld);
+    QObject::connect(channel, &oFonoCallChannel::multipartyCallActive, this, &oFonoConnection::onMultipartyCallActive);
     qDebug() << channel;
     return channel->baseChannel();
 }
