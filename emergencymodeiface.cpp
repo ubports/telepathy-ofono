@@ -136,7 +136,7 @@ ConnectionInterfaceEmergencyModeAdaptor::~ConnectionInterfaceEmergencyModeAdapto
 
 QStringList ConnectionInterfaceEmergencyModeAdaptor::EmergencyNumbers(const QDBusMessage& dbusMessage)
 {
-    if (!adaptee()->metaObject()->indexOfMethod("emergencyNumbers(ConnectionInterfaceEmergencyModeAdaptor::EmergencyNumbersContextPtr)") == -1) {
+    if (adaptee()->metaObject()->indexOfMethod("emergencyNumbers(ConnectionInterfaceEmergencyModeAdaptor::EmergencyNumbersContextPtr)") == -1) {
         dbusConnection().send(dbusMessage.createErrorReply(TP_QT_ERROR_NOT_IMPLEMENTED, QLatin1String("Not implemented")));
         return QStringList();
     }
@@ -150,7 +150,7 @@ QStringList ConnectionInterfaceEmergencyModeAdaptor::EmergencyNumbers(const QDBu
 
 QString ConnectionInterfaceEmergencyModeAdaptor::CountryCode(const QDBusMessage& dbusMessage)
 {
-    if (!adaptee()->metaObject()->indexOfMethod("countryCode(ConnectionInterfaceEmergencyModeAdaptor::CountryCodeContextPtr)") == -1) {
+    if (adaptee()->metaObject()->indexOfMethod("countryCode(ConnectionInterfaceEmergencyModeAdaptor::CountryCodeContextPtr)") == -1) {
         dbusConnection().send(dbusMessage.createErrorReply(TP_QT_ERROR_NOT_IMPLEMENTED, QLatin1String("Not implemented")));
         return QString();
     }

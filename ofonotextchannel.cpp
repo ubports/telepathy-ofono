@@ -117,7 +117,7 @@ oFonoTextChannel::oFonoTextChannel(oFonoConnection *conn, const QString &targetI
     mBaseChannel = baseChannel;
     mTextChannel = Tp::BaseChannelTextTypePtr::dynamicCast(mBaseChannel->interface(TP_QT_IFACE_CHANNEL_TYPE_TEXT));
     mTextChannel->setMessageAcknowledgedCallback(Tp::memFun(this,&oFonoTextChannel::messageAcknowledged));
-    QObject::connect(mBaseChannel.data(), SIGNAL(closed()), this, SLOT(deleteLater()));
+    QObject::connect(mBaseChannel.data(), &Tp::BaseChannel::closed, this, &oFonoTextChannel::deleteLater);
 }
 
 Tp::UIntList oFonoTextChannel::members()
@@ -232,7 +232,7 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
             Q_FOREACH(const QString &phoneNumber, mPhoneNumbers) {
                 QString realObjpath = mConnection->sendMMS(QStringList() << phoneNumber, attachments).path();
                 MMSDMessage *msg = new MMSDMessage(realObjpath, QVariantMap(), this);
-                QObject::connect(msg, SIGNAL(propertyChanged(QString,QVariant)), SLOT(onMMSPropertyChanged(QString,QVariant)));
+                QObject::connect(msg, &MMSDMessage::propertyChanged, this, &oFonoTextChannel::onMMSPropertyChanged);
                 mPendingBroadcastMMS[realObjpath] = objpath;
                 mPendingDeliveryReportUnknown[objpath] = handle;
                 QTimer::singleShot(0, this, SLOT(onProcessPendingDeliveryReport()));
@@ -256,7 +256,7 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
             return objpath;
         }
         MMSDMessage *msg = new MMSDMessage(objpath, QVariantMap(), this);
-        QObject::connect(msg, SIGNAL(propertyChanged(QString,QVariant)), SLOT(onMMSPropertyChanged(QString,QVariant)));
+        QObject::connect(msg, &MMSDMessage::propertyChanged, this, &oFonoTextChannel::onMMSPropertyChanged);
         mPendingDeliveryReportUnknown[objpath] = handle;
         QTimer::singleShot(0, this, SLOT(onProcessPendingDeliveryReport()));
         if (temporaryFiles.size() > 0) {
@@ -292,7 +292,7 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
         }
         // FIXME: track pending messages only if delivery reports are enabled. We need a system config option for it.
         PendingMessagesManager::instance()->addPendingMessage(objpath, mPhoneNumbers[0]);
-        QObject::connect(msg, SIGNAL(stateChanged(QString)), SLOT(onOfonoMessageStateChanged(QString)));
+        QObject::connect(msg, &OfonoMessage::stateChanged, this, &oFonoTextChannel::onOfonoMessageStateChanged);
         return objpath;
     } else {
         // Broadcast sms
@@ -330,7 +330,7 @@ QString oFonoTextChannel::sendMessage(Tp::MessagePartList message, uint flags, T
             // return only the last one in case of group chat for history purposes
             return objpath;
         }
-        QObject::connect(msg, SIGNAL(stateChanged(QString)), SLOT(onOfonoMessageStateChanged(QString)));
+        QObject::connect(msg, &OfonoMessage::stateChanged, this, &oFonoTextChannel::onOfonoMessageStateChanged);
         return objpath;
     }
 }

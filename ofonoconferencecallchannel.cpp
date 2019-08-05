@@ -151,13 +151,13 @@ void oFonoConferenceCallChannel::init()
     mDTMFIface->setStartToneCallback(Tp::memFun(this,&oFonoConferenceCallChannel::onDTMFStartTone));
     mDTMFIface->setStopToneCallback(Tp::memFun(this,&oFonoConferenceCallChannel::onDTMFStopTone));
 
-    QObject::connect(mBaseChannel.data(), SIGNAL(closed()), this, SLOT(deleteLater()));
-    QObject::connect(mConnection->callVolume(), SIGNAL(mutedChanged(bool)), SLOT(onOfonoMuteChanged(bool)));
-    QObject::connect(mConnection->voiceCallManager(), SIGNAL(sendTonesComplete(bool)), SLOT(onDtmfComplete(bool)));
+    QObject::connect(mBaseChannel.data(), &Tp::BaseChannel::closed, this, &oFonoConferenceCallChannel::deleteLater);
+    QObject::connect(mConnection->callVolume(), &OfonoCallVolume::mutedChanged, this, &oFonoConferenceCallChannel::onOfonoMuteChanged);
+    QObject::connect(mConnection->voiceCallManager(), &OfonoVoiceCallManager::sendTonesComplete, this, &oFonoConferenceCallChannel::onDtmfComplete);
 
-    QObject::connect(mConnection, SIGNAL(channelMerged(const QDBusObjectPath&)), this, SLOT(onChannelMerged(const QDBusObjectPath&)));
-    QObject::connect(mConnection, SIGNAL(channelSplitted(const QDBusObjectPath&)), this, SLOT(onChannelSplitted(const QDBusObjectPath&)));
-    QObject::connect(mConnection, SIGNAL(channelHangup(const QDBusObjectPath&)), this, SLOT(onChannelSplitted(const QDBusObjectPath&)));
+    QObject::connect(mConnection, &oFonoConnection::channelMerged, this, &oFonoConferenceCallChannel::onChannelMerged);
+    QObject::connect(mConnection, &oFonoConnection::channelSplitted, this, &oFonoConferenceCallChannel::onChannelSplitted);
+    QObject::connect(mConnection, &oFonoConnection::channelHangup, this,  &oFonoConferenceCallChannel::onChannelSplitted);
 }
 
 void oFonoConferenceCallChannel::onOfonoMuteChanged(bool mute)
@@ -178,11 +178,11 @@ void oFonoConferenceCallChannel::setConferenceActive(bool active)
 void oFonoConferenceCallChannel::onHoldStateChanged(const Tp::LocalHoldState &state, const Tp::LocalHoldStateReason &reason, Tp::DBusError *error)
 {
     if (state == Tp::LocalHoldStateHeld && mHoldIface->getHoldState() == Tp::LocalHoldStateUnheld) {
-        QObject::connect(mConnection->voiceCallManager(), SIGNAL(swapCallsComplete(bool)), this, SLOT(onSwapCallsComplete(bool)));
+        QObject::connect(mConnection->voiceCallManager(), &OfonoVoiceCallManager::swapCallsComplete, this,  &oFonoConferenceCallChannel::onSwapCallsComplete);
         mHoldIface->setHoldState(Tp::LocalHoldStatePendingHold, Tp::LocalHoldStateReasonRequested);
         mConnection->voiceCallManager()->swapCalls();
     } else if (state == Tp::LocalHoldStateUnheld && mHoldIface->getHoldState() == Tp::LocalHoldStateHeld) {
-        QObject::connect(mConnection->voiceCallManager(), SIGNAL(swapCallsComplete(bool)), this, SLOT(onSwapCallsComplete(bool)));
+        QObject::connect(mConnection->voiceCallManager(), &OfonoVoiceCallManager::swapCallsComplete, this, &oFonoConferenceCallChannel::onSwapCallsComplete);
         mHoldIface->setHoldState(Tp::LocalHoldStatePendingUnhold, Tp::LocalHoldStateReasonRequested);
         mConnection->voiceCallManager()->swapCalls();
     }
@@ -190,7 +190,7 @@ void oFonoConferenceCallChannel::onHoldStateChanged(const Tp::LocalHoldState &st
 
 void oFonoConferenceCallChannel::onSwapCallsComplete(bool success)
 {
-    QObject::disconnect(mConnection->voiceCallManager(), SIGNAL(swapCallsComplete(bool)), this, SLOT(onSwapCallsComplete(bool)));
+    QObject::disconnect(mConnection->voiceCallManager(), &OfonoVoiceCallManager::swapCallsComplete, this, &oFonoConferenceCallChannel::onSwapCallsComplete);
     if (!success) {
         // only change hold state in case of failure. Successful action will happen through setConferenceActive()
         Tp::LocalHoldState holdState = mHoldIface->getHoldState() == Tp::LocalHoldStatePendingHold ? Tp::LocalHoldStateUnheld : Tp::LocalHoldStateHeld;

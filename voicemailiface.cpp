@@ -159,7 +159,7 @@ ConnectionInterfaceVoicemailAdaptor::~ConnectionInterfaceVoicemailAdaptor()
 
 bool ConnectionInterfaceVoicemailAdaptor::VoicemailIndicator(const QDBusMessage& dbusMessage)
 {
-    if (!adaptee()->metaObject()->indexOfMethod("voicemailIndicator(ConnectionInterfaceVoicemailAdaptor::VoicemailIndicatorContextPtr)") == -1) {
+    if (adaptee()->metaObject()->indexOfMethod("voicemailIndicator(ConnectionInterfaceVoicemailAdaptor::VoicemailIndicatorContextPtr)") == -1) {
         dbusConnection().send(dbusMessage.createErrorReply(TP_QT_ERROR_NOT_IMPLEMENTED, QLatin1String("Not implemented")));
         return bool();
     }
@@ -173,7 +173,7 @@ bool ConnectionInterfaceVoicemailAdaptor::VoicemailIndicator(const QDBusMessage&
 
 QString ConnectionInterfaceVoicemailAdaptor::VoicemailNumber(const QDBusMessage& dbusMessage)
 {
-    if (!adaptee()->metaObject()->indexOfMethod("voicemailNumber(ConnectionInterfaceVoicemailAdaptor::VoicemailNumberContextPtr)") == -1) {
+    if (adaptee()->metaObject()->indexOfMethod("voicemailNumber(ConnectionInterfaceVoicemailAdaptor::VoicemailNumberContextPtr)") == -1) {
         dbusConnection().send(dbusMessage.createErrorReply(TP_QT_ERROR_NOT_IMPLEMENTED, QLatin1String("Not implemented")));
         return QString();
     }
@@ -187,7 +187,7 @@ QString ConnectionInterfaceVoicemailAdaptor::VoicemailNumber(const QDBusMessage&
 
 uint ConnectionInterfaceVoicemailAdaptor::VoicemailCount(const QDBusMessage& dbusMessage)
 {
-    if (!adaptee()->metaObject()->indexOfMethod("voicemailCount(ConnectionInterfaceVoicemailAdaptor::VoicemailCountContextPtr)") == -1) {
+    if (adaptee()->metaObject()->indexOfMethod("voicemailCount(ConnectionInterfaceVoicemailAdaptor::VoicemailCountContextPtr)") == -1) {
         dbusConnection().send(dbusMessage.createErrorReply(TP_QT_ERROR_NOT_IMPLEMENTED, QLatin1String("Not implemented")));
         return uint();
     }

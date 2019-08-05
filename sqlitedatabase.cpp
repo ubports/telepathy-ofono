@@ -33,6 +33,12 @@ Q_DECLARE_METATYPE(sqlite3*)
 // custom sqlite function "comparePhoneNumbers" used to compare IDs if necessary
 void comparePhoneNumbers(sqlite3_context *context, int argc, sqlite3_value **argv)
 {
+    if (argc != 2) {
+        qCritical() << "comparePhoneNumbers called with " << argc << "arguments but requires two.";
+        sqlite3_result_error(context, "Number of arguments needs to be two", 0);
+        return;
+    }
+
     QString arg1((const char*)sqlite3_value_text(argv[0]));
     QString arg2((const char*)sqlite3_value_text(argv[1]));
     sqlite3_result_int(context, (int)PhoneUtils::comparePhoneNumbers(arg1, arg2));
@@ -108,7 +114,7 @@ bool SQLiteDatabase::reopen()
 
     // make sure the database is up-to-date after reopening.
     // this is mainly required for the memory backend used for testing
-    createOrUpdateDatabase();
+    return createOrUpdateDatabase();
 }
 
 bool SQLiteDatabase::createOrUpdateDatabase()
