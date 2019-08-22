@@ -18,10 +18,12 @@
 ****************************************************************************/
 
 #include <QtCore/qdebug.h>
+#include <QFile>
 
 #include "qpulseaudioengine.h"
 #include <sys/types.h>
 #include <unistd.h>
+#include <hybris/properties/properties.h>
 
 #define PULSEAUDIO_PROFILE_HSP "headset_head_unit"
 #define PULSEAUDIO_PROFILE_A2DP "a2dp_sink"
@@ -97,6 +99,33 @@ static void subscribeCallback(pa_context *context, pa_subscription_event_type_t 
                     Qt::QueuedConnection, Q_ARG(int, PA_SUBSCRIPTION_EVENT_REMOVE), Q_ARG(unsigned int, idx));
         }
     }
+}
+
+static bool h2w_is_inserted()
+{
+    QFile h2w_switch_file("/sys/devices/virtual/switch/h2w/state");
+    if (!h2w_switch_file.open(QFile::ReadOnly)) {
+        return false;
+    }
+    const QByteArray content = h2w_switch_file.readLine().replace("\n", "");
+    qDebug() << "h2w:" << content;
+    if (content == "0") {
+        return false;
+    }
+    h2w_switch_file.close();
+    return true;
+}
+
+static bool is_quirk_sinkprimary_enabled()
+{
+    char value[PROP_VALUE_MAX];
+    return ((property_get("t-o.quirk.forcesinkprimary", value, NULL) != 0) && value[0] == '1');
+}
+
+static bool is_quirk_sourceprimary_enabled()
+{
+    char value[PROP_VALUE_MAX];
+    return ((property_get("t-o.quirk.forcesourceprimary", value, NULL) != 0) && value[0] == '1');
 }
 
 QPulseAudioEngineWorker::QPulseAudioEngineWorker(QObject *parent)
@@ -282,10 +311,12 @@ void QPulseAudioEngineWorker::sinkInfoCallback(const pa_sink_info *info)
         if (!strcmp(info->ports[i]->name, "output-earpiece"))
             earpiece = info->ports[i];
         else if (!strcmp(info->ports[i]->name, "output-wired_headset") &&
-                (info->ports[i]->available != PA_PORT_AVAILABLE_NO))
+                (info->ports[i]->available != PA_PORT_AVAILABLE_NO) &&
+                (info->ports[i]->available != PA_PORT_AVAILABLE_UNKNOWN))
             wired_headset = info->ports[i];
         else if (!strcmp(info->ports[i]->name, "output-wired_headphone") &&
-                (info->ports[i]->available != PA_PORT_AVAILABLE_NO))
+                (info->ports[i]->available != PA_PORT_AVAILABLE_NO) &&
+                (info->ports[i]->available != PA_PORT_AVAILABLE_UNKNOWN))
             wired_headphone = info->ports[i];
         else if (!strcmp(info->ports[i]->name, "output-speaker"))
             speaker = info->ports[i];
@@ -301,7 +332,7 @@ void QPulseAudioEngineWorker::sinkInfoCallback(const pa_sink_info *info)
     /* Refresh list of available audio modes */
     modes.append(AudioModeEarpiece);
     modes.append(AudioModeSpeaker);
-    if (wired_headset || wired_headphone)
+    if ((wired_headset || wired_headphone) && (h2w_is_inserted()))
         modes.append(AudioModeWiredHeadset);
     if (bluetooth_sco && ((m_bt_hsp != "") || (m_bt_hsp_a2dp != "")))
         modes.append(AudioModeBluetooth);
@@ -312,29 +343,42 @@ void QPulseAudioEngineWorker::sinkInfoCallback(const pa_sink_info *info)
         return;
 
     /* Now to decide which output to be used, depending on the active mode */
+    qDebug("Deciding output...");
     if (m_audiomode & AudioModeEarpiece) {
         preferred = earpiece;
         audiomodetoset = AudioModeEarpiece;
+        qDebug("Prefer AudioModeEarpiece");
     }
     if (m_audiomode & AudioModeSpeaker) {
         preferred = speaker;
         audiomodetoset = AudioModeSpeaker;
+        qDebug("Prefer AudioModeSpeaker");
     }
     if ((m_audiomode & AudioModeWiredHeadset) && (modes.contains(AudioModeWiredHeadset))) {
         preferred = wired_headset ? wired_headset : wired_headphone;
         audiomodetoset = AudioModeWiredHeadset;
+        qDebug("Prefer AudioModeWiredHeadset");
     }
     if (m_callstatus == CallRinging && speaker_and_wired_headphone) {
         preferred = speaker_and_wired_headphone;
+        audiomodetoset = AudioModeWiredOrSpeaker;
+        qDebug("Prefer AudioModeWiredOrSpeaker");
     }
     if ((m_audiomode & AudioModeBluetooth) && (modes.contains(AudioModeBluetooth))) {
         preferred = bluetooth_sco;
         audiomodetoset = AudioModeBluetooth;
+        qDebug("Prefer AudioModeBluetooth");
     }
 
     m_audiomode = audiomodetoset;
 
-    m_nametoset = info->name;
+    const bool force_sink_primary = is_quirk_sinkprimary_enabled();
+    if (force_sink_primary) {
+        m_nametoset = "sink.primary";
+    } else {
+        m_nametoset = info->name;
+    }
+
     if (info->active_port != preferred)
         m_valuetoset = preferred->name;
 
@@ -366,12 +410,17 @@ void QPulseAudioEngineWorker::sourceInfoCallback(const pa_source_info *info)
     /* Now to decide which output to be used, depending on the active mode */
     if ((m_audiomode & AudioModeEarpiece) || (m_audiomode & AudioModeSpeaker))
         preferred = builtin_mic;
-    if ((m_audiomode & AudioModeWiredHeadset) && (m_availableAudioModes.contains(AudioModeWiredHeadset)))
+    if ((m_audiomode & AudioModeWiredHeadset) && (m_availableAudioModes.contains(AudioModeWiredHeadset)) && h2w_is_inserted())
         preferred = wired_headset ? wired_headset : builtin_mic;
     if ((m_audiomode & AudioModeBluetooth) && (m_availableAudioModes.contains(AudioModeBluetooth)))
         preferred = bluetooth_sco;
 
-    m_nametoset = info->name;
+    const bool force_source_primary = is_quirk_sourceprimary_enabled();
+    if (force_source_primary) {
+        m_nametoset = "source.primary";
+    } else {
+        m_nametoset = info->name;
+    }
     if (info->active_port != preferred)
         m_valuetoset = preferred->name;
 }
@@ -568,7 +617,7 @@ void QPulseAudioEngineWorker::setCallMode(CallStatus callstatus, AudioMode audio
     o = pa_context_get_sink_info_list(m_context, sinkinfo_cb, this);
     if (!handleOperation(o, "pa_context_get_sink_info_list"))
         return;
-    if ((m_nametoset != "") && (m_nametoset != m_defaultsink)) {
+    if (m_nametoset != "") {
         qDebug("Setting PulseAudio default sink to '%s'", m_nametoset.c_str());
         o = pa_context_set_default_sink(m_context, m_nametoset.c_str(), success_cb, this);
         if (!handleOperation(o, "pa_context_set_default_sink"))
@@ -588,7 +637,7 @@ void QPulseAudioEngineWorker::setCallMode(CallStatus callstatus, AudioMode audio
     o = pa_context_get_source_info_list(m_context, sourceinfo_cb, this);
     if (!handleOperation(o, "pa_context_get_source_info_list"))
         return;
-    if ((m_nametoset != "") && (m_nametoset != m_defaultsource)) {
+    if (m_nametoset != "") {
         qDebug("Setting PulseAudio default source to '%s'", m_nametoset.c_str());
         o = pa_context_set_default_source(m_context, m_nametoset.c_str(), success_cb, this);
         if (!handleOperation(o, "pa_context_set_default_source"))
