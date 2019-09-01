@@ -108,24 +108,32 @@ static bool h2w_is_inserted()
         return false;
     }
     const QByteArray content = h2w_switch_file.readLine().replace("\n", "");
+    h2w_switch_file.close();
     qDebug() << "h2w:" << content;
     if (content == "0") {
         return false;
     }
-    h2w_switch_file.close();
     return true;
 }
 
-static bool is_quirk_sinkprimary_enabled()
+static char quirk_primary_sink_name[PROP_VALUE_MAX];
+static char* quirk_sinkprimary_name(int& len)
 {
-    char value[PROP_VALUE_MAX];
-    return ((property_get("t-o.quirk.forcesinkprimary", value, NULL) != 0) && value[0] == '1');
+    if ((len = property_get("t-o.quirk.forcesink", quirk_primary_sink_name, NULL)) > 0) {
+        quirk_primary_sink_name[len] = '\0';
+        return quirk_primary_sink_name;
+    }
+    return nullptr;
 }
 
-static bool is_quirk_sourceprimary_enabled()
+static char quirk_primary_source_name[PROP_VALUE_MAX];
+static char* quirk_sourceprimary_name(int& len)
 {
-    char value[PROP_VALUE_MAX];
-    return ((property_get("t-o.quirk.forcesourceprimary", value, NULL) != 0) && value[0] == '1');
+    if ((len = property_get("t-o.quirk.forcesource", quirk_primary_source_name, NULL)) > 0) {
+        quirk_primary_source_name[len] = '\0';
+        return quirk_primary_source_name;
+    }
+    return nullptr;
 }
 
 QPulseAudioEngineWorker::QPulseAudioEngineWorker(QObject *parent)
@@ -332,7 +340,7 @@ void QPulseAudioEngineWorker::sinkInfoCallback(const pa_sink_info *info)
     /* Refresh list of available audio modes */
     modes.append(AudioModeEarpiece);
     modes.append(AudioModeSpeaker);
-    if ((wired_headset || wired_headphone) && (h2w_is_inserted()))
+    if ((wired_headset || wired_headphone) && h2w_is_inserted())
         modes.append(AudioModeWiredHeadset);
     if (bluetooth_sco && ((m_bt_hsp != "") || (m_bt_hsp_a2dp != "")))
         modes.append(AudioModeBluetooth);
@@ -372,9 +380,10 @@ void QPulseAudioEngineWorker::sinkInfoCallback(const pa_sink_info *info)
 
     m_audiomode = audiomodetoset;
 
-    const bool force_sink_primary = is_quirk_sinkprimary_enabled();
-    if (force_sink_primary) {
-        m_nametoset = "sink.primary";
+    int force_sink_len = 0;
+    const char* sink_name = quirk_sinkprimary_name(force_sink_len);
+    if (force_sink_len > 0) {
+        m_nametoset = sink_name;
     } else {
         m_nametoset = info->name;
     }
@@ -415,12 +424,14 @@ void QPulseAudioEngineWorker::sourceInfoCallback(const pa_source_info *info)
     if ((m_audiomode & AudioModeBluetooth) && (m_availableAudioModes.contains(AudioModeBluetooth)))
         preferred = bluetooth_sco;
 
-    const bool force_source_primary = is_quirk_sourceprimary_enabled();
-    if (force_source_primary) {
-        m_nametoset = "source.primary";
+    int force_source_len = 0;
+    const char* source_name = quirk_sourceprimary_name(force_source_len);
+    if (force_source_len > 0) {
+        m_nametoset = source_name;
     } else {
         m_nametoset = info->name;
     }
+
     if (info->active_port != preferred)
         m_valuetoset = preferred->name;
 }
