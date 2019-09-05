@@ -105,6 +105,7 @@ static bool h2w_is_inserted()
 {
     QFile h2w_switch_file("/sys/devices/virtual/switch/h2w/state");
     if (!h2w_switch_file.open(QFile::ReadOnly)) {
+        qDebug() << "Failed to open h2w switch file" << h2w_switch_file.errorString();
         return false;
     }
     const QByteArray content = h2w_switch_file.readLine().replace("\n", "");
