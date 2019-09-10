@@ -1,2 +1,2 @@
 /sys/devices/virtual/switch/h2w/state r,
-/{,dev/}socket/property_service       rw,
+{,/,/dev/}socket/property_service     rw,
