@@ -18,7 +18,6 @@
 ****************************************************************************/
 
 #include <QtCore/qdebug.h>
-#include <QFile>
 
 #include "qpulseaudioengine.h"
 #include <sys/types.h>
@@ -99,22 +98,6 @@ static void subscribeCallback(pa_context *context, pa_subscription_event_type_t 
                     Qt::QueuedConnection, Q_ARG(int, PA_SUBSCRIPTION_EVENT_REMOVE), Q_ARG(unsigned int, idx));
         }
     }
-}
-
-static bool h2w_is_inserted()
-{
-    QFile h2w_switch_file("/sys/devices/virtual/switch/h2w/state");
-    if (!h2w_switch_file.open(QFile::ReadOnly)) {
-        qDebug() << "Failed to open h2w switch file" << h2w_switch_file.errorString();
-        return false;
-    }
-    const QByteArray content = h2w_switch_file.readLine().replace("\n", "");
-    h2w_switch_file.close();
-    qDebug() << "h2w:" << content;
-    if (content == "0") {
-        return false;
-    }
-    return true;
 }
 
 static char quirk_primary_sink_name[PROP_VALUE_MAX];
@@ -341,7 +324,7 @@ void QPulseAudioEngineWorker::sinkInfoCallback(const pa_sink_info *info)
     /* Refresh list of available audio modes */
     modes.append(AudioModeEarpiece);
     modes.append(AudioModeSpeaker);
-    if ((wired_headset || wired_headphone) && h2w_is_inserted())
+    if (wired_headset || wired_headphone)
         modes.append(AudioModeWiredHeadset);
     if (bluetooth_sco && ((m_bt_hsp != "") || (m_bt_hsp_a2dp != "")))
         modes.append(AudioModeBluetooth);
@@ -383,7 +366,7 @@ void QPulseAudioEngineWorker::sinkInfoCallback(const pa_sink_info *info)
 
     int force_sink_len = 0;
     const char* sink_name = quirk_sinkprimary_name(force_sink_len);
-    if (force_sink_len > 0) {
+    if (force_sink_len > 0 && sink_name) {
         m_nametoset = sink_name;
     } else {
         m_nametoset = info->name;
@@ -420,14 +403,14 @@ void QPulseAudioEngineWorker::sourceInfoCallback(const pa_source_info *info)
     /* Now to decide which output to be used, depending on the active mode */
     if ((m_audiomode & AudioModeEarpiece) || (m_audiomode & AudioModeSpeaker))
         preferred = builtin_mic;
-    if ((m_audiomode & AudioModeWiredHeadset) && (m_availableAudioModes.contains(AudioModeWiredHeadset)) && h2w_is_inserted())
+    if ((m_audiomode & AudioModeWiredHeadset) && (m_availableAudioModes.contains(AudioModeWiredHeadset)))
         preferred = wired_headset ? wired_headset : builtin_mic;
     if ((m_audiomode & AudioModeBluetooth) && (m_availableAudioModes.contains(AudioModeBluetooth)))
         preferred = bluetooth_sco;
 
     int force_source_len = 0;
     const char* source_name = quirk_sourceprimary_name(force_source_len);
-    if (force_source_len > 0) {
+    if (force_source_len > 0 && source_name) {
         m_nametoset = source_name;
     } else {
         m_nametoset = info->name;
