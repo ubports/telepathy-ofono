@@ -19,23 +19,22 @@
  * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
-#include "mcp-account-manager-ring.h"
+#include "mcp-account-manager-ofono.h"
 #include <string.h>
 
-#define PLUGIN_NAME "ring-account"
+#define PLUGIN_NAME "ofono-account"
 #define PLUGIN_PRIORITY (MCP_ACCOUNT_STORAGE_PLUGIN_PRIO_READONLY)
 #define PLUGIN_DESCRIPTION "Provide account for telepathy-ring"
-#define PLUGIN_PROVIDER "im.telepathy.Account.Storage.Ring"
+#define PLUGIN_PROVIDER "im.telepathy.Account.Storage.Ofono"
 
 static void account_storage_iface_init (McpAccountStorageIface *iface);
 
-G_DEFINE_TYPE_WITH_CODE (McpAccountManagerRing, mcp_account_manager_ring,
+G_DEFINE_TYPE_WITH_CODE (McpAccountManagerOfono, mcp_account_manager_ofono,
     G_TYPE_OBJECT,
     G_IMPLEMENT_INTERFACE (MCP_TYPE_ACCOUNT_STORAGE,
         account_storage_iface_init))
 
-struct _McpAccountManagerRingPrivate
+struct _McpAccountManagerOfonoPrivate
 {
   McpAccountManager *am;
   GDBusProxy *manager_proxy;
@@ -63,11 +62,11 @@ typedef struct
 static gchar*
 account_name_by_path (const gchar *path)
 {
-  return g_strconcat ("ring/tel", path, NULL);
+  return g_strconcat ("ofono/ofono", path, NULL);
 }
 
 static void
-remove_modem (McpAccountManagerRing *self,
+remove_modem (McpAccountManagerOfono *self,
     const gchar *path)
 {
   GHashTableIter iter;
@@ -94,7 +93,7 @@ remove_modem (McpAccountManagerRing *self,
     {
       GHashTable *params = value;
 
-      if (g_str_equal (g_hash_table_lookup (params, "param-modem"), path))
+      if (g_str_equal (g_hash_table_lookup (params, "param-modem-objpath"), path))
         {
           g_debug ("Setting account %s (%s) Disabled", (gchar *) key, path);
           g_hash_table_replace (params, "Enabled", g_strdup ("false"));
@@ -105,7 +104,7 @@ remove_modem (McpAccountManagerRing *self,
 }
 
 static void
-add_modem (McpAccountManagerRing *self,
+add_modem (McpAccountManagerOfono *self,
     const gchar *path)
 {
   gchar *account_name;
@@ -133,7 +132,7 @@ add_modem (McpAccountManagerRing *self,
     {
       GHashTable *params = value;
 
-      if (g_str_equal (g_hash_table_lookup (params, "param-modem"), path))
+      if (g_str_equal (g_hash_table_lookup (params, "param-modem-objpath"), path))
         {
           g_debug ("Setting account %s (%s) Enabled", (gchar *) key, path);
           g_hash_table_replace (params, "Enabled", g_strdup ("true"));
@@ -150,13 +149,13 @@ add_modem (McpAccountManagerRing *self,
 #define PARAM(key, value) g_hash_table_insert (params, key, g_strdup (value));
   params = g_hash_table_new_full (g_str_hash, g_str_equal,
       NULL, g_free);
-  PARAM ("manager", "ring");
-  PARAM ("protocol", "tel");
+  PARAM ("manager", "ofono");
+  PARAM ("protocol", "ofono");
   PARAM ("DisplayName", "Cellular");
   PARAM ("Enabled", "true");
   PARAM ("ConnectAutomatically", "true");
   PARAM ("always_dispatch", "true");
-  PARAM ("param-modem", path);
+  PARAM ("param-modem-objpath", path);
   PARAM ("org.freedesktop.Telepathy.Account.Interface.Addressing.URISchemes",
       "tel;");
 #undef PARAM
@@ -170,7 +169,7 @@ manager_proxy_signal_cb (GDBusProxy *proxy,
     gchar *sender_name,
     gchar *signal_name,
     GVariant *parameters,
-    McpAccountManagerRing *self)
+    McpAccountManagerOfono *self)
 {
   const gchar *path;
 
@@ -191,7 +190,7 @@ got_modems_cb (GObject *source,
     GAsyncResult *result,
     gpointer user_data)
 {
-  McpAccountManagerRing *self = user_data;
+  McpAccountManagerOfono *self = user_data;
   GVariant *modems;
   GVariantIter *iter;
   const gchar *path;
@@ -217,7 +216,7 @@ got_manager_proxy_cb (GObject *source,
     GAsyncResult *result,
     gpointer user_data)
 {
-  McpAccountManagerRing *self = user_data;
+  McpAccountManagerOfono *self = user_data;
   GDBusProxy *proxy;
   GError *error = NULL;
 
@@ -245,7 +244,7 @@ got_system_bus_cb (GObject *source,
     GAsyncResult *result,
     gpointer user_data)
 {
-  McpAccountManagerRing *self = user_data;
+  McpAccountManagerOfono *self = user_data;
   GDBusConnection *connection;
   GError *error = NULL;
 
@@ -265,9 +264,9 @@ got_system_bus_cb (GObject *source,
 }
 
 static void
-mcp_account_manager_ring_dispose (GObject *object)
+mcp_account_manager_ofono_dispose (GObject *object)
 {
-  McpAccountManagerRing *self = (McpAccountManagerRing*) object;
+  McpAccountManagerOfono *self = (McpAccountManagerOfono*) object;
 
   /* Cancel any pending operation */
   if (self->priv->cancellable != NULL)
@@ -278,16 +277,16 @@ mcp_account_manager_ring_dispose (GObject *object)
   g_clear_object (&self->priv->cancellable);
   g_clear_pointer (&self->priv->modems, g_hash_table_unref);
 
-  G_OBJECT_CLASS (mcp_account_manager_ring_parent_class)->dispose (object);
+  G_OBJECT_CLASS (mcp_account_manager_ofono_parent_class)->dispose (object);
 }
 
 static void
-mcp_account_manager_ring_init (McpAccountManagerRing *self)
+mcp_account_manager_ofono_init (McpAccountManagerOfono *self)
 {
   g_debug ("MC Ring account plugin initialized");
 
-  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, MCP_TYPE_ACCOUNT_MANAGER_RING,
-      McpAccountManagerRingPrivate);
+  self->priv = G_TYPE_INSTANCE_GET_PRIVATE (self, MCP_TYPE_ACCOUNT_MANAGER_OFONO,
+      McpAccountManagerOfonoPrivate);
 
   self->priv->modems = g_hash_table_new_full (g_str_hash, g_str_equal,
       g_free, (GDestroyNotify) g_hash_table_unref);
@@ -299,21 +298,21 @@ mcp_account_manager_ring_init (McpAccountManagerRing *self)
 }
 
 static void
-mcp_account_manager_ring_class_init (McpAccountManagerRingClass *klass)
+mcp_account_manager_ofono_class_init (McpAccountManagerOfonoClass *klass)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
 
-  gobject_class->dispose = mcp_account_manager_ring_dispose;
+  gobject_class->dispose = mcp_account_manager_ofono_dispose;
 
   g_type_class_add_private (gobject_class,
-      sizeof (McpAccountManagerRingPrivate));
+      sizeof (McpAccountManagerOfonoPrivate));
 }
 
 static GList *
-account_manager_ring_list (const McpAccountStorage *storage,
+account_manager_ofono_list (const McpAccountStorage *storage,
     const McpAccountManager *am)
 {
-  McpAccountManagerRing *self = (McpAccountManagerRing*) storage;
+  McpAccountManagerOfono *self = (McpAccountManagerOfono*) storage;
   GList *accounts = NULL;
   GHashTableIter iter;
   gpointer key;
@@ -328,12 +327,12 @@ account_manager_ring_list (const McpAccountStorage *storage,
 }
 
 static gboolean
-account_manager_ring_get (const McpAccountStorage *storage,
+account_manager_ofono_get (const McpAccountStorage *storage,
     const McpAccountManager *am,
     const gchar *account_name,
     const gchar *key)
 {
-  McpAccountManagerRing *self = (McpAccountManagerRing*) storage;
+  McpAccountManagerOfono *self = (McpAccountManagerOfono*) storage;
   GHashTable *params;
 
   if (!account_name)
@@ -369,10 +368,10 @@ account_manager_ring_get (const McpAccountStorage *storage,
 }
 
 static void
-account_manager_ring_ready (const McpAccountStorage *storage,
+account_manager_ofono_ready (const McpAccountStorage *storage,
     const McpAccountManager *am)
 {
-  McpAccountManagerRing *self = (McpAccountManagerRing *) storage;
+  McpAccountManagerOfono *self = (McpAccountManagerOfono *) storage;
   DelayedSignalData *data;
 
   if (self->priv->ready)
@@ -406,10 +405,10 @@ account_manager_ring_ready (const McpAccountStorage *storage,
 }
 
 static guint
-account_manager_ring_get_restrictions (const McpAccountStorage *storage,
+account_manager_ofono_get_restrictions (const McpAccountStorage *storage,
     const gchar *account_name)
 {
-  McpAccountManagerRing *self = (McpAccountManagerRing*) storage;
+  McpAccountManagerOfono *self = (McpAccountManagerOfono*) storage;
 
   if (!account_name)
     return G_MAXUINT;
@@ -424,7 +423,7 @@ account_manager_ring_get_restrictions (const McpAccountStorage *storage,
 }
 
 static gboolean
-account_manager_ring_delete(const McpAccountStorage *storage, const McpAccountManager *am,
+account_manager_ofono_delete(const McpAccountStorage *storage, const McpAccountManager *am,
         const gchar *account_name, const gchar *key)
 {
   g_debug("%s: %s, %s", G_STRFUNC, account_name, key);
@@ -439,15 +438,15 @@ account_storage_iface_init (McpAccountStorageIface *iface)
   iface->priority = PLUGIN_PRIORITY;
   iface->provider = PLUGIN_PROVIDER;
 
-  iface->delete = account_manager_ring_delete;
-  iface->get = account_manager_ring_get;
-  iface->list = account_manager_ring_list;
-  iface->ready = account_manager_ring_ready;
-  iface->get_restrictions = account_manager_ring_get_restrictions;
+  iface->delete = account_manager_ofono_delete;
+  iface->get = account_manager_ofono_get;
+  iface->list = account_manager_ofono_list;
+  iface->ready = account_manager_ofono_ready;
+  iface->get_restrictions = account_manager_ofono_get_restrictions;
 }
 
-McpAccountManagerRing *
-mcp_account_manager_ring_new (void)
+McpAccountManagerOfono *
+mcp_account_manager_ofono_new (void)
 {
-  return g_object_new (MCP_TYPE_ACCOUNT_MANAGER_RING, NULL);
+  return g_object_new (MCP_TYPE_ACCOUNT_MANAGER_OFONO, NULL);
 }
