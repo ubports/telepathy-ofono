@@ -103,7 +103,7 @@ static void subscribeCallback(pa_context *context, pa_subscription_event_type_t 
 static char quirk_primary_sink_name[PROP_VALUE_MAX];
 static char* quirk_sinkprimary_name(int& len)
 {
-    if ((len = property_get("t-o.quirk.forcesink", quirk_primary_sink_name, NULL)) > 0) {
+    if ((len = property_get("ro.t-o.quirk.forcesink", quirk_primary_sink_name, NULL)) > 0) {
         quirk_primary_sink_name[len] = '\0';
         return quirk_primary_sink_name;
     }
@@ -113,7 +113,7 @@ static char* quirk_sinkprimary_name(int& len)
 static char quirk_primary_source_name[PROP_VALUE_MAX];
 static char* quirk_sourceprimary_name(int& len)
 {
-    if ((len = property_get("t-o.quirk.forcesource", quirk_primary_source_name, NULL)) > 0) {
+    if ((len = property_get("ro.t-o.quirk.forcesource", quirk_primary_source_name, NULL)) > 0) {
         quirk_primary_source_name[len] = '\0';
         return quirk_primary_source_name;
     }
