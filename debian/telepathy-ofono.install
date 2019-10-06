@@ -1,3 +1,4 @@
 usr/lib/telepathy/telepathy-ofono
 usr/share/telepathy/managers/ofono.manager
 usr/share/dbus-1/services/org.freedesktop.Telepathy.ConnectionManager.ofono.service
+etc/apparmor.d/local/usr.lib.telepathy

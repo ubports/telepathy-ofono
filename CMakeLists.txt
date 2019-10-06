@@ -40,6 +40,7 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(TP_QT5 REQUIRED TelepathyQt5)
 pkg_check_modules(SQLITE3 REQUIRED sqlite3)
 pkg_check_modules(MC_PLUGINS REQUIRED mission-control-plugins)
+pkg_check_modules(LIBANDROIDPROPERTIES REQUIRED libandroid-properties)
 
 pkg_check_modules(PULSEAUDIO libpulse)
 if (PULSEAUDIO_FOUND)
@@ -113,12 +114,13 @@ add_dependencies(${TELEPATHY_OFONO} schema_update qrc_update)
 
 enable_testing()
 
-target_link_libraries(${TELEPATHY_OFONO} ${Qt5Core_LIBRARIES} ${Qt5DBus_LIBRARIES} ${WAUDIO_LIBRARIES} -ltelepathy-qt5 ${TELEPATHY_QT5_SERVICE_LIBRARIES}  ${Qt5Network_LIBRARIES} ${OFONO_QT_LIBRARIES} ${PULSEAUDIO_LIBRARIES} ${SQLITE3_LIBRARIES} ${LibPhoneNumber_LIBRARIES})
+target_link_libraries(${TELEPATHY_OFONO} ${Qt5Core_LIBRARIES} ${Qt5DBus_LIBRARIES} ${WAUDIO_LIBRARIES} -ltelepathy-qt5 ${TELEPATHY_QT5_SERVICE_LIBRARIES}  ${Qt5Network_LIBRARIES} ${OFONO_QT_LIBRARIES} ${PULSEAUDIO_LIBRARIES} ${SQLITE3_LIBRARIES} ${LibPhoneNumber_LIBRARIES} ${LIBANDROIDPROPERTIES_LIBRARIES})
 install(TARGETS ${TELEPATHY_OFONO} DESTINATION ${DAEMON_DIR})
 
 configure_file(ofono.service.in org.freedesktop.Telepathy.ConnectionManager.ofono.service)
 install (FILES ofono.manager DESTINATION share/telepathy/managers)
 install (FILES ${CMAKE_CURRENT_BINARY_DIR}/org.freedesktop.Telepathy.ConnectionManager.ofono.service DESTINATION share/dbus-1/services)
+install (FILES usr.lib.telepathy DESTINATION ../etc/apparmor.d/local)
 
 add_subdirectory(schema)
 add_subdirectory(tests)

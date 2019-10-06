@@ -22,6 +22,7 @@
 #include "qpulseaudioengine.h"
 #include <sys/types.h>
 #include <unistd.h>
+#include <hybris/properties/properties.h>
 
 #define PULSEAUDIO_PROFILE_HSP "headset_head_unit"
 #define PULSEAUDIO_PROFILE_A2DP "a2dp_sink"
@@ -97,6 +98,26 @@ static void subscribeCallback(pa_context *context, pa_subscription_event_type_t 
                     Qt::QueuedConnection, Q_ARG(int, PA_SUBSCRIPTION_EVENT_REMOVE), Q_ARG(unsigned int, idx));
         }
     }
+}
+
+static char quirk_primary_sink_name[PROP_VALUE_MAX];
+static char* quirk_sinkprimary_name(int& len)
+{
+    if ((len = property_get("ro.t-o.quirk.forcesink", quirk_primary_sink_name, NULL)) > 0) {
+        quirk_primary_sink_name[len] = '\0';
+        return quirk_primary_sink_name;
+    }
+    return nullptr;
+}
+
+static char quirk_primary_source_name[PROP_VALUE_MAX];
+static char* quirk_sourceprimary_name(int& len)
+{
+    if ((len = property_get("ro.t-o.quirk.forcesource", quirk_primary_source_name, NULL)) > 0) {
+        quirk_primary_source_name[len] = '\0';
+        return quirk_primary_source_name;
+    }
+    return nullptr;
 }
 
 QPulseAudioEngineWorker::QPulseAudioEngineWorker(QObject *parent)
@@ -282,10 +303,12 @@ void QPulseAudioEngineWorker::sinkInfoCallback(const pa_sink_info *info)
         if (!strcmp(info->ports[i]->name, "output-earpiece"))
             earpiece = info->ports[i];
         else if (!strcmp(info->ports[i]->name, "output-wired_headset") &&
-                (info->ports[i]->available != PA_PORT_AVAILABLE_NO))
+                (info->ports[i]->available != PA_PORT_AVAILABLE_NO) &&
+                (info->ports[i]->available != PA_PORT_AVAILABLE_UNKNOWN))
             wired_headset = info->ports[i];
         else if (!strcmp(info->ports[i]->name, "output-wired_headphone") &&
-                (info->ports[i]->available != PA_PORT_AVAILABLE_NO))
+                (info->ports[i]->available != PA_PORT_AVAILABLE_NO) &&
+                (info->ports[i]->available != PA_PORT_AVAILABLE_UNKNOWN))
             wired_headphone = info->ports[i];
         else if (!strcmp(info->ports[i]->name, "output-speaker"))
             speaker = info->ports[i];
@@ -312,29 +335,43 @@ void QPulseAudioEngineWorker::sinkInfoCallback(const pa_sink_info *info)
         return;
 
     /* Now to decide which output to be used, depending on the active mode */
+    qDebug("Deciding output...");
     if (m_audiomode & AudioModeEarpiece) {
         preferred = earpiece;
         audiomodetoset = AudioModeEarpiece;
+        qDebug("Prefer AudioModeEarpiece");
     }
     if (m_audiomode & AudioModeSpeaker) {
         preferred = speaker;
         audiomodetoset = AudioModeSpeaker;
+        qDebug("Prefer AudioModeSpeaker");
     }
     if ((m_audiomode & AudioModeWiredHeadset) && (modes.contains(AudioModeWiredHeadset))) {
         preferred = wired_headset ? wired_headset : wired_headphone;
         audiomodetoset = AudioModeWiredHeadset;
+        qDebug("Prefer AudioModeWiredHeadset");
     }
     if (m_callstatus == CallRinging && speaker_and_wired_headphone) {
         preferred = speaker_and_wired_headphone;
+        audiomodetoset = AudioModeWiredOrSpeaker;
+        qDebug("Prefer AudioModeWiredOrSpeaker");
     }
     if ((m_audiomode & AudioModeBluetooth) && (modes.contains(AudioModeBluetooth))) {
         preferred = bluetooth_sco;
         audiomodetoset = AudioModeBluetooth;
+        qDebug("Prefer AudioModeBluetooth");
     }
 
     m_audiomode = audiomodetoset;
 
-    m_nametoset = info->name;
+    int force_sink_len = 0;
+    const char* sink_name = quirk_sinkprimary_name(force_sink_len);
+    if (force_sink_len > 0 && sink_name) {
+        m_nametoset = sink_name;
+    } else {
+        m_nametoset = info->name;
+    }
+
     if (info->active_port != preferred)
         m_valuetoset = preferred->name;
 
@@ -371,7 +408,14 @@ void QPulseAudioEngineWorker::sourceInfoCallback(const pa_source_info *info)
     if ((m_audiomode & AudioModeBluetooth) && (m_availableAudioModes.contains(AudioModeBluetooth)))
         preferred = bluetooth_sco;
 
-    m_nametoset = info->name;
+    int force_source_len = 0;
+    const char* source_name = quirk_sourceprimary_name(force_source_len);
+    if (force_source_len > 0 && source_name) {
+        m_nametoset = source_name;
+    } else {
+        m_nametoset = info->name;
+    }
+
     if (info->active_port != preferred)
         m_valuetoset = preferred->name;
 }
@@ -568,7 +612,7 @@ void QPulseAudioEngineWorker::setCallMode(CallStatus callstatus, AudioMode audio
     o = pa_context_get_sink_info_list(m_context, sinkinfo_cb, this);
     if (!handleOperation(o, "pa_context_get_sink_info_list"))
         return;
-    if ((m_nametoset != "") && (m_nametoset != m_defaultsink)) {
+    if (m_nametoset != "") {
         qDebug("Setting PulseAudio default sink to '%s'", m_nametoset.c_str());
         o = pa_context_set_default_sink(m_context, m_nametoset.c_str(), success_cb, this);
         if (!handleOperation(o, "pa_context_set_default_sink"))
@@ -588,7 +632,7 @@ void QPulseAudioEngineWorker::setCallMode(CallStatus callstatus, AudioMode audio
     o = pa_context_get_source_info_list(m_context, sourceinfo_cb, this);
     if (!handleOperation(o, "pa_context_get_source_info_list"))
         return;
-    if ((m_nametoset != "") && (m_nametoset != m_defaultsource)) {
+    if (m_nametoset != "") {
         qDebug("Setting PulseAudio default source to '%s'", m_nametoset.c_str());
         o = pa_context_set_default_source(m_context, m_nametoset.c_str(), success_cb, this);
         if (!handleOperation(o, "pa_context_set_default_source"))
