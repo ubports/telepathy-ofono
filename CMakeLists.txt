@@ -120,7 +120,7 @@ install(TARGETS ${TELEPATHY_OFONO} DESTINATION ${DAEMON_DIR})
 configure_file(ofono.service.in org.freedesktop.Telepathy.ConnectionManager.ofono.service)
 install (FILES ofono.manager DESTINATION share/telepathy/managers)
 install (FILES ${CMAKE_CURRENT_BINARY_DIR}/org.freedesktop.Telepathy.ConnectionManager.ofono.service DESTINATION share/dbus-1/services)
-install (FILES usr.lib.telepathy DESTINATION ../etc/apparmor.d/local)
+install (FILES usr.lib.telepathy-ofono DESTINATION ../etc/apparmor.d/)
 
 add_subdirectory(schema)
 add_subdirectory(tests)

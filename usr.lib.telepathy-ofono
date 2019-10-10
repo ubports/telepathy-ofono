@@ -1,0 +1,3 @@
+/usr/lib/telepathy/telepathy-ofono {
+   {,/,/dev/}socket/property_service     rw,
+}
