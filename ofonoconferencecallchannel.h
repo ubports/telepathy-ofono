@@ -26,10 +26,9 @@
 #include <TelepathyQt/BaseCall>
 #include <TelepathyQt/Types>
 
-#include <ofono-qt/ofonovoicecall.h>
+#include <ofonovoicecall.h>
 
 #include "connection.h"
-#include "audiooutputsiface.h"
 
 class oFonoConnection;
 
@@ -45,7 +44,6 @@ public:
     void onHoldStateChanged(const Tp::LocalHoldState &state, const Tp::LocalHoldStateReason &reason, Tp::DBusError *error);
     void onDTMFStartTone(uchar event, Tp::DBusError *error);
     void onDTMFStopTone(Tp::DBusError *error);
-    void onSetActiveAudioOutput(const QString &id, Tp::DBusError *error);
     void onMerge(const QDBusObjectPath &channel, Tp::DBusError *error);
     Tp::BaseChannelPtr baseChannel();
     void setConferenceActive(bool active);
@@ -72,7 +70,6 @@ private:
     Tp::BaseChannelConferenceInterfacePtr mConferenceIface;
     Tp::BaseChannelMergeableConferenceInterfacePtr mMergeableIface;
     Tp::BaseCallMuteInterfacePtr mMuteIface;
-    BaseChannelAudioOutputsInterfacePtr mAudioOutputsIface;
     Tp::BaseChannelCallTypePtr mCallChannel;
     Tp::BaseCallContentDTMFInterfacePtr mDTMFIface;
     Tp::BaseCallContentPtr mCallContent;

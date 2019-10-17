@@ -47,12 +47,8 @@
 #include "mmsdmanager.h"
 #include "mmsdmessage.h"
 #include "dbustypes.h"
-#include "audiooutputsiface.h"
 #include "ussdiface.h"
 
-#ifdef USE_PULSEAUDIO
-#include "qpulseaudioengine.h"
-#endif
 
 class oFonoConnection;
 class oFonoTextChannel;
@@ -77,9 +73,6 @@ public:
     uint setPresence(const QString& status, const QString& statusMessage, Tp::DBusError *error);
     void connect(Tp::DBusError *error);
     void setSpeakerMode(bool active);
-    void setActiveAudioOutput(const QString &id);
-    AudioOutputList audioOutputs();
-    QString activeAudioOutput();
     QStringList emergencyNumbers(Tp::DBusError *error);
     bool voicemailIndicator(Tp::DBusError *error);
     QString voicemailNumber(Tp::DBusError *error);
@@ -118,16 +111,10 @@ public:
     ~oFonoConnection();
 
 Q_SIGNALS:
-    void activeAudioOutputChanged(const QString &id);
-    void audioOutputsChanged(const AudioOutputList &outputs);
     void channelMerged(const QDBusObjectPath &objPath);
     void channelSplitted(const QDBusObjectPath &objPath);
     void channelHangup(const QDBusObjectPath &objPath);
     void lastChannelClosed();
-
-public Q_SLOTS:
-    void updateAudioRoute();
-    void updateAudioRouteToEarpiece();
 
 private Q_SLOTS:
     void onOfonoIncomingMessage(const QString &message, const QVariantMap &info);
@@ -152,11 +139,6 @@ private Q_SLOTS:
     void updateOnlineStatus();
     void onDisconnected();
 
-#ifdef USE_PULSEAUDIO
-    void onAudioModeChanged(AudioMode mode);
-    void onAvailableAudioModesChanged(AudioModes modes);
-#endif
-
 private:
     void updateMcc();
     bool isNetworkRegistered();
@@ -166,10 +148,6 @@ private:
     uint mHandleCount;
     QMap<uint, QString> mGroupHandles;
     uint mGroupHandleCount;
-
-#ifdef USE_PULSEAUDIO
-    bool mHasPulseAudio;
-#endif
 
     QList<oFonoTextChannel*> mTextChannels;
     QMap<QString, oFonoCallChannel*> mCallChannels;
@@ -190,8 +168,6 @@ private:
     QMap<QString, QList<MMSDMessage*> > mServiceMMSList;
     oFonoConferenceCallChannel *mConferenceCall;
     QString mModemPath;
-    QString mActiveAudioOutput;
-    AudioOutputList mAudioOutputs;
 };
 
 #endif

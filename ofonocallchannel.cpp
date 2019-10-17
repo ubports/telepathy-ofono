@@ -17,9 +17,6 @@
  */
 
 #include "ofonocallchannel.h"
-#ifdef USE_PULSEAUDIO
-#include "qpulseaudioengine.h"
-#endif
 
 
 oFonoCallChannel::oFonoCallChannel(oFonoConnection *conn, QString phoneNumber, uint targetHandle, QString voiceObj, QObject *parent):
@@ -47,15 +44,11 @@ oFonoCallChannel::oFonoCallChannel(oFonoConnection *conn, QString phoneNumber, u
     mMuteIface = Tp::BaseCallMuteInterface::create();
     mMuteIface->setSetMuteStateCallback(Tp::memFun(this,&oFonoCallChannel::onMuteStateChanged));
 
-    mAudioOutputsIface = BaseChannelAudioOutputsInterface::create();
-    mAudioOutputsIface->setSetActiveAudioOutputCallback(Tp::memFun(this,&oFonoCallChannel::onSetActiveAudioOutput));
-
     mSplittableIface = Tp::BaseChannelSplittableInterface::create();
     mSplittableIface->setSplitCallback(Tp::memFun(this,&oFonoCallChannel::onSplit));
 
     baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mHoldIface));
     baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mMuteIface));
-    baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mAudioOutputsIface));
     baseChannel->plugInterface(Tp::AbstractChannelInterfacePtr::dynamicCast(mSplittableIface));
 
     mBaseChannel = baseChannel;
@@ -64,17 +57,10 @@ oFonoCallChannel::oFonoCallChannel(oFonoConnection *conn, QString phoneNumber, u
     mCallChannel->setHangupCallback(Tp::memFun(this,&oFonoCallChannel::onHangup));
     mCallChannel->setAcceptCallback(Tp::memFun(this,&oFonoCallChannel::onAccept));
 
-    QObject::connect(this, SIGNAL(hangupComplete(bool)), this, SLOT(onHangupComplete(bool)));
-    QObject::connect(this, SIGNAL(answerComplete(bool)), this, SLOT(onAnswerComplete(bool)));
+    QObject::connect(this, &oFonoCallChannel::hangupComplete, this, &oFonoCallChannel::onHangupComplete);
+    QObject::connect(this, &oFonoCallChannel::answerComplete, this, &oFonoCallChannel::onAnswerComplete);
     // init must be called after initialization, otherwise we will have no object path registered.
-    QTimer::singleShot(0, this, SLOT(init()));
-
-#ifdef USE_PULSEAUDIO
-    QByteArray pulseAudioDisabled = qgetenv("PA_DISABLED");
-    mHasPulseAudio = true;
-    if (!pulseAudioDisabled.isEmpty())
-        mHasPulseAudio = false;
-#endif
+    QTimer::singleShot(0, this, &oFonoCallChannel::init);
 }
 
 Tp::CallState oFonoCallChannel::callState()
@@ -87,32 +73,17 @@ void oFonoCallChannel::onSplit(Tp::DBusError *error)
     mConnection->voiceCallManager()->privateChat(path());
 }
 
-void oFonoCallChannel::onSetActiveAudioOutput(const QString &id, Tp::DBusError *error)
-{
-#ifdef USE_PULSEAUDIO
-    // fallback to earpiece/headset
-    AudioMode mode = AudioModeWiredOrEarpiece;
-    if (id == "bluetooth") {
-        mode = AudioModeBluetooth;
-    } else if (id == "speaker") {
-        mode = AudioModeSpeaker;
-    }
-    if (mHasPulseAudio)
-        QPulseAudioEngine::instance()->setCallMode(CallActive, mode);
-#endif
-}
-
 void oFonoCallChannel::onHangupComplete(bool status)
 {
     if (!status) {
-        QTimer::singleShot(2000, this, SLOT(hangup()));
+        QTimer::singleShot(2000, this, &oFonoCallChannel::hangup);
     }
 }
 
 void oFonoCallChannel::onAnswerComplete(bool status)
 {
     if (!status) {
-        QTimer::singleShot(1000, this, SLOT(answer()));
+        QTimer::singleShot(1000, this,  &oFonoCallChannel::answer);
     }
 }
 
@@ -177,18 +148,13 @@ void oFonoCallChannel::init()
     mCallChannel->setMembersFlags(memberFlags, identifiers, Tp::UIntList(), reason);
 
     mCallChannel->setCallState(Tp::CallStateInitialised, 0, reason, stateDetails);
-    QObject::connect(mBaseChannel.data(), SIGNAL(closed()), this, SLOT(deleteLater()));
-    QObject::connect(mConnection->callVolume(), SIGNAL(mutedChanged(bool)), SLOT(onOfonoMuteChanged(bool)));
-    QObject::connect(this, SIGNAL(stateChanged(QString)), SLOT(onOfonoCallStateChanged(QString)));
-    QObject::connect(mConnection, SIGNAL(activeAudioOutputChanged(QString)), mAudioOutputsIface.data(), SLOT(setActiveAudioOutput(QString)));
-    QObject::connect(mConnection, SIGNAL(audioOutputsChanged(AudioOutputList)), mAudioOutputsIface.data(), SLOT(setAudioOutputs(AudioOutputList)));
-    QObject::connect(mConnection->voiceCallManager(), SIGNAL(sendTonesComplete(bool)), SLOT(onDtmfComplete(bool)));
-    QObject::connect(this, SIGNAL(multipartyChanged(bool)), this, SLOT(onMultipartyChanged(bool)));
+    QObject::connect(mBaseChannel.data(), &Tp::BaseChannel::closed, this,  &oFonoCallChannel::deleteLater);
+    QObject::connect(mConnection->callVolume(), &OfonoCallVolume::mutedChanged, this,  &oFonoCallChannel::onOfonoMuteChanged);
+    QObject::connect(this,  &oFonoCallChannel::stateChanged, this,  &oFonoCallChannel::onOfonoCallStateChanged);
+    QObject::connect(mConnection->voiceCallManager(), &OfonoVoiceCallManager::sendTonesComplete, this,  &oFonoCallChannel::onDtmfComplete);
+    QObject::connect(this,  &oFonoCallChannel::multipartyChanged, this,  &oFonoCallChannel::onMultipartyChanged);
     
-    QObject::connect(this, SIGNAL(disconnectReason(const QString &)), this, SLOT(onDisconnectReason(const QString &)));
-
-    mAudioOutputsIface->setAudioOutputs(mConnection->audioOutputs());
-    mAudioOutputsIface->setActiveAudioOutput(mConnection->activeAudioOutput());
+    QObject::connect(this,  &oFonoCallChannel::disconnectReason, this,  &oFonoCallChannel::onDisconnectReason);
 }
 
 void oFonoCallChannel::onDisconnectReason(const QString &reason) {
@@ -215,11 +181,11 @@ void oFonoCallChannel::onOfonoMuteChanged(bool mute)
 void oFonoCallChannel::onHoldStateChanged(const Tp::LocalHoldState &state, const Tp::LocalHoldStateReason &reason, Tp::DBusError *error)
 {
     if (state == Tp::LocalHoldStateHeld && this->state() == "active") {
-        QObject::connect(mConnection->voiceCallManager(), SIGNAL(swapCallsComplete(bool)), this, SLOT(onSwapCallsComplete(bool)));
+        QObject::connect(mConnection->voiceCallManager(), &OfonoVoiceCallManager::swapCallsComplete, this, &oFonoCallChannel::onSwapCallsComplete);
         mConnection->voiceCallManager()->swapCalls();
         mHoldIface->setHoldState(Tp::LocalHoldStatePendingHold, Tp::LocalHoldStateReasonRequested);
     } else if (state == Tp::LocalHoldStateUnheld && this->state() == "held") {
-        QObject::connect(mConnection->voiceCallManager(), SIGNAL(swapCallsComplete(bool)), this, SLOT(onSwapCallsComplete(bool)));
+        QObject::connect(mConnection->voiceCallManager(), &OfonoVoiceCallManager::swapCallsComplete, this, &oFonoCallChannel::onSwapCallsComplete);
         mConnection->voiceCallManager()->swapCalls();
         mHoldIface->setHoldState(Tp::LocalHoldStatePendingUnhold, Tp::LocalHoldStateReasonRequested);
     }
@@ -228,12 +194,12 @@ void oFonoCallChannel::onHoldStateChanged(const Tp::LocalHoldState &state, const
 void oFonoCallChannel::onSwapCallsComplete(bool success)
 {
     if (!success && errorName() == "org.ofono.Error.InProgress") {
-        QTimer::singleShot(2000, mConnection->voiceCallManager(), SLOT(swapCalls()));
+        QTimer::singleShot(2000, mConnection->voiceCallManager(), &OfonoVoiceCallManager::swapCalls);
         return;
     }
     Tp::LocalHoldState holdState = this->state() == "active" ? Tp::LocalHoldStateUnheld : Tp::LocalHoldStateHeld;
     Tp::LocalHoldStateReason reason = success ? Tp::LocalHoldStateReasonRequested : Tp::LocalHoldStateReasonResourceNotAvailable;
-    QObject::disconnect(mConnection->voiceCallManager(), SIGNAL(swapCallsComplete(bool)), this, SLOT(onSwapCallsComplete(bool)));
+    QObject::disconnect(mConnection->voiceCallManager(), &OfonoVoiceCallManager::swapCallsComplete, this, &oFonoCallChannel::onSwapCallsComplete);
     mHoldIface->setHoldState(holdState, reason);
 }
 
@@ -241,16 +207,8 @@ void oFonoCallChannel::onMuteStateChanged(const Tp::LocalMuteState &state, Tp::D
 {
     if (state == Tp::LocalMuteStateMuted) {
         mConnection->callVolume()->setMuted(true);
-#ifdef USE_PULSEAUDIO
-        if (mHasPulseAudio)
-            QPulseAudioEngine::instance()->setMicMute(true);
-#endif
     } else if (state == Tp::LocalMuteStateUnmuted) {
         mConnection->callVolume()->setMuted(false);
-#ifdef USE_PULSEAUDIO
-        if (mHasPulseAudio)
-            QPulseAudioEngine::instance()->setMicMute(false);
-#endif
     }
 }
 
@@ -350,9 +308,6 @@ void oFonoCallChannel::onOfonoCallStateChanged(const QString &state)
         if (mMultiparty) {
             Q_EMIT multipartyCallActive();
         }
-        if (mPreviousState == "incoming") {
-            mConnection->updateAudioRouteToEarpiece();
-        }
         if (mPreviousState == "dialing" || mPreviousState == "alerting" || 
                 mPreviousState == "incoming") {
             mConnection->callVolume()->setMuted(false);
@@ -374,7 +329,5 @@ void oFonoCallChannel::onOfonoCallStateChanged(const QString &state)
     } else if (state == "waiting") {
         qDebug() << "waiting";
     }
-    // always update the audio route when call state changes
-    mConnection->updateAudioRoute();
     mPreviousState = state;
 }

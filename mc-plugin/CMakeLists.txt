@@ -1,9 +1,17 @@
 set(MCP_ACCOUNT_MANAGER_NAME mcp-account-manager-ofono)
 
+option(OFONO_ON_RING "Use ring-based mc-plugin" OFF)
+
 set(MC_PLUGIN_SRC
-    mcp-account-manager-ofono.c
     mission-control-plugin.c
 )
+
+if(OFONO_ON_RING)
+    list(APPEND MC_PLUGIN_SRC mcp-account-manager-ofono-on-ring.c)
+    message(STATUS "Build experimental 'ofono on ring' version")
+else()
+    list(APPEND MC_PLUGIN_SRC mcp-account-manager-ofono.c)
+endif()
 
 set(MC_PLUGIN_HDRS
     mcp-account-manager-ofono.h
