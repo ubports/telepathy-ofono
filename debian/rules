@@ -9,7 +9,7 @@ export DPKG_GENSYMBOLS_CHECK_LEVEL=4
 include /usr/share/dpkg/architecture.mk
 
 override_dh_auto_configure:
-	dh_auto_configure -- -DCMAKE_INSTALL_LIBEXECDIR=lib/telepathy
+	dh_auto_configure -- -DCMAKE_INSTALL_LIBEXECDIR=lib/telepathy -DOFONO_ON_RING=ON
 
 override_dh_auto_test:
 	CTEST_OUTPUT_ON_FAILURE=1 make -C obj-$(DEB_HOST_GNU_TYPE) test
