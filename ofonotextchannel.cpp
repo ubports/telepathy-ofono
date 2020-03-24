@@ -461,6 +461,7 @@ void oFonoTextChannel::messageReceived(const QString &message, uint handle, cons
     Tp::MessagePart header;
     header["message-token"] = QDBusVariant(info["SentTime"].toString() +"-" + QString::number(mMessageCounter++));
     header["message-received"] = QDBusVariant(QDateTime::currentDateTime().toTime_t());
+    header["message-sent"] = QDBusVariant(QDateTime::fromString(info["SentTime"].toString(), Qt::ISODate).toTime_t());
     header["message-sender"] = QDBusVariant(handle);
     header["message-sender-id"] = QDBusVariant(mPhoneNumbers[0]);
     header["message-type"] = QDBusVariant(Tp::ChannelTextMessageTypeNormal);
@@ -479,6 +480,7 @@ void oFonoTextChannel::mmsReceived(const QString &id, uint handle, const QVarian
     header["message-token"] = QDBusVariant(id);
     header["message-sender"] = QDBusVariant(handle);
     header["message-received"] = QDBusVariant(QDateTime::currentDateTimeUtc().toTime_t());
+    header["message-sent"] = QDBusVariant(QDateTime::fromString(properties["SentTime"].toString(), Qt::ISODate).toTime_t());
     header["message-type"] = QDBusVariant(Tp::DeliveryStatusDelivered);
     header["x-canonical-mms"] = QDBusVariant(true);
     if (!subject.isEmpty())
