@@ -60,6 +60,7 @@ Q_SIGNALS:
 
 private:
     ~oFonoTextChannel();
+    QDateTime getSentDate(const QString &sentTime);
     Tp::BaseChannelPtr mBaseChannel;
     QStringList mPhoneNumbers;
     oFonoConnection *mConnection;
