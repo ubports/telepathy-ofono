@@ -423,6 +423,26 @@ oFonoTextChannel* oFonoConnection::textChannelForMembers(const QStringList &memb
 void oFonoConnection::addMMSToService(const QString &path, const QVariantMap &properties, const QString &servicePath)
 {
     qDebug() << "addMMSToService " << path << properties << servicePath;
+
+    //special case for any mms fail ( e.g cellular data = off )
+    if (properties["Status"] == "received-failed") {
+        QString senderNormalizedNumber = PhoneUtils::normalizePhoneNumber(properties["Sender"].toString());
+        if (senderNormalizedNumber.isEmpty()) {
+            senderNormalizedNumber = "x-ofono-unknown";
+        }
+
+        oFonoTextChannel *channel = textChannelForMembers(QStringList() << senderNormalizedNumber);
+        if (channel) {
+            //reroute as a normal sms
+            channel->messageReceived(" A mms has been sent from " + senderNormalizedNumber + " but couldn't be retrieved", ensureHandle(senderNormalizedNumber), properties);
+        } else {
+            qCritical() << "Failed to create channel for incoming mms";
+        }
+        return;
+    }
+
+
+
     bool isRoom = false;
     MMSDMessage *msg = new MMSDMessage(path, properties);
     mServiceMMSList[servicePath].append(msg);
