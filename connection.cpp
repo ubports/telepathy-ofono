@@ -790,8 +790,8 @@ Tp::BaseChannelPtr oFonoConnection::createTextChannel(const QVariantMap &request
         }
         // we got the groupId, now lookup the members and subject in the cache
         MMSGroup group = MMSGroupCache::existingGroup(targetId);
-        if (group.groupId.isEmpty() && !initialInviteeIDs.isEmpty()) {
-            // save new group if we have initial invitee ids and no group is found in cache
+        if (group.groupId.isEmpty() && (!initialInviteeIDs.isEmpty() || !phoneNumbers.isEmpty())) {
+            // save new group if we have initial invitees but no group was found in cache
             group.groupId = targetId;
             group.members = phoneNumbers;
             MMSGroupCache::saveGroup(group);
