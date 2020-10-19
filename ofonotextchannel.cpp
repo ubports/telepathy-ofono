@@ -522,8 +522,9 @@ void oFonoTextChannel::mmsReceived(const QString &id, uint handle, const QVarian
 QDateTime oFonoTextChannel::getSentDate(const QString &sentTime){
     QDateTime dt = QDateTime::fromString(sentTime, Qt::ISODate);
     QDateTime currentDate  = QDateTime::currentDateTimeUtc();
-    //some text message may not have the Sentime set, use the received one in that case
-    if (!dt.isValid() || dt > currentDate){
+    // some text message may not have the Sentime set or having a 0 unix timestamp, use the received one in that case
+    // assuming that a sentdate less than four months ago is not a valid date
+    if (!dt.isValid() || dt > currentDate || dt < currentDate.addDays(-120)){
         dt = currentDate;
     }
 
