@@ -256,7 +256,7 @@ ConnectionInterfaceUSSDAdaptor::~ConnectionInterfaceUSSDAdaptor()
 
 void ConnectionInterfaceUSSDAdaptor::Initiate(const QString &command, const QDBusMessage& dbusMessage)
 {
-    if (adaptee()->metaObject()->indexOfMethod("initiate(const QString &,ConnectionInterfaceUSSDAdaptor::InitiateContextPtr)") == -1) {
+    if (adaptee()->metaObject()->indexOfMethod("initiate(QString,ConnectionInterfaceUSSDAdaptor::InitiateContextPtr)") == -1) {
         dbusConnection().send(dbusMessage.createErrorReply(TP_QT_ERROR_NOT_IMPLEMENTED, QLatin1String("Not implemented")));
         return;
     }
