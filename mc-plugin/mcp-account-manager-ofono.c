@@ -34,6 +34,10 @@
 #define PLUGIN_DESCRIPTION "Provide ril modem accounts for telepathy-ofono"
 #define PLUGIN_PROVIDER "im.telepathy.Account.Storage.Ofono"
 
+#define DBUS_PATH_LEN 80
+#define ACCOUNT_NAME_LEN 80
+#define MODEM_NAME_LEN 40
+
 static void account_storage_iface_init(McpAccountStorageIface *iface);
 
 G_DEFINE_TYPE_WITH_CODE (McpAccountManagerOfono, mcp_account_manager_ofono,
@@ -71,13 +75,15 @@ static void mcp_account_manager_ofono_dispose(GObject *object)
 static void mcp_account_manager_ofono_init(McpAccountManagerOfono *self)
 {
     g_debug("MC ril ofono accounts plugin initialized");
-    gchar          *output = NULL;
-    gchar          *output2 = NULL;
     const gchar    *force_num_modems = g_getenv("FORCE_RIL_NUM_MODEMS");
     GError         *error = NULL;
     int            num_modems = 0;
+    GString        *modem_prefix = NULL;
+    GString        *account_prefix = NULL;
     int index;
+    int bytes_needed;
 
+    g_debug("MC ril ofono accounts plugin initializing");
     setlocale(LC_ALL, "");
     self->priv = G_TYPE_INSTANCE_GET_PRIVATE(self, MCP_TYPE_ACCOUNT_MANAGER_OFONO,
             McpAccountManagerOfonoPrivate);
@@ -86,6 +92,9 @@ static void mcp_account_manager_ofono_init(McpAccountManagerOfono *self)
         num_modems = atoi(force_num_modems);
         g_debug("forced number of modems: %d", num_modems);
     } else {
+        gchar          *output = NULL;
+        gchar          *output2 = NULL;
+
         if (!g_file_test ("/usr/bin/getprop", G_FILE_TEST_IS_EXECUTABLE)) {
             return;
         }
@@ -94,6 +103,7 @@ static void mcp_account_manager_ofono_init(McpAccountManagerOfono *self)
                                         &error)) {
             g_debug("%s", error->message);
             g_error_free (error);
+            g_free(output);
             return;
         }
 
@@ -105,11 +115,16 @@ static void mcp_account_manager_ofono_init(McpAccountManagerOfono *self)
                                        &error);
             num_modems = atoi(output2);
         }
+        g_free(output);
+        g_free(output2);
     }
 
     GHashTable *sim_names = g_hash_table_new(g_str_hash, g_str_equal);
-    char dbus_path[80] = {0};
-    sprintf(dbus_path, "/org/freedesktop/Accounts/User%d", getuid());
+    gchar dbus_path[DBUS_PATH_LEN] = {0};
+    bytes_needed = g_snprintf(dbus_path, DBUS_PATH_LEN, "/org/freedesktop/Accounts/User%d", getuid());
+    if (bytes_needed > DBUS_PATH_LEN) {
+        g_error("D-Bus path '/org/freedesktop/Accounts/User%d' was too long.", getuid());
+    }
     GError *bus_error = NULL;
     GDBusConnection *bus = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &bus_error);
     if (bus_error) {
@@ -150,13 +165,30 @@ static void mcp_account_manager_ofono_init(McpAccountManagerOfono *self)
         g_object_unref(bus);
     }
 
+    modem_prefix = g_string_new(g_getenv("MCP_OFONO_MODEM_PREFIX"));
+    if (modem_prefix->len == 0) {
+        g_string_append(modem_prefix, "ril_");
+    }
+    account_prefix = g_string_new(g_getenv("MCP_OFONO_ACCOUNT_PREFIX"));
+    if (account_prefix->len == 0) {
+        g_string_append(account_prefix, "account");
+    }
+
     for (index = 0; index < num_modems; index++) {
         OfonoAccount *account = (OfonoAccount*)malloc(sizeof(OfonoAccount));
-        char account_name[30] = {0};
-        char ril_modem[10] = {0};
+        gchar account_name[ACCOUNT_NAME_LEN] = {0};
+        gchar modem_name[MODEM_NAME_LEN] = {0};
+
+        bytes_needed = g_snprintf(account_name, ACCOUNT_NAME_LEN, "ofono/ofono/%s%d", account_prefix->str, index);
+        if (bytes_needed > ACCOUNT_NAME_LEN) {
+            g_error("Account name 'ofono/ofono/%s%d' was too long.", account_prefix->str, index);
+        }
+        bytes_needed = g_snprintf(modem_name, MODEM_NAME_LEN, "/%s%d", modem_prefix->str, index);
+        if (bytes_needed > MODEM_NAME_LEN) {
+            g_error("Modem name '/%s%d' was too long.", modem_prefix->str, index);
+        }
+
         account->index = index;
-        sprintf(account_name, "ofono/ofono/account%d", index);
-        sprintf(ril_modem, "/ril_%d", index);
         account->params = g_hash_table_new(g_str_hash, g_str_equal);
         account->account_name = g_strdup(account_name);
         g_hash_table_insert(account->params, g_strdup("manager"), g_strdup("ofono"));
@@ -164,13 +196,13 @@ static void mcp_account_manager_ofono_init(McpAccountManagerOfono *self)
         g_hash_table_insert(account->params, g_strdup("Enabled"), g_strdup("true"));
         g_hash_table_insert(account->params, g_strdup("ConnectAutomatically"), g_strdup("true"));
         g_hash_table_insert(account->params, g_strdup("always_dispatch"), g_strdup("true"));
-        g_hash_table_insert(account->params, g_strdup("param-modem-objpath"), g_strdup(ril_modem));
+        g_hash_table_insert(account->params, g_strdup("param-modem-objpath"), g_strdup(modem_name));
 
         GHashTableIter iter;
         gpointer key, value;
         g_hash_table_iter_init(&iter, sim_names);
         while (g_hash_table_iter_next(&iter, &key, &value)) {
-            if (!strcmp((char *)key, ril_modem)) {
+            if (!strcmp((char *)key, modem_name)) {
                 g_hash_table_insert(account->params, g_strdup("DisplayName"), g_strdup((char*)value));
                 break;
             }
@@ -178,16 +210,10 @@ static void mcp_account_manager_ofono_init(McpAccountManagerOfono *self)
 
         self->priv->accounts = g_list_append(self->priv->accounts, account);
     }
+    g_string_free(modem_prefix, TRUE);
+    g_string_free(account_prefix, TRUE);
 
     g_hash_table_unref(sim_names);
-
-    if (output) {
-        g_free(output);
-    }
-
-    if (output2) {
-      g_free (output2);
-    }
 }
 
 static void mcp_account_manager_ofono_class_init(McpAccountManagerOfonoClass *klass)
