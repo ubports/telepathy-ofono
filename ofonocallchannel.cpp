@@ -120,7 +120,11 @@ void oFonoCallChannel::onHangup(uint reason, const QString &detailedReason, cons
 {
     // TODO: use the parameters sent by telepathy
     mRequestedHangup = true;
-    hangup();
+    if (mHoldIface->getHoldState() == Tp::LocalHoldStateHeld ||
+        mHoldIface->getHoldState() == Tp::LocalHoldStatePendingHold)
+        mConnection->voiceCallManager()->releaseAndSwap();
+    else
+        hangup();
 }
 
 void oFonoCallChannel::onAccept(Tp::DBusError*)

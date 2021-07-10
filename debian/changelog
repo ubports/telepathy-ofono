@@ -1,3 +1,10 @@
+telepathy-ofono (0.3+ubports2) xenial; urgency=medium
+
+  [ José Pekkarinen ]
+  * Auto swap calls when hanging up a call while holding.
+
+ -- José Pekkarinen <jose.pekkarinen@foxhound.fi>  Sat, 10 Jul 2021 14:03:13 +0000
+
 telepathy-ofono (0.3+ubports1) xenial; urgency=medium
 
   * sms/mms: use the received date when no sent date available
