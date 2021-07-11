@@ -178,11 +178,6 @@ manager_proxy_signal_cb (GDBusProxy *proxy,
       g_variant_get (parameters, "(&o@a{sv})", &path, NULL);
       add_modem (self, path);
     }
-  else if (g_str_equal (signal_name, "ModemRemoved"))
-    {
-      g_variant_get (parameters, "(&o)", &path);
-      remove_modem (self, path);
-    }
 }
 
 static void
