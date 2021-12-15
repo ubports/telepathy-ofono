@@ -479,13 +479,32 @@ void oFonoTextChannel::mmsReceived(const QString &id, uint handle, const QVarian
     Tp::MessagePart header;
     header["message-token"] = QDBusVariant(id);
     header["message-sender"] = QDBusVariant(handle);
-    header["message-received"] = QDBusVariant(QDateTime::currentDateTimeUtc().toTime_t());
+    if (properties["Received"].isNull() == false && properties["Received"].toUInt() > 0) {
+      header["message-received"] = QDBusVariant(properties["Received"].toUInt());
+    } else {
+      header["message-received"] = QDBusVariant(QDateTime::currentDateTimeUtc().toTime_t());
+    }
     header["message-sent"] = QDBusVariant(getSentDate(properties["Date"].toString()).toTime_t());
-    header["message-type"] = QDBusVariant(Tp::DeliveryStatusDelivered);
+    header["message-type"] = QDBusVariant(Tp::ChannelTextMessageTypeNormal);
     header["x-canonical-mms"] = QDBusVariant(true);
-    if (!subject.isEmpty())
-    {
+    if (!subject.isEmpty()) {
         header["subject"] = QDBusVariant(subject);
+    }
+    if (properties["Rescued"].isNull() == false && properties["Rescued"].toBool() == true) {
+      header["rescued"] = QDBusVariant(true);
+    }
+    if (properties["Silent"].isNull() == false && properties["Silent"].toBool() == true) {
+      header["silent"] = QDBusVariant(true);
+    }
+    if (properties["Error"].isNull() == false) {
+        header["delivery-status"] = QDBusVariant(Tp::DeliveryStatusPermanentlyFailed);
+        if (properties["AllowRedownload"].toBool() == true) {
+            header["delivery-status"] = QDBusVariant(Tp::DeliveryStatusTemporarilyFailed);
+        }
+        header["delivery-error-message"] = QDBusVariant(properties["Error"].toString());
+    }
+    if (!properties["DeleteEvent"].toString().isEmpty()) {
+        header["supersedes"] = QDBusVariant(properties["DeleteEvent"].toString());
     }
     message << header;
     IncomingAttachmentList mmsdAttachments = qdbus_cast<IncomingAttachmentList>(properties["Attachments"]);
