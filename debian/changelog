@@ -1,3 +1,9 @@
+telepathy-ofono (0.3.1) xenial; urgency=medium
+
+  * Bump the version to fix installation issues.
+
+ -- Rodney Dawes <dobey@ubports.com>  Thu, 30 Dec 2021 15:45:19 -0500
+
 telepathy-ofono (0.3+ubports1) xenial; urgency=medium
 
   * sms/mms: use the received date when no sent date available
