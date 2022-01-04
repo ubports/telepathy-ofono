@@ -1,3 +1,11 @@
+telepathy-ofono (0.3.2) xenial; urgency=medium
+
+  * Use Received, Rescued, Silent, Error and DeleteEvent properties for
+    received MMS messages.
+  * Fix MMS message type for received MMS messages.
+
+ -- jEzEk <jezek@chicki.sk>  Tue, 11 Jan 2022 17:48:19 +0200
+
 telepathy-ofono (0.3.1) xenial; urgency=medium
 
   * Bump the version to fix installation issues.
